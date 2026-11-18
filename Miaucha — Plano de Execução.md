@@ -192,7 +192,7 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 | MP-07 | S2 | Teste unitário: distância entre ponto real e público fica entre 50 e 200 m |
 | MP-08 | S3 | Teste manual em modo avião |
 | NF-01 | S1, S6 | Checklist LGPD revisado pelo grupo |
-| NF-02 | S1 | Teste de integração: cadastro, verificação de e-mail, login com senha e com Google (token mockado). ✅ Passando na API (`apps/api/test/auth-*.test.ts`); falta ligar o app (passo 3) |
+| NF-02 | S1 | Teste de integração: cadastro, verificação de e-mail, login com senha e com Google (token mockado). ✅ Passando na API (`apps/api/test/auth-*.test.ts`); app ligado à API por e-mail e senha (`httpAuthClient.test.ts`); falta o Google no app |
 | NF-03 | S2 | Teste unitário do job de expiração |
 | NF-04 | S2, S4 | Teste de integração: excesso de requisições retorna 429. Rotas `/auth` cobertas (`apps/api/test/rate-limit.test.ts`); faltam criação de ocorrência e chat |
 | NF-05 | S1 | Verificação de que não há URL pública de foto |
