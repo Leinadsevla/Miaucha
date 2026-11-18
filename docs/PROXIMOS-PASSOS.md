@@ -94,6 +94,15 @@ E-mail e senha feitos: o app usa a API quando `EXPO_PUBLIC_API_URL` está defini
 
 Depois disso a S1 fecha e começa a S2 (ocorrências e `local_publico` com deslocamento de ~150 m).
 
+## Banco no Supabase (`chore/supabase-db`)
+
+O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os testes continuam usando Testcontainers (nunca tocam no Supabase).
+
+- [x] Migração `002_row_level_security.sql`: RLS em todas as tabelas, para a Data API do Supabase não expor `users` (e-mail, hash de senha) à chave `anon`.
+- [ ] Preencher `apps/api/.env` com a URL do **Session pooler** (a conexão direta é só IPv6) e baixar o certificado SSL para `apps/api/certs/supabase-ca.crt`.
+- [ ] Rodar `pnpm dev` na `apps/api` uma vez para aplicar as migrações no Supabase e conferir no painel (Table Editor) que as tabelas aparecem com RLS ligado.
+- [ ] Se ninguém for usar o `supabase-js`, desligar a Data API em Project Settings → Data API (segunda camada de proteção).
+
 ## Decisões em aberto
 
 | Decisão | Quem | Impacto |
@@ -101,7 +110,7 @@ Depois disso a S1 fecha e começa a S2 (ocorrências e `local_publico` com deslo
 | Prazo final e tamanho do time | Grupo | Pode encolher as sprints |
 | Cidade de lançamento | Grupo | Seed de dados e teste de campo |
 | Provedor de e-mail para o código (Resend, SMTP gratuito...) | Backend | Antes de testar com usuários reais (a API já tem a interface `Mailer`) |
-| Storage das fotos (Cloudflare R2 ou Supabase Storage) | Backend | Necessário no passo 4 |
+| Storage das fotos (Cloudflare R2 ou Supabase Storage; o banco já está no Supabase) | Backend | Necessário no passo 4 |
 | Hospedagem da API (Railway ou Render) | Full stack | Antes da S6 |
 | Conta Google Cloud para os client IDs | Quem cuidar do login | Necessário no passo 3 |
 

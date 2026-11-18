@@ -21,8 +21,8 @@ describe("runMigrations", () => {
       expect.arrayContaining(["email_codes", "refresh_tokens", "schema_migrations", "users"]),
     );
 
-    const applied = await pool.query("select name from schema_migrations");
-    expect(applied.rows).toEqual([{ name: "001_auth.sql" }]);
+    const applied = await pool.query("select name from schema_migrations order by name");
+    expect(applied.rows.map((r) => r.name)).toEqual(["001_auth.sql", "002_row_level_security.sql"]);
   });
 
   it("ativa o PostGIS (necessário a partir da S2)", async () => {
