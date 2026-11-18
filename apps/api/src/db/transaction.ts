@@ -1,0 +1,20 @@
+import type { Pool, PoolClient } from "pg";
+
+export async function transaction<T>(pool: Pool, work: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    const result = await work(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: string })?.code === "23505";
+}
