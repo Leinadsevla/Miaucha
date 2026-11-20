@@ -40,3 +40,23 @@ describe("rate limit na criação de pets (NF-04)", () => {
     await ctx.http.post("/pets").set(auth).send({ name: "Mais um", species: "cat" }).expect(429);
   });
 });
+
+describe("rate limit na criação de ocorrências (NF-04)", () => {
+  let app: TestContext;
+
+  beforeAll(async () => {
+    app = await createTestApp({ throttle: { ttlMs: 60_000, limit: 3 } });
+  });
+
+  afterAll(() => closeTestApp(app));
+
+  it("POST /occurrences: passou do limite → 429; a busca não tem limite", async () => {
+    const { body } = await signUpVerified(app);
+    const auth = { Authorization: `Bearer ${body.accessToken}` };
+    const occurrence = { type: "seen", species: "dog", lat: -10.5, lng: 20.25 };
+    for (let i = 0; i < 3; i++) await app.http.post("/occurrences").set(auth).send(occurrence).expect(201);
+    const res = await app.http.post("/occurrences").set(auth).send(occurrence).expect(429);
+    expect(res.body.message).toBe("Muitas tentativas. Espere um pouco e tente de novo.");
+    for (let i = 0; i < 5; i++) await app.http.get("/occurrences").query({ lat: -10.5, lng: 20.25 }).set(auth).expect(200);
+  });
+});

@@ -1,0 +1,167 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { AlertTriangle, Plus } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, type PublicOccurrence } from "@miaucha/shared";
+import { PetCard, PrimaryButton } from "@/components";
+import type { GetLocation, LocationResult } from "@/features/location/currentLocation";
+import { LocationProblem } from "@/features/location/LocationProblem";
+import type { OccurrencesClient } from "./occurrencesClient";
+
+export const HOME_RADIUS_KM = 5;
+
+type State =
+  | { status: "loading" }
+  | { status: "location"; result: Exclude<LocationResult, { status: "ok" }> }
+  | { status: "error"; message: string }
+  | { status: "ready"; occurrences: PublicOccurrence[] };
+
+type Props = {
+  userName: string;
+  getLocation: GetLocation;
+  client: OccurrencesClient;
+  onOpen: (id: string) => void;
+  onRegister: () => void;
+  onOpenSettings: () => void;
+  /** Mude o valor para recarregar sem mostrar "carregando" (ex.: ao voltar para a aba). */
+  refreshSignal?: number;
+  now?: Date;
+};
+
+export function lostNearbyLabel(count: number): string {
+  if (count === 0) return "Nenhum pet perdido por perto";
+  return count === 1 ? "1 pet perdido próximo" : `${count} pets perdidos próximos`;
+}
+
+/** Aba Início: pets perdidos, avistados e encontrados num raio de 5 km da localização atual. */
+export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, onOpenSettings, refreshSignal, now }: Props) {
+  const insets = useSafeAreaInsets();
+  const [state, setState] = useState<State>({ status: "loading" });
+  const [refreshing, setRefreshing] = useState(false);
+  // Só a resposta do pedido mais recente vale (evita uma busca antiga sobrescrever uma nova).
+  const latest = useRef(0);
+
+  const load = useCallback(
+    async (mode: "full" | "refresh" | "silent") => {
+      const request = ++latest.current;
+      if (mode === "full") setState({ status: "loading" });
+      if (mode === "refresh") setRefreshing(true);
+      let next: State;
+      try {
+        const location = await getLocation();
+        if (location.status !== "ok") {
+          next = { status: "location", result: location };
+        } else {
+          const occurrences = await client.nearby({ ...location.coords, radiusKm: HOME_RADIUS_KM });
+          next = { status: "ready", occurrences };
+        }
+      } catch (e) {
+        next = { status: "error", message: e instanceof Error ? e.message : "Não foi possível carregar os pets próximos" };
+      }
+      if (request !== latest.current) return;
+      setState(next);
+      setRefreshing(false);
+    },
+    [client, getLocation],
+  );
+
+  useEffect(() => {
+    void load("full");
+  }, [load]);
+
+  const firstSignal = useRef(refreshSignal);
+  useEffect(() => {
+    if (refreshSignal === firstSignal.current) return;
+    void load("silent");
+  }, [refreshSignal, load]);
+
+  const firstName = userName.trim().split(/\s+/)[0];
+
+  return (
+    <View className="flex-1 bg-background">
+      <ScrollView
+        testID="home-scroll"
+        contentContainerStyle={{ paddingBottom: 96 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
+      >
+        <View className="bg-primary px-5 pb-6" style={{ paddingTop: insets.top + 20 }}>
+          {firstName ? <Text className="font-nunito-semibold text-xs text-white/70">Olá, {firstName}</Text> : null}
+          <Text accessibilityRole="header" className="font-nunito-black text-lg text-white">
+            Encontre pets perto de você
+          </Text>
+        </View>
+
+        <View className="gap-4 px-5 pt-4">
+          {state.status === "loading" ? (
+            <View className="items-center gap-3 py-10">
+              <ActivityIndicator color={colors.primary} />
+              <Text className="font-sans text-sm text-muted-foreground">Procurando pets perto de você...</Text>
+            </View>
+          ) : state.status === "location" ? (
+            <LocationProblem
+              result={state.result}
+              purpose="mostrar os pets perto de você"
+              onRetry={() => void load("full")}
+              onOpenSettings={onOpenSettings}
+            />
+          ) : state.status === "error" ? (
+            <View className="items-center gap-3 rounded-3xl border border-border bg-card p-5">
+              <Text className="text-center font-sans text-sm text-lost">{state.message}</Text>
+              <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void load("full")} />
+            </View>
+          ) : (
+            <NearbyList occurrences={state.occurrences} now={now} onOpen={onOpen} />
+          )}
+        </View>
+      </ScrollView>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Registrar pet perdido"
+        onPress={onRegister}
+        className="absolute bottom-4 right-5 flex-row items-center gap-2 rounded-2xl bg-accent px-4 py-3 shadow-lg active:opacity-90"
+      >
+        <Plus size={18} color={colors.white} />
+        <Text className="font-nunito-bold text-sm text-white">Registrar pet perdido</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function NearbyList({ occurrences, now, onOpen }: { occurrences: PublicOccurrence[]; now?: Date; onOpen: (id: string) => void }) {
+  const lost = occurrences.filter((o) => o.type === "lost").length;
+  return (
+    <>
+      <View
+        className="flex-row items-center gap-3 rounded-2xl border p-3"
+        style={{ backgroundColor: `${colors.seen}14`, borderColor: `${colors.seen}55` }}
+      >
+        <View className="h-8 w-8 items-center justify-center rounded-xl bg-seen">
+          <AlertTriangle size={15} color={colors.white} />
+        </View>
+        <View className="flex-1">
+          <Text className="font-nunito-bold text-xs text-foreground">{lostNearbyLabel(lost)}</Text>
+          <Text className="font-sans text-xs text-muted-foreground">Raio de {HOME_RADIUS_KM} km</Text>
+        </View>
+      </View>
+
+      <View>
+        <Text className="mb-3 font-nunito-bold text-sm text-foreground">Pets próximos</Text>
+        {occurrences.length === 0 ? (
+          <View className="items-center rounded-3xl border border-border bg-card p-5">
+            <Text className="text-center font-sans text-sm text-muted-foreground">Nenhuma ocorrência num raio de {HOME_RADIUS_KM} km.</Text>
+          </View>
+        ) : (
+          <FlatList
+            horizontal
+            data={occurrences}
+            keyExtractor={(o) => o.id}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 12, paddingBottom: 8 }}
+            renderItem={({ item }) => <PetCard occurrence={item} now={now} onPress={() => onOpen(item.id)} />}
+          />
+        )}
+      </View>
+    </>
+  );
+}

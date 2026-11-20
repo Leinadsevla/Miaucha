@@ -70,6 +70,8 @@ describe("PetCard (MP-04)", () => {
     publicLocation: { lat: -23.56, lng: -46.65 },
     approxAddress: "Bela Vista",
     authorPseudonym: "Tutor Laranja 42",
+    status: "open" as const,
+    isMine: false,
     createdAt: "2026-11-17T13:00:00Z",
   };
 
@@ -81,6 +83,11 @@ describe("PetCard (MP-04)", () => {
     expect(screen.getByText("Bela Vista")).toBeOnTheScreen();
     expect(screen.getByText("2h atrás")).toBeOnTheScreen();
     expect(screen.getByText("Perdido")).toBeOnTheScreen();
+  });
+
+  it("sem a prop, usa a distância que veio da busca por raio", async () => {
+    await render(<PetCard occurrence={{ ...occurrence, distanceMeters: 1250 }} now={now} onPress={() => {}} />);
+    expect(screen.getByText("1,3 km")).toBeOnTheScreen();
   });
 
   it("pet sem nome aparece como 'Sem nome'", async () => {

@@ -254,6 +254,21 @@ describe("editar pet", () => {
     await addPhoto(t, pet.id);
   });
 
+  it("foto também usada por uma ocorrência criada a partir do pet: some do pet, mas o arquivo continua", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const photo = (await addPhoto(t, pet.id)).body;
+    const occurrence = (
+      await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", species: "dog", petName: "Thor", lat: -22.9, lng: -43.2, petId: pet.id }).expect(201)
+    ).body;
+
+    await ctx.http.delete(`/pets/${pet.id}/photos/${photo.id}`).set(t.auth).expect(204);
+
+    const detail = await ctx.http.get(`/occurrences/${occurrence.id}`).set(t.auth).expect(200);
+    expect(detail.body.photoUrls).toHaveLength(1);
+    expect((await fetch(detail.body.photoUrls[0])).status).toBe(200);
+  });
+
   it("apagar foto de pet de outra pessoa → 404", async () => {
     const ana = await tutor();
     const bia = await tutor();

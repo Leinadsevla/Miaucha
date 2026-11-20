@@ -102,12 +102,12 @@ Cada sprint termina com uma demo no celular e só é considerada pronta quando c
 
 ### S2 · Ocorrências (semanas 3–4)
 
-- [ ] Criar ocorrência (perdido, avistado, encontrado) com fotos e ponto no mapa
-- [ ] Gerar `local_publico` com deslocamento de cerca de 150 m (MP-07)
-- [ ] Endpoints de busca por bbox e por raio com índice GiST (MP-02)
-- [ ] Job diário que expira ocorrências sem atualização em 30 dias (NF-03)
-- [ ] Marcar ocorrência como resolvida
-- [ ] Rate limit nas rotas de criação (NF-04)
+- [x] Criar ocorrência (perdido, avistado, encontrado) com fotos e ponto no mapa (o ponto vem da localização atual; ajustar o pin no mapa fica para a S3)
+- [x] Gerar `local_publico` com deslocamento de cerca de 150 m (MP-07)
+- [x] Endpoints de busca por bbox e por raio com índice GiST (MP-02)
+- [ ] Job diário que expira ocorrências sem atualização em 30 dias (NF-03) — a regra já vale nas buscas; falta o job
+- [x] Marcar ocorrência como resolvida
+- [x] Rate limit nas rotas de criação (NF-04)
 
 ### S3 · Mapa interativo (semanas 5–6)
 
@@ -186,15 +186,15 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 | AL-06 | S5 | Inspeção do banco: só geohash, sem coordenada exata |
 | AL-08 | S5 | Teste manual tocando no push |
 | MP-01, MP-04, MP-05 | S3 | Teste de componente e revisão visual |
-| MP-02 | S2, S3 | Teste de carga com 5 mil ocorrências; resposta abaixo de 300 ms |
+| MP-02 | S2, S3 | Teste de carga com 5 mil ocorrências; resposta abaixo de 300 ms. 🟡 Parcial: busca por raio e bbox pela localização pública com índice GiST e teste de integração com 5 mil ocorrências abaixo de 300 ms (`apps/api/test/occurrences.test.ts`); falta o k6 e o mapa (S3) |
 | MP-03 | S3 | Teste visual com pontos agrupados em vários níveis de zoom |
 | MP-06 | S3 | Teste manual no Android e no iOS |
-| MP-07 | S2 | Teste unitário: distância entre ponto real e público fica entre 50 e 200 m |
+| MP-07 | S2 | Teste unitário: distância entre ponto real e público fica entre 50 e 200 m. ✅ `packages/shared/src/__tests__/geo.test.ts` (2 mil sorteios) e, na API, ponto público entre 50 e 200 m e nenhuma resposta com a coordenada exata (`apps/api/test/occurrences.test.ts`) |
 | MP-08 | S3 | Teste manual em modo avião |
 | NF-01 | S1, S6 | Checklist LGPD revisado pelo grupo |
 | NF-02 | S1 | Teste de integração: cadastro, verificação de e-mail, login com senha e com Google (token mockado). ✅ Passando na API (`apps/api/test/auth-*.test.ts`); app ligado à API por e-mail e senha (`httpAuthClient.test.ts`); falta o Google no app |
-| NF-03 | S2 | Teste unitário do job de expiração |
-| NF-04 | S2, S4 | Teste de integração: excesso de requisições retorna 429. Rotas `/auth` cobertas (`apps/api/test/rate-limit.test.ts`); faltam criação de ocorrência e chat |
+| NF-03 | S2 | Teste unitário do job de expiração. ✅ Regra pura testada (`packages/shared/src/__tests__/occurrences.test.ts`) e aplicada na consulta: expirada some da busca (`apps/api/test/occurrences.test.ts`); o job diário ainda não existe |
+| NF-04 | S2, S4 | Teste de integração: excesso de requisições retorna 429. Rotas `/auth`, criação de pet e criação de ocorrência cobertas (`apps/api/test/rate-limit.test.ts`); falta o chat |
 | NF-05 | S1 | Verificação de que não há URL pública de foto. ✅ Fotos de pets: acesso sem assinatura recusado e toda URL devolvida é assinada (`apps/api/test/pets.test.ts`, `photo-storage.test.ts`); HTTPS/WSS em produção ainda a conferir |
 | NF-06 | S6 | Teste em aparelhos Android 10 e iOS 15 ou emuladores |
 

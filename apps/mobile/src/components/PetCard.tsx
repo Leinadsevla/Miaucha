@@ -12,7 +12,7 @@ type Props = {
   onPress: () => void;
 };
 
-export function PetCard({ occurrence: o, distanceMeters, now = new Date(), onPress }: Props) {
+export function PetCard({ occurrence: o, distanceMeters = o.distanceMeters, now = new Date(), onPress }: Props) {
   const name = o.petName ?? "Sem nome";
   return (
     <Pressable

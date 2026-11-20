@@ -1,19 +1,9 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { MAX_PET_PHOTOS, MAX_PHOTO_BYTES, isAllowedPhotoType, validatePet, type MyPet, type PetInput } from "@miaucha/shared";
-import { randomUUID } from "node:crypto";
+import { MAX_PET_PHOTOS, validatePet, type MyPet, type PetInput } from "@miaucha/shared";
 import type { Pool } from "pg";
-import { transaction } from "../db/transaction";
-import { SIGNATURE_BYTES, detectImageType } from "../storage/image-signature";
 import type { PhotoStorage } from "../storage/photo-storage";
+import { PhotoUploads, UUID_RE } from "../storage/photo-uploads";
 import { PG_POOL, PHOTO_STORAGE } from "../tokens";
-
-export const UPLOAD_URL_TTL_SECONDS = 300;
-export const DOWNLOAD_URL_TTL_SECONDS = 3600;
-/** Pedidos de upload ainda não confirmados contam no limite de fotos só durante esta janela. */
-const PENDING_UPLOAD_WINDOW_MINUTES = 10;
-
-const EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PetRow = { id: string; name: string; species: MyPet["species"]; breed: string | null; color: string | null; approx_age: string | null };
 
@@ -27,10 +17,23 @@ const optional = (value: string) => value.trim() || null;
 
 @Injectable()
 export class PetsService {
+  private readonly photos: PhotoUploads;
+
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
     @Inject(PHOTO_STORAGE) private readonly storage: PhotoStorage,
-  ) {}
+  ) {
+    this.photos = new PhotoUploads(pool, storage, {
+      photosTable: "pet_photos",
+      parentTable: "pets",
+      parentColumn: "pet_id",
+      ownerColumn: "owner_id",
+      keyPrefix: "pets",
+      maxPhotos: MAX_PET_PHOTOS,
+      tooManyMessage: `Cada pet pode ter até ${MAX_PET_PHOTOS} fotos`,
+      notFound,
+    });
+  }
 
   async create(ownerId: string, input: PetInput): Promise<MyPet> {
     assertValid(input);
@@ -82,77 +85,26 @@ export class PetsService {
     return this.findMine(ownerId, petId);
   }
 
+  /** Remove a foto do pet. O arquivo só sai do storage se nenhuma ocorrência criada a partir do pet ainda o usa. */
   async removePhoto(ownerId: string, petId: string, photoId: string): Promise<void> {
     if (!UUID_RE.test(petId) || !UUID_RE.test(photoId)) throw notFound();
-    const { rows } = await this.pool.query<{ object_key: string }>(
+    const { rows } = await this.pool.query<{ object_key: string; shared: boolean }>(
       `delete from pet_photos ph using pets p
         where ph.id = $1 and ph.pet_id = p.id and p.id = $2 and p.owner_id = $3
-        returning ph.object_key`,
+        returning ph.object_key,
+                  exists (select 1 from occurrence_photos op where op.object_key = ph.object_key) as shared`,
       [photoId, petId, ownerId],
     );
     if (!rows[0]) throw notFound();
-    await this.storage.delete(rows[0].object_key);
+    if (!rows[0].shared) await this.storage.delete(rows[0].object_key);
   }
 
-  async requestUpload(ownerId: string, petId: string, contentType: string) {
-    if (!UUID_RE.test(petId)) throw notFound();
-    if (!isAllowedPhotoType(contentType)) throw new BadRequestException("Envie uma foto JPG, PNG ou WebP");
-
-    const photoId = randomUUID();
-    const objectKey = `pets/${petId}/${photoId}.${EXTENSIONS[contentType]}`;
-    await transaction(this.pool, async (client) => {
-      // `for update` serializa pedidos simultâneos para o mesmo pet (limite de fotos).
-      const pet = await client.query("select id from pets where id = $1 and owner_id = $2 for update", [petId, ownerId]);
-      if (pet.rowCount === 0) throw notFound();
-      const { rows } = await client.query<{ n: number }>(
-        `select count(*)::int as n from pet_photos
-          where pet_id = $1 and (uploaded_at is not null or created_at > now() - make_interval(mins => $2))`,
-        [petId, PENDING_UPLOAD_WINDOW_MINUTES],
-      );
-      if (rows[0].n >= MAX_PET_PHOTOS) throw new BadRequestException(`Cada pet pode ter até ${MAX_PET_PHOTOS} fotos`);
-      await client.query("insert into pet_photos (id, pet_id, object_key, content_type) values ($1, $2, $3, $4)", [
-        photoId,
-        petId,
-        objectKey,
-        contentType,
-      ]);
-    });
-
-    const uploadUrl = await this.storage.presignUpload(objectKey, contentType, UPLOAD_URL_TTL_SECONDS);
-    return { photoId, uploadUrl, expiresInSeconds: UPLOAD_URL_TTL_SECONDS };
+  requestUpload(ownerId: string, petId: string, contentType: string) {
+    return this.photos.requestUpload(ownerId, petId, contentType);
   }
 
-  /** Confere no storage o que o aparelho enviou: a URL de PUT não limita o tamanho, então o limite é aplicado aqui. */
-  async confirmUpload(ownerId: string, petId: string, photoId: string): Promise<{ id: string; url: string }> {
-    if (!UUID_RE.test(petId) || !UUID_RE.test(photoId)) throw notFound();
-    const { rows } = await this.pool.query<{ object_key: string; content_type: string; uploaded: boolean }>(
-      `select ph.object_key, ph.content_type, ph.uploaded_at is not null as uploaded
-         from pet_photos ph join pets p on p.id = ph.pet_id
-        where ph.id = $1 and p.id = $2 and p.owner_id = $3`,
-      [photoId, petId, ownerId],
-    );
-    const photo = rows[0];
-    if (!photo) throw notFound();
-    if (!photo.uploaded) {
-      const stored = await this.storage.stat(photo.object_key);
-      if (!stored) throw new BadRequestException("A foto ainda não foi enviada");
-      const problem =
-        stored.size > MAX_PHOTO_BYTES
-          ? "A foto passa de 10 MB"
-          : stored.contentType !== photo.content_type
-            ? "Envie uma foto JPG, PNG ou WebP"
-            : // O Content-Type é declarado pelo cliente; o conteúdo precisa ser mesmo uma imagem desse formato.
-              detectImageType(await this.storage.readHead(photo.object_key, SIGNATURE_BYTES)) !== photo.content_type
-              ? "O arquivo enviado não é uma imagem válida"
-              : null;
-      if (problem) {
-        await this.storage.delete(photo.object_key);
-        await this.pool.query("delete from pet_photos where id = $1", [photoId]);
-        throw new BadRequestException(problem);
-      }
-      await this.pool.query("update pet_photos set uploaded_at = now() where id = $1", [photoId]);
-    }
-    return { id: photoId, url: await this.storage.presignDownload(photo.object_key, DOWNLOAD_URL_TTL_SECONDS) };
+  confirmUpload(ownerId: string, petId: string, photoId: string) {
+    return this.photos.confirmUpload(ownerId, petId, photoId);
   }
 
   private async toView(pet: PetRow, photos: { id: string; object_key: string }[]): Promise<MyPet> {
@@ -163,9 +115,7 @@ export class PetsService {
       breed: pet.breed,
       color: pet.color,
       approxAge: pet.approx_age,
-      photos: await Promise.all(
-        photos.map(async (ph) => ({ id: ph.id, url: await this.storage.presignDownload(ph.object_key, DOWNLOAD_URL_TTL_SECONDS) })),
-      ),
+      photos: await Promise.all(photos.map(async (ph) => ({ id: ph.id, url: await this.photos.signedUrl(ph.object_key) }))),
     };
   }
 }
