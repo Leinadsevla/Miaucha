@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, type PetInput } from "@miaucha/shared";
+import { KeyboardScreen } from "@/components";
 import { PetForm, createPhotoPicker, savePet, usePetsClient, type PickedPhoto } from "@/features/pets";
 
 const pickPhotos = createPhotoPicker();
@@ -46,9 +47,9 @@ export default function NewPet() {
           <Text className="font-sans text-xs text-muted-foreground">Preencha os dados do seu pet</Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled">
+      <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <PetForm onSubmit={save} onPickPhotos={pickPhotos} loading={busy} serverError={error} />
-      </ScrollView>
+      </KeyboardScreen>
     </View>
   );
 }
