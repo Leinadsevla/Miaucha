@@ -5,3 +5,4 @@ export * from "./types";
 export * from "./pets";
 export * from "./geo";
 export * from "./occurrences";
+export * from "./chat";
