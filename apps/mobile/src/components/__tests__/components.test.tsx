@@ -70,6 +70,8 @@ describe("PetCard (MP-04)", () => {
     publicLocation: { lat: -23.56, lng: -46.65 },
     approxAddress: "Bela Vista",
     authorPseudonym: "Tutor Laranja 42",
+    status: "open" as const,
+    isMine: false,
     createdAt: "2026-11-17T13:00:00Z",
   };
 
