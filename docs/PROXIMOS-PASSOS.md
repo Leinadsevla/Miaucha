@@ -15,10 +15,10 @@ Sprint 1 (Fundação), parte do app pronta:
 | Docker Compose (PostGIS + Redis) | Falta |
 | CI no GitHub Actions | Falta |
 | Login real (API + Google) | E-mail e senha prontos de ponta a ponta; Google falta no app (precisa dos client IDs e do development build) |
-| Cadastro de pet com fotos (NF-05) | Falta |
+| Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 189 passando (32 no shared, 91 no app, 66 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 244 passando (37 no shared, 117 no app, 90 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
 
 ## Ordem sugerida
 
@@ -89,8 +89,21 @@ E-mail e senha feitos: o app usa a API quando `EXPO_PUBLIC_API_URL` está defini
 
 ### 4. Cadastro de pet com fotos (`feat/pets`)
 
+Feito no código (API e app), testado contra Postgres e storage S3 reais. Fluxo: `POST /pets` → `POST /pets/:id/photos` devolve URL assinada de PUT (5 min) → o app envia a foto direto ao storage → `POST /pets/:id/photos/:photoId/confirm` confere tamanho (até 10 MB) e tipo → `GET /me/pets` devolve as fotos com URL assinada de 1 h. Uma foto que falha não desfaz o cadastro do pet.
+
+- [ ] **Configurar o Supabase Storage:** criar o bucket `pet-photos` **privado** e gerar as chaves S3 (Storage → Settings → S3 Connection). Preencher `STORAGE_ACCESS_KEY_ID` e `STORAGE_SECRET_ACCESS_KEY` em `apps/api/.env` e conferir endpoint e região. Sem isso a API não sobe.
+- [ ] Rodar `pnpm dev` na API para aplicar a migração `003_pets.sql` no Supabase.
+- [ ] Testar num aparelho (Expo Go): escolher fotos na galeria e cadastrar.
+- [ ] Pedidos de upload nunca confirmados deixam linhas em `pet_photos` (e às vezes arquivos órfãos). Um job de limpeza pode entrar junto com o job de expiração da S2.
+- [ ] Editar e apagar pet e fotos ainda não existem (a exclusão de conta da S6, NF-01, precisa apagar as fotos do storage).
+
+<details><summary>Especificação original</summary>
+
+
 - [ ] API: `POST /pets`, `GET /me/pets`, upload com URL assinada para storage S3-compatível (NF-05; teste garantindo que não existe URL pública).
 - [ ] App: tela `pets/new` (fotos com `expo-image-picker`) e "Meus Pets" no Perfil, seguindo o design.
+
+</details>
 
 Depois disso a S1 fecha e começa a S2 (ocorrências e `local_publico` com deslocamento de ~150 m).
 
@@ -111,7 +124,7 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 | Prazo final e tamanho do time | Grupo | Pode encolher as sprints |
 | Cidade de lançamento | Grupo | Seed de dados e teste de campo |
 | Provedor de e-mail para o código (Resend, SMTP gratuito...) | Backend | Antes de testar com usuários reais (a API já tem a interface `Mailer`) |
-| Storage das fotos (Cloudflare R2 ou Supabase Storage; o banco já está no Supabase) | Backend | Necessário no passo 4 |
+| ~~Storage das fotos~~ Decidido: Supabase Storage pelo protocolo S3 (trocar para R2 é só mudar as variáveis `STORAGE_*`) | Backend | — |
 | Hospedagem da API (Railway ou Render) | Full stack | Antes da S6 |
 | Conta Google Cloud para os client IDs | Quem cuidar do login | Necessário no passo 3 |
 

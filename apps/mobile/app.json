@@ -36,7 +36,15 @@
           "imageWidth": 120
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Miaucha usa suas fotos para mostrar seu pet no cadastro e nos alertas.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

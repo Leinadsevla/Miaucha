@@ -11,14 +11,15 @@ import {
   Nunito_700Bold,
   Nunito_900Black,
 } from "@expo-google-fonts/nunito";
-import { AuthProvider, createAuthClient, redirectTarget, routeFor, useAuth } from "@/features/auth";
+import { AuthProvider, createClients, redirectTarget, routeFor, useAuth } from "@/features/auth";
+import { PetsClientProvider } from "@/features/pets";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_900Black });
-  // API real quando EXPO_PUBLIC_API_URL existe (ver apps/mobile/.env.example); senão, login falso em dev.
-  const [client] = useState(createAuthClient);
+  // API real quando EXPO_PUBLIC_API_URL existe (ver apps/mobile/.env.example); senão, clientes falsos em dev.
+  const [clients] = useState(createClients);
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
@@ -28,10 +29,12 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider client={client}>
-        <StatusBar style="light" />
-        <AuthGate />
-        <Stack screenOptions={{ headerShown: false }} />
+      <AuthProvider client={clients.auth}>
+        <PetsClientProvider client={clients.pets}>
+          <StatusBar style="light" />
+          <AuthGate />
+          <Stack screenOptions={{ headerShown: false }} />
+        </PetsClientProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

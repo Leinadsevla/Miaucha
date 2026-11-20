@@ -32,4 +32,10 @@ describe("redirectTarget", () => {
     expect(redirectTarget("/", "/splash")).toBe("/splash");
     expect(redirectTarget("/splash", "/splash")).toBeNull();
   });
+
+  it("cadastro de pet só para quem está logado e com consentimento", () => {
+    expect(redirectTarget("/pets/new", "/")).toBeNull();
+    expect(redirectTarget("/pets/new", "/login")).toBe("/login");
+    expect(redirectTarget("/pets/new", "/consent")).toBe("/consent");
+  });
 });
