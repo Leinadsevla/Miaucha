@@ -46,6 +46,7 @@ cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (
 - `pnpm-workspace.yaml` tem `minimumReleaseAgeExclude` para pacotes do Expo publicados há pouco; o pnpm adiciona isso sozinho.
 - No Expo Router 58, o `tabBar` recebe `navigateToTab(routeKey)` e não `navigation`.
 - `react-native-safe-area-context` e `react-native-reanimated` são mockados em `apps/mobile/jest.setup.ts`.
+- NativeWind 4: nunca adicione num condicional utilitários que usam variável CSS (`shadow-*`, `ring-*`, `scale-*`, `translate-*`, gradientes). O componente é "promovido" depois da primeira renderização e, em dev, o app quebra com "Couldn't find a LinkingContext context". Use `style` para o efeito condicional. O teste `src/__tests__/nativewind-rules.test.ts` barra isso; o Jest não reproduz o erro em si.
 - Rodar a partir do OneDrive deixa `pnpm install` muito lento (4 a 6 min).
 - Nunca deixe um `package-lock.json` na raiz: o `npx expo install` passa a achar que o projeto usa npm e falha.
 - O app escolhe a API real ou o login falso por `EXPO_PUBLIC_API_URL` (`apps/mobile/.env.local`, ver `.env.example`). Leia sempre como `process.env.EXPO_PUBLIC_API_URL`: o Expo não embute a variável se você desestruturar.
