@@ -26,7 +26,7 @@ export class ApiError extends Error {
 /** Sessão como a API devolve no login, verificação, Google e refresh. */
 export type ApiSessionBody = { accessToken: string; refreshToken: string; user: SessionUser & { pseudonym?: string } };
 
-type Method = "GET" | "POST";
+type Method = "GET" | "POST" | "PATCH" | "DELETE";
 
 function messageFrom(body: unknown): string | undefined {
   const b = body as { message?: unknown; errors?: Record<string, unknown> } | undefined;

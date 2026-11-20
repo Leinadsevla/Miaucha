@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
-import { AlertTriangle, Cake, ChevronLeft, Palette, PawPrint } from "lucide-react-native";
+import { AlertTriangle, Cake, ChevronLeft, Palette, PawPrint, Pencil } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, type MyPet } from "@miaucha/shared";
@@ -22,9 +22,19 @@ function Info({ icon, label, value }: { icon: ReactNode; label: string; value: s
 
 /**
  * Detalhes do pet para o tutor: galeria de fotos (deslize para o lado) e informações do cadastro.
- * `onReportLost` abre o registro de ocorrência já preenchido com este pet.
+ * `onEdit` abre a edição; `onReportLost` abre o registro de ocorrência já preenchido com este pet.
  */
-export function PetDetails({ pet, onBack, onReportLost }: { pet: MyPet; onBack: () => void; onReportLost?: () => void }) {
+export function PetDetails({
+  pet,
+  onBack,
+  onEdit,
+  onReportLost,
+}: {
+  pet: MyPet;
+  onBack: () => void;
+  onEdit?: () => void;
+  onReportLost?: () => void;
+}) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const subtitle = [pet.breed, pet.color].filter(Boolean).join(" · ");
@@ -59,6 +69,18 @@ export function PetDetails({ pet, onBack, onReportLost }: { pet: MyPet; onBack: 
         >
           <ChevronLeft size={20} color={colors.white} />
         </Pressable>
+
+        {onEdit ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Editar ${pet.name}`}
+            onPress={onEdit}
+            style={{ top: insets.top + 12, backgroundColor: OVERLAY }}
+            className="absolute right-4 h-10 w-10 items-center justify-center rounded-2xl"
+          >
+            <Pencil size={18} color={colors.white} />
+          </Pressable>
+        ) : null}
 
         <View pointerEvents="none" style={{ backgroundColor: OVERLAY }} className="absolute bottom-0 left-0 right-0 px-5 pb-4 pt-3">
           <Text accessibilityRole="header" className="font-nunito-black text-2xl text-white">

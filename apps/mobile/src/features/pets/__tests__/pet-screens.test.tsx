@@ -20,7 +20,7 @@ describe("PetForm", () => {
     await fireEvent.changeText(screen.getByLabelText("Raça"), " Persa ");
     await fireEvent.press(screen.getByRole("button", { name: "Salvar pet" }));
 
-    expect(onSubmit).toHaveBeenCalledWith({ name: "Mia", species: "cat", breed: "Persa", color: "", approxAge: "" }, []);
+    expect(onSubmit).toHaveBeenCalledWith({ name: "Mia", species: "cat", breed: "Persa", color: "", approxAge: "" }, [], []);
   });
 
   it("começa com Cão selecionado", async () => {
@@ -45,7 +45,7 @@ describe("PetForm", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Remover foto 1" }));
     await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
     await fireEvent.press(screen.getByRole("button", { name: "Salvar pet" }));
-    expect(onSubmit).toHaveBeenCalledWith(expect.anything(), [{ uri: "file:///b.jpg" }]);
+    expect(onSubmit).toHaveBeenCalledWith(expect.anything(), [{ uri: "file:///b.jpg" }], []);
   });
 
   it("recusa formato não aceito com mensagem, mantendo as válidas", async () => {
@@ -65,6 +65,38 @@ describe("PetForm", () => {
   it("mostra o erro do servidor", async () => {
     await render(<PetForm onSubmit={jest.fn()} onPickPhotos={jest.fn()} serverError="Sua sessão expirou. Entre de novo." />);
     expect(screen.getByText("Sua sessão expirou. Entre de novo.")).toBeOnTheScreen();
+  });
+});
+
+describe("PetForm em modo edição", () => {
+  const initial = { name: "Thor", species: "dog" as const, breed: "Golden", color: "", approxAge: "3 anos" };
+  const saved = [
+    { id: "f1", url: "https://x/1.jpg" },
+    { id: "f2", url: "https://x/2.jpg" },
+  ];
+
+  it("começa preenchido, com as fotos salvas, e salva as alterações e as fotos marcadas para remover", async () => {
+    const onSubmit = jest.fn();
+    const onPickPhotos = jest.fn(async () => [{ uri: "file:///nova.jpg" }]);
+    await render(<PetForm initial={initial} existingPhotos={saved} submitLabel="Salvar alterações" onSubmit={onSubmit} onPickPhotos={onPickPhotos} />);
+
+    expect(screen.getByLabelText("Nome do pet").props.value).toBe("Thor");
+    expect(screen.getByLabelText("Foto salva 1")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Remover foto salva 1" }));
+    expect(screen.queryByLabelText("Foto salva 2")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Adicionar foto" }));
+    expect(onPickPhotos).toHaveBeenCalledWith(4);
+    await fireEvent.changeText(screen.getByLabelText("Cor predominante"), "Dourado");
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({ ...initial, color: "Dourado" }, [{ uri: "file:///nova.jpg" }], ["f1"]);
+  });
+
+  it("fotos salvas contam no limite de 5", async () => {
+    const five = [1, 2, 3, 4, 5].map((n) => ({ id: `f${n}`, url: `https://x/${n}.jpg` }));
+    await render(<PetForm initial={initial} existingPhotos={five} onSubmit={jest.fn()} onPickPhotos={jest.fn()} />);
+    expect(screen.queryByRole("button", { name: "Adicionar foto" })).toBeNull();
   });
 });
 
@@ -145,6 +177,13 @@ describe("PetDetails", () => {
     await render(<PetDetails pet={thor} onBack={jest.fn()} onReportLost={onReportLost} />);
     await fireEvent.press(screen.getByRole("button", { name: "Registrar como perdido" }));
     expect(onReportLost).toHaveBeenCalled();
+  });
+
+  it("Editar chama onEdit", async () => {
+    const onEdit = jest.fn();
+    await render(<PetDetails pet={thor} onBack={jest.fn()} onEdit={onEdit} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Editar Thor" }));
+    expect(onEdit).toHaveBeenCalled();
   });
 
   it("Voltar chama onBack", async () => {

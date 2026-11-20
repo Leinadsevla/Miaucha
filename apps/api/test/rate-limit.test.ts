@@ -9,7 +9,7 @@ beforeAll(async () => {
 afterAll(() => closeTestApp(ctx));
 
 describe("rate limit nas rotas de autenticação (NF-04)", () => {
-  it.each(["/auth/login", "/auth/signup", "/auth/verify-email", "/auth/resend-code", "/auth/google", "/auth/refresh"])(
+  it.each(["/auth/login", "/auth/signup", "/auth/verify-email", "/auth/resend-code", "/auth/google", "/auth/refresh", "/auth/forgot-password", "/auth/reset-password"])(
     "%s: passou do limite → 429",
     async (route) => {
       for (let i = 0; i < 3; i++) {

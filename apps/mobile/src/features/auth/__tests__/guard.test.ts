@@ -38,4 +38,10 @@ describe("redirectTarget", () => {
     expect(redirectTarget("/pets/new", "/login")).toBe("/login");
     expect(redirectTarget("/pets/new", "/consent")).toBe("/consent");
   });
+
+  it("esqueci a senha: liberada para quem saiu; depois de trocar a senha vai para o app", () => {
+    expect(redirectTarget("/forgot-password", "/login")).toBeNull();
+    expect(redirectTarget("/forgot-password", "/")).toBe("/");
+    expect(redirectTarget("/forgot-password", "/splash")).toBe("/splash");
+  });
 });

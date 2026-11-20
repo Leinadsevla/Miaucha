@@ -30,6 +30,7 @@ export default function PetDetailsRoute() {
       <PetDetails
         pet={pet}
         onBack={() => router.back()}
+        onEdit={() => router.push(`/pets/${pet.id}/edit`)}
         onReportLost={() => router.push({ pathname: "/occurrences/new", params: { petId: pet.id } })}
       />
     );

@@ -217,3 +217,64 @@ describe("GET /pets/:id", () => {
     await ctx.http.get(`/pets/${pet.id}`).expect(401);
   });
 });
+
+describe("editar pet", () => {
+  it("PATCH /pets/:id atualiza os dados (campos vazios viram null) e devolve o pet", async () => {
+    const t = await tutor();
+    const pet = await t.createPet({ ...thor, color: "Dourado" });
+    const res = await ctx.http
+      .patch(`/pets/${pet.id}`)
+      .set(t.auth)
+      .send({ name: " Thor Jr ", species: "dog", breed: "", color: "Caramelo", approxAge: "4 anos" })
+      .expect(200);
+    expect(res.body).toMatchObject({ id: pet.id, name: "Thor Jr", breed: null, color: "Caramelo", approxAge: "4 anos" });
+    expect((await t.myPets())[0].name).toBe("Thor Jr");
+  });
+
+  it("dados inválidos → 400; pet de outra pessoa → 404", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const pet = await ana.createPet();
+    const bad = await ctx.http.patch(`/pets/${pet.id}`).set(ana.auth).send({ name: "", species: "dog" }).expect(400);
+    expect(bad.body.errors).toEqual({ name: "Informe o nome do pet" });
+    await ctx.http.patch(`/pets/${pet.id}`).set(bia.auth).send(thor).expect(404);
+  });
+
+  it("DELETE /pets/:id/photos/:photoId remove a foto e o arquivo; abre vaga para outra", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    for (let i = 0; i < 5; i++) await addPhoto(t, pet.id);
+    const [listed] = await t.myPets();
+    const removed = listed.photos[0];
+    const key = new URL(removed.url).pathname.split("/").slice(2).join("/");
+
+    await ctx.http.delete(`/pets/${pet.id}/photos/${removed.id}`).set(t.auth).expect(204);
+    expect((await t.myPets())[0].photos.map((p: { id: string }) => p.id)).not.toContain(removed.id);
+    expect(await storage.stat(key)).toBeNull();
+    await addPhoto(t, pet.id);
+  });
+
+  it("foto também usada por uma ocorrência criada a partir do pet: some do pet, mas o arquivo continua", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const photo = (await addPhoto(t, pet.id)).body;
+    const occurrence = (
+      await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", species: "dog", petName: "Thor", lat: -22.9, lng: -43.2, petId: pet.id }).expect(201)
+    ).body;
+
+    await ctx.http.delete(`/pets/${pet.id}/photos/${photo.id}`).set(t.auth).expect(204);
+
+    const detail = await ctx.http.get(`/occurrences/${occurrence.id}`).set(t.auth).expect(200);
+    expect(detail.body.photoUrls).toHaveLength(1);
+    expect((await fetch(detail.body.photoUrls[0])).status).toBe(200);
+  });
+
+  it("apagar foto de pet de outra pessoa → 404", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const pet = await ana.createPet();
+    const photo = (await addPhoto(ana, pet.id)).body;
+    await ctx.http.delete(`/pets/${pet.id}/photos/${photo.id}`).set(bia.auth).expect(404);
+    await ctx.http.delete(`/pets/${pet.id}/photos/nao-e-uuid`).set(ana.auth).expect(404);
+  });
+});

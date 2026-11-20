@@ -39,6 +39,10 @@ export function createHttpAuthClient({ baseUrl, storage, fetch, google = googleU
       await api.request("POST", "/auth/signup", input);
     },
     verifyEmail: (email, code) => startSession("/auth/verify-email", { email, code }),
+    async requestPasswordReset(email) {
+      await api.request("POST", "/auth/forgot-password", { email });
+    },
+    resetPassword: (email, code, password) => startSession("/auth/reset-password", { email, code, password }),
     async resendCode(email) {
       await api.request("POST", "/auth/resend-code", { email });
     },
