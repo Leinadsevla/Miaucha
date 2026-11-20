@@ -53,7 +53,8 @@ cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (
 - NestJS 12 é publicado só como ESM. O Jest da API roda com `node --experimental-vm-modules` (já está no script `test`); rode pelo `pnpm test`, não por `npx jest`.
 - A API roda com `node -r @swc-node/register` (scripts `dev`/`start`) porque o `@miaucha/shared` é publicado como fonte TypeScript. Não troque por `tsx`: ele não emite os metadados de decorators e a injeção de dependências do Nest quebra.
 - Pacotes com script de instalação precisam ser liberados em `allowBuilds` no `pnpm-workspace.yaml` (`pnpm approve-builds <pkg>`). Só o `argon2` precisa de verdade.
-- Nos testes de integração da API, todos os arquivos usam o mesmo banco: crie dados com `uniqueEmail()` em vez de apagar tabelas.
+- Nos testes de integração da API, todos os arquivos usam o mesmo banco: crie dados com `uniqueEmail()` em vez de apagar tabelas. Para buscas geográficas, cada teste usa um ponto sorteado longe dos outros (`uniqueSpot()` em `test/occurrences.test.ts`).
+- Busca por bbox: use `public_location::geometry && st_makeenvelope(...)` (tem índice próprio). O `&&` direto na `geography` compara caixas em 3D e não é um retângulo de lat/lng.
 - O storage S3 dos testes é o RustFS (`rustfs/rustfs`), porque o MinIO parou de publicar imagens no Docker Hub. Não volte para `minio/minio`.
 - Fotos: o bucket é privado e a API só devolve URLs assinadas. O `S3Client` usa `requestChecksumCalculation: "WHEN_REQUIRED"`; sem isso a URL de upload exige checksums que o aparelho não calcula.
 - Upload de arquivo local no app: use o `UploadTask` do `expo-file-system` (`features/pets/fileUploader.ts`). `fetch(uri).blob()` não lê `file://` no SDK 58 e envia o texto "File not found" no lugar da foto. A API confere os primeiros bytes (`image-signature.ts`) e recusa o que não for imagem.

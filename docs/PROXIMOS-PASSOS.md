@@ -1,6 +1,6 @@
 # Próximos passos
 
-Atualizado em 18/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem.
+Atualizado em 20/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem. A S2 (ocorrências) está na `feat/ocorrencias`, criada a partir da `feat/pets` (ver a seção "S2 · Ocorrências").
 
 ## Onde estamos
 
@@ -11,14 +11,14 @@ Sprint 1 (Fundação), parte do app pronta:
 | Monorepo (`apps/mobile`, `apps/api`, `packages/shared`) | Pronto |
 | Design system (tokens, Nunito, componentes base) | Pronto |
 | Telas de splash, login/cadastro, código de e-mail, consentimento, política | Prontas, com login **falso** (`createMockAuthClient`) |
-| Abas (Início, Mapa, Alertas, Chat, Perfil) | Estrutura pronta; conteúdo nas S3 a S5 |
+| Abas (Início, Mapa, Alertas, Chat, Perfil) | Início pronta (S2: pets num raio de 5 km); Mapa, Alertas e Chat nas S3 a S5 |
 | Docker Compose (PostGIS + Redis) | Falta |
 | CI no GitHub Actions | Falta |
 | Login real (API + Google) | E-mail e senha prontos de ponta a ponta; Google falta no app (precisa dos client IDs e do development build) |
 | Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 244 passando (37 no shared, 117 no app, 90 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 420 passando (65 no shared, 218 no app, 137 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
 
 ## Ordem sugerida
 
@@ -106,6 +106,39 @@ Feito no código (API e app), testado contra Postgres e storage S3 reais. Fluxo:
 </details>
 
 Depois disso a S1 fecha e começa a S2 (ocorrências e `local_publico` com deslocamento de ~150 m).
+
+## S2 · Ocorrências (`feat/ocorrencias`)
+
+Feito em TDD (API contra PostGIS e storage reais via Testcontainers; app com RNTL). Branch criada a partir da `feat/pets`.
+
+**Regras puras (`packages/shared`):** `publicPoint` (desloca o ponto real numa direção aleatória, entre 75 e 190 m, dentro da faixa 50–200 m do MP-07 com folga para a diferença esfera × elipsoide do PostGIS), `distanceMeters` (haversine), `validateOccurrence` (nome obrigatório só para "perdido"), `occurrenceExpiryCutoff`/`isOccurrenceExpired` (NF-03, 30 dias sem atualização). `PublicOccurrence` ganhou `status`, `isMine` e `distanceMeters?`.
+
+**API:** migração `004_occurrences.sql` (`occurrences` e `occurrence_photos`, com RLS). `location` guarda o ponto exato e nunca sai da API; `public_location` é gerada uma vez na criação (sortear a cada leitura permitiria achar o ponto real pela média). Índices GiST em `public_location` (raio, com `ST_DWithin`) e em `(public_location::geometry)` (bbox exato em lat/lng).
+
+| Rota | Resposta |
+| --- | --- |
+| `POST /occurrences` | 201 + `PublicOccurrence`. Com `petId` (pet do autor, senão 404), os dados do pet completam o que faltar e as fotos dele entram na ocorrência (mesmo objeto no storage) |
+| `GET /occurrences?lat=&lng=&radiusKm=` | Até 200 abertas e não expiradas, mais recentes primeiro, com `distanceMeters`. Raio padrão 5 km, máximo 20 km |
+| `GET /occurrences?bbox=minLng,minLat,maxLng,maxLat` | Igual, sem `distanceMeters` (MP-02) |
+| Filtros nas duas buscas | `type`, `species`, `sinceDays` (1 a 365, pela data de criação) |
+| `GET /occurrences/:id` | Detalhe público para qualquer usuário logado (inclusive resolvida) |
+| `GET /me/occurrences` | As do usuário, inclusive resolvidas e expiradas |
+| `POST /occurrences/:id/resolve` | Só o autor (404 para os outros); idempotente |
+| `POST /occurrences/:id/photos` e `.../photos/:photoId/confirm` | Mesmo fluxo e validações das fotos de pet (agora em `storage/photo-uploads.ts`, usado pelos dois) |
+
+Nas buscas, `photoUrls` traz só a foto de capa (para não assinar centenas de URLs); no detalhe e em `/me/occurrences`, todas. Criação, fotos e resolução têm rate limit (NF-04); leituras não.
+
+**App:** `OccurrencesClient` (HTTP e memória; o falso cria exemplos perto do usuário na primeira busca), localização com `expo-location` só em primeiro plano (`features/location`), aba Início (raio de 5 km, puxar para atualizar, estados de carregando/vazio/erro/sem permissão), tela `occurrences/new` (com `?petId=`), tela `occurrences/[id]` ("Como chegar" abre Google Maps, Waze ou Apple Maps no ponto **público**; "Conversar" desabilitado com "Chat em breve") e o botão "Registrar como perdido" no detalhe do pet.
+
+Pendências:
+
+- [ ] **Job diário de expiração (NF-03):** hoje a regra é aplicada na consulta (`updated_at > now() - 30 dias`), então a ocorrência some das buscas no prazo certo sem job. Um job (BullMQ, junto com os da S5) pode marcar `status = 'expired'` e avisar o autor, e limpar os pedidos de upload nunca confirmados.
+- [ ] Nada atualiza `updated_at` além de "resolver": falta uma ação "ainda procurando" (renova os 30 dias) e editar a ocorrência.
+- [ ] Ajustar o pin no mapa ao registrar (hoje usa a localização atual do aparelho + endereço digitado). Fica para a S3, com o mapa.
+- [ ] Teste de carga do MP-02 com k6. Há um teste de integração com 5 mil ocorrências que exige resposta abaixo de 300 ms no raio e no bbox, mas roda local, sem rede.
+- [ ] Apagar uma foto de pet precisa conferir se o objeto não é usado por uma ocorrência (`occurrence_photos.object_key` pode apontar para a foto do pet). Relevante para a exclusão de conta (NF-01).
+- [ ] Rodar `pnpm dev` na API para aplicar a migração `004_occurrences.sql` no Supabase.
+- [ ] Testar no aparelho: permissão de localização, puxar para atualizar e "Como chegar". O `expo-location` em primeiro plano funciona no Expo Go.
 
 ## Banco no Supabase (`chore/supabase-db`)
 
