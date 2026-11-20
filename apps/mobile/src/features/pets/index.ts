@@ -4,3 +4,4 @@ export * from "./PetsContext";
 export * from "./petsClient";
 export * from "./photos";
 export * from "./pickPhotos";
+export * from "./fileUploader";

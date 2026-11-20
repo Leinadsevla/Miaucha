@@ -3,6 +3,7 @@ import { MAX_PET_PHOTOS, MAX_PHOTO_BYTES, isAllowedPhotoType, validatePet, type 
 import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { transaction } from "../db/transaction";
+import { SIGNATURE_BYTES, detectImageType } from "../storage/image-signature";
 import type { PhotoStorage } from "../storage/photo-storage";
 import { PG_POOL, PHOTO_STORAGE } from "../tokens";
 
@@ -93,10 +94,19 @@ export class PetsService {
     if (!photo.uploaded) {
       const stored = await this.storage.stat(photo.object_key);
       if (!stored) throw new BadRequestException("A foto ainda não foi enviada");
-      if (stored.size > MAX_PHOTO_BYTES || stored.contentType !== photo.content_type) {
+      const problem =
+        stored.size > MAX_PHOTO_BYTES
+          ? "A foto passa de 10 MB"
+          : stored.contentType !== photo.content_type
+            ? "Envie uma foto JPG, PNG ou WebP"
+            : // O Content-Type é declarado pelo cliente; o conteúdo precisa ser mesmo uma imagem desse formato.
+              detectImageType(await this.storage.readHead(photo.object_key, SIGNATURE_BYTES)) !== photo.content_type
+              ? "O arquivo enviado não é uma imagem válida"
+              : null;
+      if (problem) {
         await this.storage.delete(photo.object_key);
         await this.pool.query("delete from pet_photos where id = $1", [photoId]);
-        throw new BadRequestException(stored.size > MAX_PHOTO_BYTES ? "A foto passa de 10 MB" : "Envie uma foto JPG, PNG ou WebP");
+        throw new BadRequestException(problem);
       }
       await this.pool.query("update pet_photos set uploaded_at = now() where id = $1", [photoId]);
     }

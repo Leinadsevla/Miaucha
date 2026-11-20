@@ -13,13 +13,7 @@ export type PetsClient = {
 /** Envia o arquivo local para a URL assinada do storage (PUT direto, sem passar pela API). */
 export type Uploader = (uploadUrl: string, photo: PickedPhoto, contentType: string) => Promise<void>;
 
-const fetchUploader: Uploader = async (uploadUrl, photo, contentType) => {
-  const file = await (await fetch(photo.uri)).blob();
-  const res = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": contentType }, body: file });
-  if (!res.ok) throw new Error("Não foi possível enviar a foto. Tente de novo.");
-};
-
-export function createHttpPetsClient({ session, upload = fetchUploader }: { session: ApiSession; upload?: Uploader }): PetsClient {
+export function createHttpPetsClient({ session, upload }: { session: ApiSession; upload: Uploader }): PetsClient {
   return {
     listMine: () => session.authed<MyPet[]>("GET", "/me/pets"),
     create: (input) => session.authed<MyPet>("POST", "/pets", input),

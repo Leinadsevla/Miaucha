@@ -41,6 +41,11 @@ export class S3PhotoStorage implements PhotoStorage {
     }
   }
 
+  async readHead(key: string, bytes: number): Promise<Uint8Array> {
+    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: `bytes=0-${bytes - 1}` }));
+    return res.Body ? await res.Body.transformToByteArray() : new Uint8Array();
+  }
+
   async delete(key: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }

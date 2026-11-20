@@ -164,3 +164,26 @@ describe("fotos do pet (upload por URL assinada)", () => {
     await ana.confirm(pet.id, "nao-e-uuid").expect(404);
   });
 });
+
+describe("conteúdo da foto", () => {
+  it("arquivo que não é imagem (mesmo declarado como JPEG) → 400 e é apagado do storage", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, Buffer.from("File not found"));
+
+    const res = await t.confirm(pet.id, req.body.photoId).expect(400);
+    expect(res.body.message).toBe("O arquivo enviado não é uma imagem válida");
+    const key = new URL(req.body.uploadUrl).pathname.split("/").slice(2).join("/");
+    expect(await storage.stat(key)).toBeNull();
+    expect((await t.myPets())[0].photos).toEqual([]);
+  });
+
+  it("PNG declarado como JPEG → 400", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id, "image/jpeg").expect(201);
+    await put(req.body.uploadUrl, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]));
+    await t.confirm(pet.id, req.body.photoId).expect(400);
+  });
+});

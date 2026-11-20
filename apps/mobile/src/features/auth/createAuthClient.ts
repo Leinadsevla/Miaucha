@@ -1,3 +1,4 @@
+import { createFileUploader } from "@/features/pets/fileUploader";
 import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/features/pets/petsClient";
 import type { AuthClient } from "./AuthProvider";
 import { createApiSession } from "./apiSession";
@@ -27,6 +28,6 @@ export function createClients(): AppClients {
   const session = createApiSession({ baseUrl: apiUrl!, storage });
   return {
     auth: createHttpAuthClient({ baseUrl: apiUrl!, storage, session }),
-    pets: createHttpPetsClient({ session }),
+    pets: createHttpPetsClient({ session, upload: createFileUploader() }),
   };
 }

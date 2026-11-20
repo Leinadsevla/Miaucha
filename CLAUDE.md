@@ -56,4 +56,5 @@ cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (
 - Nos testes de integração da API, todos os arquivos usam o mesmo banco: crie dados com `uniqueEmail()` em vez de apagar tabelas.
 - O storage S3 dos testes é o RustFS (`rustfs/rustfs`), porque o MinIO parou de publicar imagens no Docker Hub. Não volte para `minio/minio`.
 - Fotos: o bucket é privado e a API só devolve URLs assinadas. O `S3Client` usa `requestChecksumCalculation: "WHEN_REQUIRED"`; sem isso a URL de upload exige checksums que o aparelho não calcula.
+- Upload de arquivo local no app: use o `UploadTask` do `expo-file-system` (`features/pets/fileUploader.ts`). `fetch(uri).blob()` não lê `file://` no SDK 58 e envia o texto "File not found" no lugar da foto. A API confere os primeiros bytes (`image-signature.ts`) e recusa o que não for imagem.
 - App: chamadas autenticadas passam pelo `ApiSession` (`features/auth/apiSession.ts`), compartilhado por todos os clientes, para existir um único refresh por vez.
