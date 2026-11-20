@@ -28,6 +28,12 @@ export class PetsController {
     return this.pets.listMine(userId);
   }
 
+  @Get("pets/:petId")
+  @SkipThrottle()
+  findMine(@CurrentUserId() userId: string, @Param("petId") petId: string) {
+    return this.pets.findMine(userId, petId);
+  }
+
   @Post("pets/:petId/photos")
   requestUpload(@CurrentUserId() userId: string, @Param("petId") petId: string, @Body() body: unknown) {
     return this.pets.requestUpload(userId, petId, str(body, "contentType"));

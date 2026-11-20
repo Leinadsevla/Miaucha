@@ -187,3 +187,33 @@ describe("conteúdo da foto", () => {
     await t.confirm(pet.id, req.body.photoId).expect(400);
   });
 });
+
+describe("GET /pets/:id", () => {
+  it("devolve o pet do dono com as fotos confirmadas (URLs assinadas novas)", async () => {
+    const t = await tutor();
+    const pet = await t.createPet({ ...thor, color: "Dourado", approxAge: "3 anos" });
+    await addPhoto(t, pet.id);
+
+    const res = await ctx.http.get(`/pets/${pet.id}`).set(t.auth).expect(200);
+    expect(res.body).toEqual({
+      id: pet.id,
+      name: "Thor",
+      species: "dog",
+      breed: "Golden Retriever",
+      color: "Dourado",
+      approxAge: "3 anos",
+      photos: [{ id: expect.any(String), url: expect.stringContaining("X-Amz-Signature") }],
+    });
+    expectNoPrivateData(res.body);
+  });
+
+  it("pet de outra pessoa, inexistente ou id inválido → 404; sem login → 401", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const pet = await ana.createPet();
+    await ctx.http.get(`/pets/${pet.id}`).set(bia.auth).expect(404);
+    await ctx.http.get("/pets/00000000-0000-0000-0000-000000000000").set(ana.auth).expect(404);
+    await ctx.http.get("/pets/nao-e-uuid").set(ana.auth).expect(404);
+    await ctx.http.get(`/pets/${pet.id}`).expect(401);
+  });
+});

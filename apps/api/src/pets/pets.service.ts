@@ -52,6 +52,20 @@ export class PetsService {
     return Promise.all(pets.rows.map((pet) => this.toView(pet, photos.rows.filter((ph) => ph.pet_id === pet.id))));
   }
 
+  async findMine(ownerId: string, petId: string): Promise<MyPet> {
+    if (!UUID_RE.test(petId)) throw notFound();
+    const pet = await this.pool.query<PetRow>(
+      "select id, name, species, breed, color, approx_age from pets where id = $1 and owner_id = $2",
+      [petId, ownerId],
+    );
+    if (!pet.rows[0]) throw notFound();
+    const photos = await this.pool.query<{ id: string; object_key: string }>(
+      "select id, object_key from pet_photos where pet_id = $1 and uploaded_at is not null order by uploaded_at, id",
+      [petId],
+    );
+    return this.toView(pet.rows[0], photos.rows);
+  }
+
   async requestUpload(ownerId: string, petId: string, contentType: string) {
     if (!UUID_RE.test(petId)) throw notFound();
     if (!isAllowedPhotoType(contentType)) throw new BadRequestException("Envie uma foto JPG, PNG ou WebP");

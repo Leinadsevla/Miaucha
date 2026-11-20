@@ -39,7 +39,7 @@ export default function ProfileTab() {
         <Text className="font-nunito-black text-lg text-white">{name}</Text>
       </View>
       <View className="gap-3 p-5">
-        <MyPetsCard pets={pets} error={error} onAdd={() => router.push("/pets/new")} />
+        <MyPetsCard pets={pets} error={error} onAdd={() => router.push("/pets/new")} onOpen={(id) => router.push(`/pets/${id}`)} />
         <Text className="text-center font-sans text-sm text-muted-foreground">Histórico e configurações chegam nas próximas sprints.</Text>
         <PrimaryButton title="Sair da conta" variant="outline" onPress={logout} />
       </View>

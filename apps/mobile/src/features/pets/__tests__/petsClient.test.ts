@@ -38,6 +38,12 @@ describe("createHttpPetsClient", () => {
     expect(calls[0]).toMatchObject({ authorization: "Bearer access", body: undefined });
   });
 
+  it("get faz GET autenticado em /pets/:id", async () => {
+    const { client, calls } = setup({ "GET /pets/p1": () => ({ status: 200, body: thor }) });
+    expect(await client.get("p1")).toEqual(thor);
+    expect(calls[0].authorization).toBe("Bearer access");
+  });
+
   it("create envia os dados do formulário", async () => {
     const { client, calls } = setup({ "POST /pets": () => ({ status: 201, body: thor }) });
     expect(await client.create(input)).toEqual(thor);
@@ -79,6 +85,7 @@ describe("savePet", () => {
     return {
       added,
       listMine: async () => [],
+      get: async () => thor,
       create: async () => thor,
       addPhoto: async (_petId, photo) => {
         if (failOn.includes(photo.uri)) throw new Error("falhou");

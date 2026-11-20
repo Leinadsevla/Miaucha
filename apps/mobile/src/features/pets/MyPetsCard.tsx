@@ -9,9 +9,10 @@ type Props = {
   pets: MyPet[] | null;
   error?: string;
   onAdd: () => void;
+  onOpen: (petId: string) => void;
 };
 
-export function MyPetsCard({ pets, error, onAdd }: Props) {
+export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
   return (
     <Card>
       <View className="mb-3 flex-row items-center justify-between">
@@ -31,7 +32,13 @@ export function MyPetsCard({ pets, error, onAdd }: Props) {
       ) : (
         <View className="flex-row flex-wrap gap-3">
           {pets.map((pet) => (
-            <View key={pet.id} className="flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2">
+            <Pressable
+              key={pet.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver ${pet.name}`}
+              onPress={() => onOpen(pet.id)}
+              className="flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2 active:opacity-70"
+            >
               {pet.photos[0] ? (
                 <Image
                   accessibilityLabel={`Foto de ${pet.name}`}
@@ -47,7 +54,7 @@ export function MyPetsCard({ pets, error, onAdd }: Props) {
                 <Text className="font-nunito-bold text-xs text-foreground">{pet.name}</Text>
                 {pet.breed ? <Text className="font-sans text-[10px] text-muted-foreground">{pet.breed}</Text> : null}
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
       )}

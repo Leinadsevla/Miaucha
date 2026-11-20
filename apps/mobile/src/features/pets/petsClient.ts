@@ -6,6 +6,7 @@ export type PetPhoto = MyPet["photos"][number];
 
 export type PetsClient = {
   listMine(): Promise<MyPet[]>;
+  get(id: string): Promise<MyPet>;
   create(input: PetInput): Promise<MyPet>;
   addPhoto(petId: string, photo: PickedPhoto): Promise<PetPhoto>;
 };
@@ -16,6 +17,7 @@ export type Uploader = (uploadUrl: string, photo: PickedPhoto, contentType: stri
 export function createHttpPetsClient({ session, upload }: { session: ApiSession; upload: Uploader }): PetsClient {
   return {
     listMine: () => session.authed<MyPet[]>("GET", "/me/pets"),
+    get: (id) => session.authed<MyPet>("GET", `/pets/${id}`),
     create: (input) => session.authed<MyPet>("POST", "/pets", input),
     async addPhoto(petId, photo) {
       const problem = checkPhoto(photo);
@@ -50,6 +52,11 @@ export function createMockPetsClient(): PetsClient {
   const pets: MyPet[] = [];
   return {
     listMine: async () => [...pets].reverse(),
+    async get(id) {
+      const pet = pets.find((p) => p.id === id);
+      if (!pet) throw new Error("Pet não encontrado");
+      return pet;
+    },
     async create(input) {
       const pet: MyPet = {
         id: `dev-${pets.length + 1}`,
