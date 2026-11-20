@@ -1,6 +1,6 @@
 # Próximos passos
 
-Atualizado em 18/11/2026, na branch `feat/api-auth` (passo 2 feito, aguardando PR).
+Atualizado em 18/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem.
 
 ## Onde estamos
 
@@ -14,11 +14,11 @@ Sprint 1 (Fundação), parte do app pronta:
 | Abas (Início, Mapa, Alertas, Chat, Perfil) | Estrutura pronta; conteúdo nas S3 a S5 |
 | Docker Compose (PostGIS + Redis) | Falta |
 | CI no GitHub Actions | Falta |
-| Login real (API + Google) | API pronta (`feat/api-auth`); falta ligar o app (passo 3) |
+| Login real (API + Google) | E-mail e senha prontos de ponta a ponta; Google falta no app (precisa dos client IDs e do development build) |
 | Cadastro de pet com fotos (NF-05) | Falta |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 161 passando (32 no shared, 63 no app, 66 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 189 passando (32 no shared, 91 no app, 66 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
 
 ## Ordem sugerida
 
@@ -77,11 +77,15 @@ Regras: senha com argon2; validação reaproveitando `validateSignUp`/`validateL
 
 ### 3. Login real no app (`feat/mobile-auth-http`)
 
-- [ ] `HttpAuthClient` implementando `AuthClient`; trocar o `createMockAuthClient` em `apps/mobile/src/app/_layout.tsx`. As mensagens de erro da API (`body.message`, e `body.errors` por campo no 400) já estão em português para mostrar direto na tela.
-- [ ] Tokens em `expo-secure-store`; `restore()` lê a sessão salva.
-- [ ] Serializar o `/auth/refresh` (uma chamada por vez, as outras esperam a mesma promessa): a API trata o reuso de um refresh token como roubo e derruba todas as sessões.
-- [ ] Google com `@react-native-google-signin/google-signin` (precisa de development build e dos client IDs do Google Cloud).
-- [ ] Development build com EAS (`eas build --profile development`), que também é necessário para o geofencing da S5.
+E-mail e senha feitos: o app usa a API quando `EXPO_PUBLIC_API_URL` está definida (ver `apps/mobile/.env.example`); sem ela, em desenvolvimento, continua com o login falso. Um build de produção sem a URL quebra na abertura em vez de cair no login falso. O cliente foi testado contra a API real (cadastro, código, consentimento, refresh, logout).
+
+
+- [x] `HttpAuthClient` implementando `AuthClient`; trocar o `createMockAuthClient` em `apps/mobile/src/app/_layout.tsx`. As mensagens de erro da API (`body.message`, e `body.errors` por campo no 400) já estão em português para mostrar direto na tela.
+- [x] Tokens em `expo-secure-store`; `restore()` lê a sessão salva (sem rede, abre com o usuário salvo).
+- [x] Serializar o `/auth/refresh` (uma chamada por vez, as outras esperam a mesma promessa): a API trata o reuso de um refresh token como roubo e derruba todas as sessões.
+- [ ] Google com `@react-native-google-signin/google-signin` (precisa de development build e dos client IDs do Google Cloud). O app já aceita isso: basta passar um `GoogleSignIn` (`{ getIdToken() }`) para `createHttpAuthClient` em `createAuthClient.ts`. Hoje o botão mostra "O login com Google ainda não está disponível nesta versão do app". Na API, preencher `GOOGLE_CLIENT_IDS`.
+- [ ] Development build com EAS (`eas build --profile development`), que também é necessário para o geofencing da S5. Precisa de uma conta Expo do grupo.
+- [ ] Para testar no aparelho com a API local em `http://`: o Expo Go aceita; num build de produção o Android bloqueia HTTP sem TLS, então a API publicada precisa de HTTPS.
 
 ### 4. Cadastro de pet com fotos (`feat/pets`)
 

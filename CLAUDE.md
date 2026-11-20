@@ -45,6 +45,8 @@ cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWin
 - No Expo Router 58, o `tabBar` recebe `navigateToTab(routeKey)` e não `navigation`.
 - `react-native-safe-area-context` e `react-native-reanimated` são mockados em `apps/mobile/jest.setup.ts`.
 - Rodar a partir do OneDrive deixa `pnpm install` muito lento (4 a 6 min).
+- Nunca deixe um `package-lock.json` na raiz: o `npx expo install` passa a achar que o projeto usa npm e falha.
+- O app escolhe a API real ou o login falso por `EXPO_PUBLIC_API_URL` (`apps/mobile/.env.local`, ver `.env.example`). Leia sempre como `process.env.EXPO_PUBLIC_API_URL`: o Expo não embute a variável se você desestruturar.
 - NestJS 12 é publicado só como ESM. O Jest da API roda com `node --experimental-vm-modules` (já está no script `test`); rode pelo `pnpm test`, não por `npx jest`.
 - A API roda com `node -r @swc-node/register` (scripts `dev`/`start`) porque o `@miaucha/shared` é publicado como fonte TypeScript. Não troque por `tsx`: ele não emite os metadados de decorators e a injeção de dependências do Nest quebra.
 - Pacotes com script de instalação precisam ser liberados em `allowBuilds` no `pnpm-workspace.yaml` (`pnpm approve-builds <pkg>`). Só o `argon2` precisa de verdade.
