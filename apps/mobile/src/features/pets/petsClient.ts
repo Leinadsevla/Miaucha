@@ -14,21 +14,27 @@ export type PetsClient = {
 /** Envia o arquivo local para a URL assinada do storage (PUT direto, sem passar pela API). */
 export type Uploader = (uploadUrl: string, photo: PickedPhoto, contentType: string) => Promise<void>;
 
+/**
+ * Fluxo de foto da API (pets e ocorrências): `POST <base>/photos` devolve a URL assinada, o arquivo vai
+ * direto ao storage e `POST <base>/photos/:id/confirm` faz a API conferir o que chegou.
+ */
+export async function uploadPhotoVia(session: ApiSession, upload: Uploader, basePath: string, photo: PickedPhoto) {
+  const problem = checkPhoto(photo);
+  if (problem) throw new Error(problem);
+  const contentType = photoContentType(photo)!;
+  const { photoId, uploadUrl } = await session.authed<{ photoId: string; uploadUrl: string }>("POST", `${basePath}/photos`, {
+    contentType,
+  });
+  await upload(uploadUrl, photo, contentType);
+  return session.authed<{ id: string; url: string }>("POST", `${basePath}/photos/${photoId}/confirm`);
+}
+
 export function createHttpPetsClient({ session, upload }: { session: ApiSession; upload: Uploader }): PetsClient {
   return {
     listMine: () => session.authed<MyPet[]>("GET", "/me/pets"),
     get: (id) => session.authed<MyPet>("GET", `/pets/${id}`),
     create: (input) => session.authed<MyPet>("POST", "/pets", input),
-    async addPhoto(petId, photo) {
-      const problem = checkPhoto(photo);
-      if (problem) throw new Error(problem);
-      const contentType = photoContentType(photo)!;
-      const { photoId, uploadUrl } = await session.authed<{ photoId: string; uploadUrl: string }>("POST", `/pets/${petId}/photos`, {
-        contentType,
-      });
-      await upload(uploadUrl, photo, contentType);
-      return session.authed<PetPhoto>("POST", `/pets/${petId}/photos/${photoId}/confirm`);
-    },
+    addPhoto: (petId, photo) => uploadPhotoVia(session, upload, `/pets/${petId}`, photo),
   };
 }
 

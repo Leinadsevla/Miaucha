@@ -140,6 +140,13 @@ describe("PetDetails", () => {
     expect(screen.getByText("Gato")).toBeOnTheScreen();
   });
 
+  it("'Registrar como perdido' chama onReportLost", async () => {
+    const onReportLost = jest.fn();
+    await render(<PetDetails pet={thor} onBack={jest.fn()} onReportLost={onReportLost} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Registrar como perdido" }));
+    expect(onReportLost).toHaveBeenCalled();
+  });
+
   it("Voltar chama onBack", async () => {
     const onBack = jest.fn();
     await render(<PetDetails pet={thor} onBack={onBack} />);

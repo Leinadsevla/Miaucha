@@ -12,6 +12,7 @@ import {
   Nunito_900Black,
 } from "@expo-google-fonts/nunito";
 import { AuthProvider, createClients, redirectTarget, routeFor, useAuth } from "@/features/auth";
+import { OccurrencesClientProvider } from "@/features/occurrences";
 import { PetsClientProvider } from "@/features/pets";
 
 SplashScreen.preventAutoHideAsync();
@@ -31,9 +32,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider client={clients.auth}>
         <PetsClientProvider client={clients.pets}>
-          <StatusBar style="light" />
-          <AuthGate />
-          <Stack screenOptions={{ headerShown: false }} />
+          <OccurrencesClientProvider client={clients.occurrences}>
+            <StatusBar style="light" />
+            <AuthGate />
+            <Stack screenOptions={{ headerShown: false }} />
+          </OccurrencesClientProvider>
         </PetsClientProvider>
       </AuthProvider>
     </SafeAreaProvider>

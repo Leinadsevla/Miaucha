@@ -85,6 +85,11 @@ describe("PetCard (MP-04)", () => {
     expect(screen.getByText("Perdido")).toBeOnTheScreen();
   });
 
+  it("sem a prop, usa a distância que veio da busca por raio", async () => {
+    await render(<PetCard occurrence={{ ...occurrence, distanceMeters: 1250 }} now={now} onPress={() => {}} />);
+    expect(screen.getByText("1,3 km")).toBeOnTheScreen();
+  });
+
   it("pet sem nome aparece como 'Sem nome'", async () => {
     await render(<PetCard occurrence={{ ...occurrence, petName: null }} now={now} onPress={() => {}} />);
     expect(screen.getByText("Sem nome")).toBeOnTheScreen();

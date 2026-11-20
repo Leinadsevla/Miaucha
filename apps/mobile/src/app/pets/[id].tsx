@@ -25,7 +25,15 @@ export default function PetDetailsRoute() {
     }, [client, id]),
   );
 
-  if (pet) return <PetDetails pet={pet} onBack={() => router.back()} />;
+  if (pet) {
+    return (
+      <PetDetails
+        pet={pet}
+        onBack={() => router.back()}
+        onReportLost={() => router.push({ pathname: "/occurrences/new", params: { petId: pet.id } })}
+      />
+    );
+  }
   return (
     <View className="flex-1 items-center justify-center gap-4 bg-background p-5">
       <Text className="text-center font-sans text-sm text-muted-foreground">{error ?? "Carregando..."}</Text>

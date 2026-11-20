@@ -1,3 +1,4 @@
+import { createHttpOccurrencesClient, createMockOccurrencesClient, type OccurrencesClient } from "@/features/occurrences/occurrencesClient";
 import { createFileUploader } from "@/features/pets/fileUploader";
 import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/features/pets/petsClient";
 import type { AuthClient } from "./AuthProvider";
@@ -12,7 +13,7 @@ export function chooseAuthClient({ apiUrl, isDev }: { apiUrl: string | undefined
   throw new Error("EXPO_PUBLIC_API_URL não definida: um build de produção não pode usar o login falso");
 }
 
-export type AppClients = { auth: AuthClient; pets: PetsClient };
+export type AppClients = { auth: AuthClient; pets: PetsClient; occurrences: OccurrencesClient };
 
 /**
  * Clientes da API do app. Todos usam a mesma sessão, para existir um único refresh por vez.
@@ -22,12 +23,14 @@ export function createClients(): AppClients {
   // Acesso estático: o Expo só embute `EXPO_PUBLIC_*` escrito assim, com ponto.
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
   if (chooseAuthClient({ apiUrl, isDev: __DEV__ }) === "mock") {
-    return { auth: createMockAuthClient(), pets: createMockPetsClient() };
+    return { auth: createMockAuthClient(), pets: createMockPetsClient(), occurrences: createMockOccurrencesClient() };
   }
   const storage = createSecureSessionStorage();
   const session = createApiSession({ baseUrl: apiUrl!, storage });
+  const upload = createFileUploader();
   return {
     auth: createHttpAuthClient({ baseUrl: apiUrl!, storage, session }),
-    pets: createHttpPetsClient({ session, upload: createFileUploader() }),
+    pets: createHttpPetsClient({ session, upload }),
+    occurrences: createHttpOccurrencesClient({ session, upload }),
   };
 }
