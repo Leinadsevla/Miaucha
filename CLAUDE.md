@@ -10,12 +10,13 @@ App mobile (TCC) para reencontrar pets perdidos: ocorrências no mapa, alertas d
 
 - `apps/mobile`: Expo SDK 58, Expo Router (rotas em `src/app`), NativeWind 4, Jest 30 + RNTL 14. Leia `apps/mobile/AGENTS.md` antes de mexer em APIs do Expo.
 - `packages/shared`: tokens de cor, tipos e regras puras usadas por app e API.
-- `apps/api`: NestJS 12 + PostgreSQL/PostGIS (via `pg` e migrações SQL em `apps/api/migrations`). Testes unitários em `src/**/*.test.ts`; de integração em `test/`, com Supertest + Testcontainers (precisam do Docker).
+- `apps/api`: NestJS 12 + PostgreSQL/PostGIS (via `pg` e migrações SQL em `apps/api/migrations`; banco remoto no Supabase, pelo Session pooler). Testes unitários em `src/**/*.test.ts`; de integração em `test/`, com Supertest + Testcontainers (precisam do Docker).
 
 ## Regras do projeto
 
 - **TDD sempre:** teste primeiro, rodar e ver falhar pelo motivo certo, implementar o mínimo, rodar de novo. Regras puras vão para `packages/shared` ou arquivos `.ts` testáveis; arquivos em `src/app` só ligam peças já testadas.
 - **Privacidade é requisito, não detalhe:** a API pública nunca devolve e-mail, telefone ou coordenada exata. Ocorrências expõem só `publicLocation` (deslocada ~150 m, MP-07) e `authorPseudonym` (CH-02). Localização do usuário só como geohash ~1 km (AL-06).
+- **RLS em toda tabela:** o banco remoto é Supabase, que expõe o schema `public` pela Data API. Toda migração que cria tabela precisa de `alter table <t> enable row level security;` (o teste `row-level-security.test.ts` falha se faltar).
 - **Cores:** sempre pelos tokens (`colors` do shared / classes `bg-primary`, `text-lost`...). Cor do marcador = tipo da ocorrência; ícone = espécie (MP-01). Se mudar uma cor, mude em `packages/shared/src/theme.ts` e em `apps/mobile/tailwind.config.js` (um teste compara os dois).
 - **Fontes:** classes `font-sans`, `font-nunito-semibold`, `font-nunito-bold`, `font-nunito-black`. Não use `font-bold` para trocar a fonte.
 - **Git:** uma branch por tarefa, PR revisado por outra pessoa antes do merge. Mensagens de commit em português.
