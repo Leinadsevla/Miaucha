@@ -8,6 +8,8 @@ export type PetsClient = {
   listMine(): Promise<MyPet[]>;
   get(id: string): Promise<MyPet>;
   create(input: PetInput): Promise<MyPet>;
+  update(id: string, input: PetInput): Promise<MyPet>;
+  removePhoto(petId: string, photoId: string): Promise<void>;
   addPhoto(petId: string, photo: PickedPhoto): Promise<PetPhoto>;
 };
 
@@ -19,6 +21,10 @@ export function createHttpPetsClient({ session, upload }: { session: ApiSession;
     listMine: () => session.authed<MyPet[]>("GET", "/me/pets"),
     get: (id) => session.authed<MyPet>("GET", `/pets/${id}`),
     create: (input) => session.authed<MyPet>("POST", "/pets", input),
+    update: (id, input) => session.authed<MyPet>("PATCH", `/pets/${id}`, input),
+    async removePhoto(petId, photoId) {
+      await session.authed("DELETE", `/pets/${petId}/photos/${photoId}`);
+    },
     async addPhoto(petId, photo) {
       const problem = checkPhoto(photo);
       if (problem) throw new Error(problem);
@@ -47,6 +53,27 @@ export async function savePet(client: PetsClient, input: PetInput, photos: Picke
   return { pet: { ...pet, photos: [...pet.photos, ...uploaded] }, failedPhotos };
 }
 
+/** Edita o pet: dados, depois fotos removidas, depois fotos novas. Foto que falha não desfaz a edição. */
+export async function updatePet(client: PetsClient, petId: string, input: PetInput, newPhotos: PickedPhoto[], removedPhotoIds: string[]) {
+  await client.update(petId, input);
+  let failedPhotos = 0;
+  for (const photoId of removedPhotoIds) {
+    try {
+      await client.removePhoto(petId, photoId);
+    } catch {
+      failedPhotos++;
+    }
+  }
+  for (const photo of newPhotos) {
+    try {
+      await client.addPhoto(petId, photo);
+    } catch {
+      failedPhotos++;
+    }
+  }
+  return { failedPhotos };
+}
+
 /** Pets em memória para desenvolver as telas sem a API (as fotos ficam com a URI local). */
 export function createMockPetsClient(): PetsClient {
   const pets: MyPet[] = [];
@@ -69,6 +96,22 @@ export function createMockPetsClient(): PetsClient {
       };
       pets.push(pet);
       return pet;
+    },
+    async update(id, input) {
+      const pet = pets.find((p) => p.id === id);
+      if (!pet) throw new Error("Pet não encontrado");
+      Object.assign(pet, {
+        name: input.name.trim(),
+        species: input.species,
+        breed: input.breed.trim() || null,
+        color: input.color.trim() || null,
+        approxAge: input.approxAge.trim() || null,
+      });
+      return pet;
+    },
+    async removePhoto(petId, photoId) {
+      const pet = pets.find((p) => p.id === petId);
+      if (pet) pet.photos = pet.photos.filter((ph) => ph.id !== photoId);
     },
     async addPhoto(petId, photo) {
       const problem = checkPhoto(photo);

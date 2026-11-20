@@ -1,9 +1,19 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { SkipThrottle, ThrottlerGuard } from "@nestjs/throttler";
-import type { Species } from "@miaucha/shared";
+import type { PetInput, Species } from "@miaucha/shared";
 import { AccessTokenGuard, CurrentUserId } from "../auth/access-token.guard";
 import { str } from "../auth/body";
 import { PetsService } from "./pets.service";
+
+function petInput(body: unknown): PetInput {
+  return {
+    name: str(body, "name"),
+    species: str(body, "species") as Species,
+    breed: str(body, "breed"),
+    color: str(body, "color"),
+    approxAge: str(body, "approxAge"),
+  };
+}
 
 /** Rotas de criação com rate limit (NF-04); leitura sem limite. */
 @Controller()
@@ -13,13 +23,7 @@ export class PetsController {
 
   @Post("pets")
   create(@CurrentUserId() userId: string, @Body() body: unknown) {
-    return this.pets.create(userId, {
-      name: str(body, "name"),
-      species: str(body, "species") as Species,
-      breed: str(body, "breed"),
-      color: str(body, "color"),
-      approxAge: str(body, "approxAge"),
-    });
+    return this.pets.create(userId, petInput(body));
   }
 
   @Get("me/pets")
@@ -32,6 +36,17 @@ export class PetsController {
   @SkipThrottle()
   findMine(@CurrentUserId() userId: string, @Param("petId") petId: string) {
     return this.pets.findMine(userId, petId);
+  }
+
+  @Patch("pets/:petId")
+  update(@CurrentUserId() userId: string, @Param("petId") petId: string, @Body() body: unknown) {
+    return this.pets.update(userId, petId, petInput(body));
+  }
+
+  @Delete("pets/:petId/photos/:photoId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removePhoto(@CurrentUserId() userId: string, @Param("petId") petId: string, @Param("photoId") photoId: string) {
+    await this.pets.removePhoto(userId, petId, photoId);
   }
 
   @Post("pets/:petId/photos")
