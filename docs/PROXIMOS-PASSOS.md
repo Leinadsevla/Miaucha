@@ -99,8 +99,9 @@ Depois disso a S1 fecha e começa a S2 (ocorrências e `local_publico` com deslo
 O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os testes continuam usando Testcontainers (nunca tocam no Supabase).
 
 - [x] Migração `002_row_level_security.sql`: RLS em todas as tabelas, para a Data API do Supabase não expor `users` (e-mail, hash de senha) à chave `anon`.
-- [ ] Preencher `apps/api/.env` com a URL do **Session pooler** (a conexão direta é só IPv6) e baixar o certificado SSL para `apps/api/certs/supabase-ca.crt`.
-- [ ] Rodar `pnpm dev` na `apps/api` uma vez para aplicar as migrações no Supabase e conferir no painel (Table Editor) que as tabelas aparecem com RLS ligado.
+- [x] `apps/api/.env` com a URL do **Session pooler** (`aws-0-us-west-2.pooler.supabase.com`; a conexão direta é só IPv6). O certificado (CA pública do Supabase) está commitado em `apps/api/certs/supabase-ca.crt`. Conexão confirmada com TLS 1.3 e certificado verificado.
+- [x] Migrações 001 e 002 aplicadas no Supabase em 20/11/2026; as quatro tabelas estão com RLS. Cadastro, código e login testados contra o Supabase (usuário de teste apagado depois).
+- [ ] A tabela `spatial_ref_sys` do PostGIS fica no `public` sem RLS (é do superusuário do Supabase, não dá para alterar). São dados públicos de referência, mas o Security Advisor do painel vai apontar; desligar a Data API resolve.
 - [ ] Se ninguém for usar o `supabase-js`, desligar a Data API em Project Settings → Data API (segunda camada de proteção).
 
 ## Decisões em aberto
