@@ -15,14 +15,20 @@ export function validateLogin(input: LoginInput): FieldErrors<LoginInput> {
   return errors;
 }
 
+/** Mensagem de erro da senha, ou undefined se ela é aceita. Usada no cadastro e na troca de senha. */
+export function validatePassword(p: string): string | undefined {
+  if (p.length < 8 || !/[a-zA-Z]/.test(p) || !/\d/.test(p)) {
+    return "A senha precisa de pelo menos 8 caracteres, com letras e números";
+  }
+  return undefined;
+}
+
 export function validateSignUp(input: SignUpInput): FieldErrors<SignUpInput> {
   const errors: FieldErrors<SignUpInput> = {};
   if (input.name.trim().length < 2) errors.name = "Informe seu nome";
   if (!isValidEmail(input.email)) errors.email = "E-mail inválido";
-  const p = input.password;
-  if (p.length < 8 || !/[a-zA-Z]/.test(p) || !/\d/.test(p)) {
-    errors.password = "A senha precisa de pelo menos 8 caracteres, com letras e números";
-  }
+  const passwordError = validatePassword(input.password);
+  if (passwordError) errors.password = passwordError;
   return errors;
 }
 

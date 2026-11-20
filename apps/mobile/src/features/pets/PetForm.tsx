@@ -8,11 +8,16 @@ import { cn } from "@/lib/cn";
 import { checkPhoto, type PickedPhoto } from "./photos";
 
 type Props = {
-  onSubmit: (input: PetInput, photos: PickedPhoto[]) => void;
+  /** Fotos novas escolhidas e ids das fotos salvas que o usuário removeu. */
+  onSubmit: (input: PetInput, photos: PickedPhoto[], removedPhotoIds: string[]) => void;
   /** Abre o seletor de fotos permitindo até `remaining` imagens. */
   onPickPhotos: (remaining: number) => Promise<PickedPhoto[]>;
   loading?: boolean;
   serverError?: string;
+  /** Edição: valores atuais e fotos já salvas. */
+  initial?: PetInput;
+  existingPhotos?: { id: string; url: string }[];
+  submitLabel?: string;
 };
 
 const SPECIES: { value: Species; label: string }[] = [
@@ -27,19 +32,22 @@ const FIELDS: { key: "name" | "breed" | "color" | "approxAge"; label: string; pl
   { key: "approxAge", label: "Idade aproximada", placeholder: "Ex: 3 anos" },
 ];
 
-export function PetForm({ onSubmit, onPickPhotos, loading, serverError }: Props) {
-  const [input, setInput] = useState<PetInput>({ name: "", species: "dog", breed: "", color: "", approxAge: "" });
+export function PetForm({ onSubmit, onPickPhotos, loading, serverError, initial, existingPhotos = [], submitLabel = "Salvar pet" }: Props) {
+  const [input, setInput] = useState<PetInput>(initial ?? { name: "", species: "dog", breed: "", color: "", approxAge: "" });
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const kept = existingPhotos.filter((p) => !removedIds.includes(p.id));
+  const free = MAX_PET_PHOTOS - kept.length - photos.length;
   const [errors, setErrors] = useState<FieldErrors<PetInput>>({});
   const [photoError, setPhotoError] = useState<string>();
 
   const set = (key: keyof PetInput, value: string) => setInput((prev) => ({ ...prev, [key]: value }));
 
   async function addPhotos() {
-    const picked = await onPickPhotos(MAX_PET_PHOTOS - photos.length);
+    const picked = await onPickPhotos(free);
     const problems = picked.map(checkPhoto);
     setPhotoError(problems.find(Boolean) ?? undefined);
-    setPhotos((prev) => [...prev, ...picked.filter((_, i) => !problems[i])].slice(0, MAX_PET_PHOTOS));
+    setPhotos((prev) => [...prev, ...picked.filter((_, i) => !problems[i]).slice(0, free)]);
   }
 
   function submit() {
@@ -55,6 +63,7 @@ export function PetForm({ onSubmit, onPickPhotos, loading, serverError }: Props)
         approxAge: input.approxAge.trim(),
       },
       photos,
+      removedIds,
     );
   }
 
@@ -63,6 +72,19 @@ export function PetForm({ onSubmit, onPickPhotos, loading, serverError }: Props)
       <Card>
         <SectionLabel>Fotos do pet</SectionLabel>
         <View className="flex-row flex-wrap gap-3">
+          {kept.map((photo, i) => (
+            <View key={photo.id} className="relative">
+              <Image accessibilityLabel={`Foto salva ${i + 1}`} source={{ uri: photo.url }} style={{ width: 72, height: 72, borderRadius: 16 }} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Remover foto salva ${i + 1}`}
+                onPress={() => setRemovedIds((prev) => [...prev, photo.id])}
+                className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full bg-lost"
+              >
+                <X size={14} color={colors.white} />
+              </Pressable>
+            </View>
+          ))}
           {photos.map((photo, i) => (
             <View key={photo.uri} className="relative">
               <Image accessibilityLabel={`Foto ${i + 1}`} source={{ uri: photo.uri }} style={{ width: 72, height: 72, borderRadius: 16 }} />
@@ -76,7 +98,7 @@ export function PetForm({ onSubmit, onPickPhotos, loading, serverError }: Props)
               </Pressable>
             </View>
           ))}
-          {photos.length < MAX_PET_PHOTOS ? (
+          {free > 0 ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Adicionar foto"
@@ -133,7 +155,7 @@ export function PetForm({ onSubmit, onPickPhotos, loading, serverError }: Props)
       </Card>
 
       {serverError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{serverError}</Text> : null}
-      <PrimaryButton title="Salvar pet" variant="primary" onPress={submit} loading={loading} />
+      <PrimaryButton title={submitLabel} variant="primary" onPress={submit} loading={loading} />
     </View>
   );
 }

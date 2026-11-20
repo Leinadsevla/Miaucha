@@ -44,6 +44,18 @@ export class AuthController {
     await this.auth.logout(str(body, "refreshToken"));
   }
 
+  @Post("forgot-password")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async forgotPassword(@Body() body: unknown): Promise<void> {
+    await this.auth.requestPasswordReset(str(body, "email"));
+  }
+
+  @Post("reset-password")
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() body: unknown) {
+    return this.auth.resetPassword(str(body, "email"), str(body, "code"), str(body, "password"));
+  }
+
   @Post("resend-code")
   @HttpCode(HttpStatus.NO_CONTENT)
   async resendCode(@Body() body: unknown): Promise<void> {

@@ -10,6 +10,8 @@ export type AuthClient = {
   signUp(input: SignUpInput): Promise<void>;
   verifyEmail(email: string, code: string): Promise<SessionUser>;
   resendCode(email: string): Promise<void>;
+  requestPasswordReset(email: string): Promise<void>;
+  resetPassword(email: string, code: string, password: string): Promise<SessionUser>;
   loginWithGoogle(): Promise<SessionUser>;
   saveConsent(consent: Consent): Promise<void>;
   logout(): Promise<void>;
@@ -24,6 +26,9 @@ type AuthContextValue = {
   signUp(input: SignUpInput): Promise<void>;
   verifyEmail(code: string): Promise<void>;
   resendCode(): Promise<void>;
+  /** Resolve `true` se o código foi pedido (para a tela seguir ao próximo passo). */
+  requestPasswordReset(email: string): Promise<boolean>;
+  resetPassword(email: string, code: string, password: string): Promise<void>;
   loginWithGoogle(): Promise<void>;
   acceptConsent(consent: Consent): Promise<void>;
   logout(): Promise<void>;
@@ -36,17 +41,20 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
-  const run = useCallback(async (task: () => Promise<void>) => {
+  const attempt = useCallback(async (task: () => Promise<void>): Promise<boolean> => {
     setBusy(true);
     setError(undefined);
     try {
       await task();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
+      return false;
     } finally {
       setBusy(false);
     }
   }, []);
+  const run = useCallback(async (task: () => Promise<void>) => void (await attempt(task)), [attempt]);
 
   const pendingEmail = state.status === "pendingVerification" ? state.email : "";
 
@@ -65,6 +73,9 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
       verifyEmail: (code) =>
         run(async () => dispatch({ type: "signedIn", user: await client.verifyEmail(pendingEmail, code) })),
       resendCode: () => run(() => client.resendCode(pendingEmail)),
+      requestPasswordReset: (email) => attempt(() => client.requestPasswordReset(email)),
+      resetPassword: (email, code, password) =>
+        run(async () => dispatch({ type: "signedIn", user: await client.resetPassword(email, code, password) })),
       loginWithGoogle: () => run(async () => dispatch({ type: "signedIn", user: await client.loginWithGoogle() })),
       acceptConsent: (consent) =>
         run(async () => {
@@ -77,7 +88,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
           dispatch({ type: "signedOut" });
         }),
     }),
-    [state, busy, error, run, client, pendingEmail],
+    [state, busy, error, run, attempt, client, pendingEmail],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

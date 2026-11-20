@@ -18,6 +18,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 type PetRow = { id: string; name: string; species: MyPet["species"]; breed: string | null; color: string | null; approx_age: string | null };
 
 const notFound = () => new NotFoundException("Pet não encontrado");
+
+function assertValid(input: PetInput) {
+  const errors = validatePet(input);
+  if (Object.keys(errors).length > 0) throw new BadRequestException({ message: "Confira os dados do pet", errors });
+}
 const optional = (value: string) => value.trim() || null;
 
 @Injectable()
@@ -28,8 +33,7 @@ export class PetsService {
   ) {}
 
   async create(ownerId: string, input: PetInput): Promise<MyPet> {
-    const errors = validatePet(input);
-    if (Object.keys(errors).length > 0) throw new BadRequestException({ message: "Confira os dados do pet", errors });
+    assertValid(input);
 
     const { rows } = await this.pool.query<PetRow>(
       `insert into pets (owner_id, name, species, breed, color, approx_age) values ($1, $2, $3, $4, $5, $6)
@@ -64,6 +68,30 @@ export class PetsService {
       [petId],
     );
     return this.toView(pet.rows[0], photos.rows);
+  }
+
+  async update(ownerId: string, petId: string, input: PetInput): Promise<MyPet> {
+    if (!UUID_RE.test(petId)) throw notFound();
+    assertValid(input);
+    const { rowCount } = await this.pool.query(
+      `update pets set name = $3, species = $4, breed = $5, color = $6, approx_age = $7
+        where id = $1 and owner_id = $2`,
+      [petId, ownerId, input.name.trim(), input.species, optional(input.breed), optional(input.color), optional(input.approxAge)],
+    );
+    if (rowCount === 0) throw notFound();
+    return this.findMine(ownerId, petId);
+  }
+
+  async removePhoto(ownerId: string, petId: string, photoId: string): Promise<void> {
+    if (!UUID_RE.test(petId) || !UUID_RE.test(photoId)) throw notFound();
+    const { rows } = await this.pool.query<{ object_key: string }>(
+      `delete from pet_photos ph using pets p
+        where ph.id = $1 and ph.pet_id = p.id and p.id = $2 and p.owner_id = $3
+        returning ph.object_key`,
+      [photoId, petId, ownerId],
+    );
+    if (!rows[0]) throw notFound();
+    await this.storage.delete(rows[0].object_key);
   }
 
   async requestUpload(ownerId: string, petId: string, contentType: string) {

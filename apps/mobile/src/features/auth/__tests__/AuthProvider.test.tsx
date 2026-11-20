@@ -43,6 +43,26 @@ describe("AuthProvider", () => {
     expect(result.current.busy).toBe(false);
   });
 
+  it("esqueci a senha: pedir código não muda a sessão; trocar a senha entra na conta", async () => {
+    const client = createMockAuthClient();
+    const request = jest.spyOn(client, "requestPasswordReset");
+    const { result } = await setup(client);
+    await settle(result.current.restore());
+
+    let sent = false;
+    await act(async () => {
+      const p = result.current.requestPasswordReset("ana@exemplo.com").then((ok) => (sent = ok));
+      jest.runAllTimers();
+      await p;
+    });
+    expect(sent).toBe(true);
+    expect(request).toHaveBeenCalledWith("ana@exemplo.com");
+    expect(result.current.state).toEqual({ status: "signedOut" });
+
+    await settle(result.current.resetPassword("ana@exemplo.com", "123456", "novaSenha1"));
+    expect(result.current.state).toMatchObject({ status: "signedIn" });
+  });
+
   it("useAuth fora do provider avisa o erro", async () => {
     jest.spyOn(console, "error").mockImplementation(() => {});
     await expect(renderHook(() => useAuth())).rejects.toThrow("useAuth precisa estar dentro de <AuthProvider>");
