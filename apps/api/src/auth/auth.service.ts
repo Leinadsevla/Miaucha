@@ -10,13 +10,13 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { validateEmailCode, validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
+import { validateEmailCode, validateLogin, validatePassword, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
 import * as argon2 from "argon2";
 import { timingSafeEqual } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import type { AppConfig } from "../config";
 import { isUniqueViolation, transaction } from "../db/transaction";
-import type { Mailer } from "../mail/mailer";
+import type { CodePurpose, Mailer } from "../mail/mailer";
 import { APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL } from "../tokens";
 import { normalizeEmail } from "./body";
 import type { GoogleProfile, GoogleVerifier } from "./google-verifier";
@@ -33,6 +33,12 @@ export type PublicUser = { id: string; name: string; pseudonym: string; hasConse
 export type Session = { accessToken: string; refreshToken: string; user: PublicUser };
 
 const USER_COLUMNS = "id, name, pseudonym, consent_at";
+
+/** Cada finalidade tem tabela e contexto de HMAC próprios: um código de verificação não troca senha. */
+const CODE_TABLES: Record<CodePurpose, string> = { verify: "email_codes", reset: "password_reset_codes" };
+const codeSubject = (email: string, purpose: CodePurpose) => (purpose === "reset" ? `reset:${email}` : email);
+
+type CodeCheck = "ok" | "gone" | "wrong";
 
 function toPublicUser(row: UserRow): PublicUser {
   return { id: row.id, name: row.name, pseudonym: row.pseudonym, hasConsent: row.consent_at !== null };
@@ -77,19 +83,8 @@ export class AuthService {
     const email = normalizeEmail(rawEmail);
 
     const user = await transaction(this.pool, async (client) => {
-      const { rows } = await client.query<{ code_hash: string; expired: boolean; attempts: number }>(
-        "select code_hash, expires_at < now() as expired, attempts from email_codes where email = $1 for update",
-        [email],
-      );
-      const pending = rows[0];
-      if (!pending || pending.expired || pending.attempts >= MAX_CODE_ATTEMPTS) return "gone" as const;
-
-      if (!this.codeMatches(email, code, pending.code_hash)) {
-        await client.query("update email_codes set attempts = attempts + 1 where email = $1", [email]);
-        return "wrong" as const;
-      }
-
-      await client.query("delete from email_codes where email = $1", [email]);
+      const check = await this.consumeCode(client, email, code, "verify");
+      if (check !== "ok") return check;
       const updated = await client.query<UserRow>(
         `update users set email_verified_at = coalesce(email_verified_at, now()) where lower(email) = $1 returning ${USER_COLUMNS}`,
         [email],
@@ -192,6 +187,52 @@ export class AuthService {
     ]);
   }
 
+  /** Envia código de troca de senha. Não revela se o e-mail tem conta: sem conta responde igual, sem enviar. */
+  async requestPasswordReset(rawEmail: string): Promise<void> {
+    const email = normalizeEmail(rawEmail);
+    const { rows } = await this.pool.query<{ recently_sent: boolean | null }>(
+      `select (select sent_at > now() - make_interval(secs => $2) from password_reset_codes where email = $1) as recently_sent
+         from users where lower(email) = $1`,
+      [email, RESEND_COOLDOWN_SECONDS],
+    );
+    if (rows.length === 0) return;
+    if (rows[0].recently_sent) {
+      throw new HttpException("Aguarde um minuto para pedir outro código", HttpStatus.TOO_MANY_REQUESTS);
+    }
+    await this.sendEmailCode(email, "reset");
+  }
+
+  /**
+   * Troca a senha com o código recebido por e-mail. Derruba todas as sessões (quem roubou a senha antiga
+   * perde o acesso) e confirma o e-mail, já que o código chegou na caixa do dono.
+   */
+  async resetPassword(rawEmail: string, code: string, password: string): Promise<Session> {
+    if (!validateEmailCode(code)) invalid({ code: "O código tem 6 dígitos" });
+    const passwordError = validatePassword(password);
+    if (passwordError) invalid({ password: passwordError });
+    const email = normalizeEmail(rawEmail);
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+
+    const user = await transaction(this.pool, async (client) => {
+      const check = await this.consumeCode(client, email, code, "reset");
+      if (check !== "ok") return check;
+      const updated = await client.query<UserRow>(
+        `update users set password_hash = $2, email_verified_at = coalesce(email_verified_at, now())
+          where lower(email) = $1 returning ${USER_COLUMNS}`,
+        [email, passwordHash],
+      );
+      const row = updated.rows[0];
+      if (!row) return "gone" as const;
+      await client.query("update refresh_tokens set revoked_at = now() where user_id = $1 and revoked_at is null", [row.id]);
+      await client.query("delete from email_codes where email = $1", [email]);
+      return row;
+    });
+
+    if (user === "gone") throw new GoneException("Código expirado. Peça um novo.");
+    if (user === "wrong") throw new BadRequestException("Código incorreto");
+    return this.issueSession(user);
+  }
+
   /** Não revela se o e-mail tem conta: desconhecido ou já verificado responde igual, sem enviar nada. */
   async resendCode(rawEmail: string): Promise<void> {
     const email = normalizeEmail(rawEmail);
@@ -214,23 +255,40 @@ export class AuthService {
     return this.dummyHashPromise;
   }
 
-  private codeMatches(email: string, code: string, storedHash: string): boolean {
-    const given = Buffer.from(hashEmailCode(this.config.codeSecret, email, code), "hex");
+  /** Confere e consome o código pendente (na transação, com `for update`): conta tentativas e apaga ao acertar. */
+  private async consumeCode(client: PoolClient, email: string, code: string, purpose: CodePurpose): Promise<CodeCheck> {
+    const table = CODE_TABLES[purpose];
+    const { rows } = await client.query<{ code_hash: string; expired: boolean; attempts: number }>(
+      `select code_hash, expires_at < now() as expired, attempts from ${table} where email = $1 for update`,
+      [email],
+    );
+    const pending = rows[0];
+    if (!pending || pending.expired || pending.attempts >= MAX_CODE_ATTEMPTS) return "gone";
+    if (!this.codeMatches(email, code, pending.code_hash, purpose)) {
+      await client.query(`update ${table} set attempts = attempts + 1 where email = $1`, [email]);
+      return "wrong";
+    }
+    await client.query(`delete from ${table} where email = $1`, [email]);
+    return "ok";
+  }
+
+  private codeMatches(email: string, code: string, storedHash: string, purpose: CodePurpose): boolean {
+    const given = Buffer.from(hashEmailCode(this.config.codeSecret, codeSubject(email, purpose), code), "hex");
     const stored = Buffer.from(storedHash, "hex");
     return given.length === stored.length && timingSafeEqual(given, stored);
   }
 
   /** Grava (ou substitui) o código pendente do e-mail, zerando as tentativas, e envia. */
-  private async sendEmailCode(email: string): Promise<void> {
+  private async sendEmailCode(email: string, purpose: CodePurpose = "verify"): Promise<void> {
     const code = generateEmailCode();
     await this.pool.query(
-      `insert into email_codes (email, code_hash, expires_at, attempts, sent_at)
+      `insert into ${CODE_TABLES[purpose]} (email, code_hash, expires_at, attempts, sent_at)
        values ($1, $2, now() + make_interval(mins => $3), 0, now())
        on conflict (email) do update
          set code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0, sent_at = now()`,
-      [email, hashEmailCode(this.config.codeSecret, email, code), CODE_TTL_MINUTES],
+      [email, hashEmailCode(this.config.codeSecret, codeSubject(email, purpose), code), CODE_TTL_MINUTES],
     );
-    await this.mailer.sendEmailCode(email, code);
+    await this.mailer.sendEmailCode(email, code, purpose);
   }
 
   private async issueSession(user: UserRow, client: Pool | PoolClient = this.pool): Promise<Session> {

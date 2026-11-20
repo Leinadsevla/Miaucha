@@ -9,3 +9,4 @@ export * from "./sessionStorage";
 export * from "./createAuthClient";
 export * from "./session";
 export * from "./guard";
+export * from "./ForgotPasswordForm";
