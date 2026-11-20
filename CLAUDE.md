@@ -34,6 +34,7 @@ cd apps/api && pnpm test test/auth-google    # um arquivo de integração
 cd apps/api && pnpm dev                      # API local (lê apps/api/.env; ver .env.example)
 cd apps/mobile && npx expo install <pkg> "--" --dev   # no Windows, o "--" é obrigatório para --dev
 cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWind sem aparelho
+cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (o --tunnel padrão do SDK 58 exige login na conta Expo)
 ```
 
 ## Armadilhas já resolvidas (não desfaça)
