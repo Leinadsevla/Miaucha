@@ -1,5 +1,6 @@
-import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
+type Stoppable = { stop(): Promise<unknown> };
 
 export default async function globalTeardown() {
-  await (globalThis as { __PG__?: StartedPostgreSqlContainer }).__PG__?.stop();
+  const containers = (globalThis as { __CONTAINERS__?: Stoppable[] }).__CONTAINERS__ ?? [];
+  await Promise.all(containers.map((c) => c.stop()));
 }

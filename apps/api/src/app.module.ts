@@ -9,7 +9,10 @@ import { GoogleAuthLibraryVerifier } from "./auth/google-verifier";
 import type { AppConfig } from "./config";
 import { ConsoleMailer } from "./mail/mailer";
 import { MeController } from "./me/me.controller";
-import { APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL } from "./tokens";
+import { PetsController } from "./pets/pets.controller";
+import { PetsService } from "./pets/pets.service";
+import { S3PhotoStorage } from "./storage/s3-photo-storage";
+import { APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL, PHOTO_STORAGE } from "./tokens";
 
 @Module({})
 export class AppModule implements OnApplicationShutdown {
@@ -25,10 +28,12 @@ export class AppModule implements OnApplicationShutdown {
           errorMessage: "Muitas tentativas. Espere um pouco e tente de novo.",
         }),
       ],
-      controllers: [AuthController, MeController],
+      controllers: [AuthController, MeController, PetsController],
       providers: [
         AuthService,
         AccessTokenGuard,
+        PetsService,
+        { provide: PHOTO_STORAGE, useFactory: () => new S3PhotoStorage(config.storage) },
         { provide: APP_CONFIG, useValue: config },
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },
         { provide: MAILER, useClass: ConsoleMailer },
