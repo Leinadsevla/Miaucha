@@ -1,3 +1,12 @@
+/** Storage S3 compatível (Supabase Storage, Cloudflare R2...). O bucket precisa ser privado (NF-05). */
+export type StorageConfig = {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+};
+
 export type AppConfig = {
   port: number;
   databaseUrl: string;
@@ -10,6 +19,7 @@ export type AppConfig = {
   googleClientIds: string[];
   /** Rate limit das rotas de autenticação (NF-04). */
   throttle: { ttlMs: number; limit: number };
+  storage: StorageConfig;
 };
 
 type Env = Record<string, string | undefined>;
@@ -46,5 +56,12 @@ export function loadConfig(env: Env): AppConfig {
       .map((id) => id.trim())
       .filter(Boolean),
     throttle: { ttlMs: int(env, "THROTTLE_TTL_MS", 60_000), limit: int(env, "THROTTLE_LIMIT", 10) },
+    storage: {
+      endpoint: required(env, "STORAGE_ENDPOINT"),
+      region: env.STORAGE_REGION || "us-east-1",
+      bucket: env.STORAGE_BUCKET || "pet-photos",
+      accessKeyId: required(env, "STORAGE_ACCESS_KEY_ID"),
+      secretAccessKey: required(env, "STORAGE_SECRET_ACCESS_KEY"),
+    },
   };
 }

@@ -34,6 +34,7 @@ cd apps/api && pnpm test test/auth-google    # um arquivo de integração
 cd apps/api && pnpm dev                      # API local (lê apps/api/.env; ver .env.example)
 cd apps/mobile && npx expo install <pkg> "--" --dev   # no Windows, o "--" é obrigatório para --dev
 cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWind sem aparelho
+cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (o --tunnel padrão do SDK 58 exige login na conta Expo)
 ```
 
 ## Armadilhas já resolvidas (não desfaça)
@@ -45,6 +46,7 @@ cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWin
 - `pnpm-workspace.yaml` tem `minimumReleaseAgeExclude` para pacotes do Expo publicados há pouco; o pnpm adiciona isso sozinho.
 - No Expo Router 58, o `tabBar` recebe `navigateToTab(routeKey)` e não `navigation`.
 - `react-native-safe-area-context` e `react-native-reanimated` são mockados em `apps/mobile/jest.setup.ts`.
+- NativeWind 4: nunca adicione num condicional utilitários que usam variável CSS (`shadow-*`, `ring-*`, `scale-*`, `translate-*`, gradientes). O componente é "promovido" depois da primeira renderização e, em dev, o app quebra com "Couldn't find a LinkingContext context". Use `style` para o efeito condicional. O teste `src/__tests__/nativewind-rules.test.ts` barra isso; o Jest não reproduz o erro em si.
 - Rodar a partir do OneDrive deixa `pnpm install` muito lento (4 a 6 min).
 - Nunca deixe um `package-lock.json` na raiz: o `npx expo install` passa a achar que o projeto usa npm e falha.
 - O app escolhe a API real ou o login falso por `EXPO_PUBLIC_API_URL` (`apps/mobile/.env.local`, ver `.env.example`). Leia sempre como `process.env.EXPO_PUBLIC_API_URL`: o Expo não embute a variável se você desestruturar.
@@ -52,3 +54,7 @@ cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWin
 - A API roda com `node -r @swc-node/register` (scripts `dev`/`start`) porque o `@miaucha/shared` é publicado como fonte TypeScript. Não troque por `tsx`: ele não emite os metadados de decorators e a injeção de dependências do Nest quebra.
 - Pacotes com script de instalação precisam ser liberados em `allowBuilds` no `pnpm-workspace.yaml` (`pnpm approve-builds <pkg>`). Só o `argon2` precisa de verdade.
 - Nos testes de integração da API, todos os arquivos usam o mesmo banco: crie dados com `uniqueEmail()` em vez de apagar tabelas.
+- O storage S3 dos testes é o RustFS (`rustfs/rustfs`), porque o MinIO parou de publicar imagens no Docker Hub. Não volte para `minio/minio`.
+- Fotos: o bucket é privado e a API só devolve URLs assinadas. O `S3Client` usa `requestChecksumCalculation: "WHEN_REQUIRED"`; sem isso a URL de upload exige checksums que o aparelho não calcula.
+- Upload de arquivo local no app: use o `UploadTask` do `expo-file-system` (`features/pets/fileUploader.ts`). `fetch(uri).blob()` não lê `file://` no SDK 58 e envia o texto "File not found" no lugar da foto. A API confere os primeiros bytes (`image-signature.ts`) e recusa o que não for imagem.
+- App: chamadas autenticadas passam pelo `ApiSession` (`features/auth/apiSession.ts`), compartilhado por todos os clientes, para existir um único refresh por vez.

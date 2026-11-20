@@ -5,6 +5,12 @@ import { validateLogin, validateSignUp, type LoginInput, type SignUpInput } from
 import { PrimaryButton, TextField } from "@/components";
 import { cn } from "@/lib/cn";
 
+/**
+ * Sombra da aba selecionada pelo `style`, não por `shadow-sm` condicional: no NativeWind 4 isso
+ * adiciona variáveis CSS depois da primeira renderização e quebra no Expo Router (ver nativewind-rules.test.ts).
+ */
+const SELECTED_TAB_SHADOW = { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 };
+
 type Tab = "login" | "register";
 type Errors = Partial<Record<keyof SignUpInput, string>>;
 
@@ -57,7 +63,8 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
               accessibilityLabel={label}
               accessibilityState={{ selected }}
               onPress={() => switchTab(t)}
-              className={cn("flex-1 items-center rounded-xl py-2", selected && "bg-white shadow-sm")}
+              className={cn("flex-1 items-center rounded-xl py-2", selected && "bg-white")}
+              style={selected ? SELECTED_TAB_SHADOW : undefined}
             >
               <Text className={cn("font-nunito-bold text-sm", selected ? "text-primary" : "text-muted-foreground")}>
                 {label}

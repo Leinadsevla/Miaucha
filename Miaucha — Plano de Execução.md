@@ -195,7 +195,7 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 | NF-02 | S1 | Teste de integração: cadastro, verificação de e-mail, login com senha e com Google (token mockado). ✅ Passando na API (`apps/api/test/auth-*.test.ts`); app ligado à API por e-mail e senha (`httpAuthClient.test.ts`); falta o Google no app |
 | NF-03 | S2 | Teste unitário do job de expiração |
 | NF-04 | S2, S4 | Teste de integração: excesso de requisições retorna 429. Rotas `/auth` cobertas (`apps/api/test/rate-limit.test.ts`); faltam criação de ocorrência e chat |
-| NF-05 | S1 | Verificação de que não há URL pública de foto |
+| NF-05 | S1 | Verificação de que não há URL pública de foto. ✅ Fotos de pets: acesso sem assinatura recusado e toda URL devolvida é assinada (`apps/api/test/pets.test.ts`, `photo-storage.test.ts`); HTTPS/WSS em produção ainda a conferir |
 | NF-06 | S6 | Teste em aparelhos Android 10 e iOS 15 ou emuladores |
 
 ## Estratégia de testes

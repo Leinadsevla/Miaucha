@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import request from "supertest";
 import { AppModule, configureApp } from "../src/app.module";
 import { InvalidGoogleTokenError, type GoogleProfile, type GoogleVerifier } from "../src/auth/google-verifier";
-import type { AppConfig } from "../src/config";
+import type { AppConfig, StorageConfig } from "../src/config";
 import { runMigrations } from "../src/db/migrate";
 import { GOOGLE_VERIFIER, MAILER } from "../src/tokens";
 import type { Mailer } from "../src/mail/mailer";
@@ -34,6 +34,16 @@ export class FakeGoogleVerifier implements GoogleVerifier {
   }
 }
 
+export function storageConfigFromEnv(): StorageConfig {
+  return {
+    endpoint: process.env.STORAGE_ENDPOINT!,
+    region: "us-east-1",
+    bucket: "pet-photos",
+    accessKeyId: process.env.STORAGE_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY!,
+  };
+}
+
 export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   return {
     port: 0,
@@ -44,6 +54,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     refreshTokenTtlDays: 30,
     googleClientIds: ["teste.apps.googleusercontent.com"],
     throttle: { ttlMs: 60_000, limit: 1000 },
+    storage: storageConfigFromEnv(),
     ...overrides,
   };
 }
