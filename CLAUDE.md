@@ -10,7 +10,7 @@ App mobile (TCC) para reencontrar pets perdidos: ocorrências no mapa, alertas d
 
 - `apps/mobile`: Expo SDK 58, Expo Router (rotas em `src/app`), NativeWind 4, Jest 30 + RNTL 14. Leia `apps/mobile/AGENTS.md` antes de mexer em APIs do Expo.
 - `packages/shared`: tokens de cor, tipos e regras puras usadas por app e API.
-- `apps/api`: NestJS + PostgreSQL/PostGIS + Redis (ainda não criado).
+- `apps/api`: NestJS 12 + PostgreSQL/PostGIS (via `pg` e migrações SQL em `apps/api/migrations`). Testes unitários em `src/**/*.test.ts`; de integração em `test/`, com Supertest + Testcontainers (precisam do Docker).
 
 ## Regras do projeto
 
@@ -28,6 +28,9 @@ pnpm install                 # na raiz
 pnpm test                    # todos os testes
 pnpm typecheck
 cd apps/mobile && npx jest src/features   # só uma pasta
+cd apps/api && pnpm test:unit                # API sem Docker
+cd apps/api && pnpm test test/auth-google    # um arquivo de integração
+cd apps/api && pnpm dev                      # API local (lê apps/api/.env; ver .env.example)
 cd apps/mobile && npx expo install <pkg> "--" --dev   # no Windows, o "--" é obrigatório para --dev
 cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWind sem aparelho
 ```
@@ -42,3 +45,7 @@ cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWin
 - No Expo Router 58, o `tabBar` recebe `navigateToTab(routeKey)` e não `navigation`.
 - `react-native-safe-area-context` e `react-native-reanimated` são mockados em `apps/mobile/jest.setup.ts`.
 - Rodar a partir do OneDrive deixa `pnpm install` muito lento (4 a 6 min).
+- NestJS 12 é publicado só como ESM. O Jest da API roda com `node --experimental-vm-modules` (já está no script `test`); rode pelo `pnpm test`, não por `npx jest`.
+- A API roda com `node -r @swc-node/register` (scripts `dev`/`start`) porque o `@miaucha/shared` é publicado como fonte TypeScript. Não troque por `tsx`: ele não emite os metadados de decorators e a injeção de dependências do Nest quebra.
+- Pacotes com script de instalação precisam ser liberados em `allowBuilds` no `pnpm-workspace.yaml` (`pnpm approve-builds <pkg>`). Só o `argon2` precisa de verdade.
+- Nos testes de integração da API, todos os arquivos usam o mesmo banco: crie dados com `uniqueEmail()` em vez de apagar tabelas.

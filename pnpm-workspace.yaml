@@ -1,6 +1,13 @@
 packages:
   - "apps/*"
   - "packages/*"
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  argon2: true
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
 minimumReleaseAgeExclude:
   - "@expo/cli@58.1.21"
   - "@expo/metro-config@58.0.23"
