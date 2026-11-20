@@ -2,6 +2,10 @@ import { type DynamicModule, type INestApplication, Inject, Module, type OnAppli
 import { JwtModule } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { Pool } from "pg";
+import { InProcessAlertQueue } from "./alerts/alert-queue";
+import { AlertsController } from "./alerts/alerts.controller";
+import { AlertsService } from "./alerts/alerts.service";
+import { ExpoPushSender } from "./alerts/push-sender";
 import { AccessTokenGuard } from "./auth/access-token.guard";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
@@ -14,7 +18,7 @@ import { OccurrencesService } from "./occurrences/occurrences.service";
 import { PetsController } from "./pets/pets.controller";
 import { PetsService } from "./pets/pets.service";
 import { S3PhotoStorage } from "./storage/s3-photo-storage";
-import { APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL, PHOTO_STORAGE } from "./tokens";
+import { ALERT_QUEUE, APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL, PHOTO_STORAGE, PUSH_SENDER } from "./tokens";
 
 @Module({})
 export class AppModule implements OnApplicationShutdown {
@@ -30,7 +34,7 @@ export class AppModule implements OnApplicationShutdown {
           errorMessage: "Muitas tentativas. Espere um pouco e tente de novo.",
         }),
       ],
-      controllers: [AuthController, MeController, PetsController, OccurrencesController],
+      controllers: [AuthController, MeController, PetsController, OccurrencesController, AlertsController],
       providers: [
         AuthService,
         AccessTokenGuard,
@@ -41,6 +45,10 @@ export class AppModule implements OnApplicationShutdown {
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },
         { provide: MAILER, useClass: ConsoleMailer },
         { provide: GOOGLE_VERIFIER, useFactory: () => new GoogleAuthLibraryVerifier(config.googleClientIds) },
+        AlertsService,
+        InProcessAlertQueue,
+        { provide: ALERT_QUEUE, useExisting: InProcessAlertQueue },
+        { provide: PUSH_SENDER, useFactory: () => new ExpoPushSender({ accessToken: config.expoAccessToken }) },
       ],
     };
   }

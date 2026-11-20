@@ -20,6 +20,8 @@ export type AppConfig = {
   /** Rate limit das rotas de autenticação (NF-04). */
   throttle: { ttlMs: number; limit: number };
   storage: StorageConfig;
+  /** Access token do Expo Push (opcional; só se o projeto exigir "enhanced security" no painel do Expo). */
+  expoAccessToken?: string;
 };
 
 type Env = Record<string, string | undefined>;
@@ -63,5 +65,6 @@ export function loadConfig(env: Env): AppConfig {
       accessKeyId: required(env, "STORAGE_ACCESS_KEY_ID"),
       secretAccessKey: required(env, "STORAGE_SECRET_ACCESS_KEY"),
     },
+    expoAccessToken: env.EXPO_ACCESS_TOKEN || undefined,
   };
 }
