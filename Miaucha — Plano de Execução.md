@@ -180,11 +180,11 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 | CH-06 | S4 | Teste unitário do filtro com lista de casos (telefones, e-mails, links) |
 | CH-07, CH-08 | S4 | Teste de integração dos fluxos de opt-in, bloqueio e denúncia |
 | CH-09 | S4 | Teste de integração da paginação |
-| AL-01, AL-07 | S5 | Teste de integração do job: usuário dentro do raio recebe, fora não recebe |
-| AL-02, AL-03 | S5 | Teste de campo caminhando até uma ocorrência com o app fechado |
-| AL-04, AL-05 | S5 | Teste unitário das regras de raio, silêncio e deduplicação |
-| AL-06 | S5 | Inspeção do banco: só geohash, sem coordenada exata |
-| AL-08 | S5 | Teste manual tocando no push |
+| AL-01, AL-07 | S5 | Teste de integração do job: usuário dentro do raio recebe, fora não recebe. ✅ `apps/api/test/alerts.test.ts`: dentro do raio escolhido recebe alerta e push; autor, fora do raio, desligado e localização antiga não; sem push token o alerta continua na lista; o `POST /occurrences` não espera o push. Falta medir o "menos de 1 min" com push real (development build) |
+| AL-02, AL-03 | S5 | Teste de campo caminhando até uma ocorrência com o app fechado. 🟡 Escolha das regiões (iOS 20, Android 100) e recálculo testados (`geofencing.test.ts`, `alerts.test.ts` do shared); integração nativa pronta e desligada por flag até o development build |
+| AL-04, AL-05 | S5 | Teste unitário das regras de raio, silêncio e deduplicação. ✅ `packages/shared/src/__tests__/alerts.test.ts` (raios, silêncio atravessando a meia-noite no fuso de São Paulo) e, na API, preferências e silêncio sem push; AL-05 com restrição única no banco e disparo repetido sem segundo alerta (`apps/api/test/alerts.test.ts`) |
+| AL-06 | S5 | Inspeção do banco: só geohash, sem coordenada exata. ✅ `apps/api/test/alerts.test.ts`: só `occurrences` tem colunas geográficas, `user_locations` tem só `user_id`, `geohash` e `updated_at` (uma linha, sem histórico), a API recusa lat/lng; o app calcula o geohash no aparelho (`locationSync.test.ts`) |
+| AL-08 | S5 | Teste manual tocando no push. 🟡 Lógica testada (`notificationTarget`, `AlertsProvider.test.tsx`: toque e app aberto pela notificação abrem a ocorrência; tocar na aba Alertas abre o detalhe); falta o teste manual no development build |
 | MP-01, MP-04, MP-05 | S3 | Teste de componente e revisão visual |
 | MP-02 | S2, S3 | Teste de carga com 5 mil ocorrências; resposta abaixo de 300 ms. 🟡 Parcial: busca por raio e bbox pela localização pública com índice GiST e teste de integração com 5 mil ocorrências abaixo de 300 ms (`apps/api/test/occurrences.test.ts`); falta o k6 e o mapa (S3) |
 | MP-03 | S3 | Teste visual com pontos agrupados em vários níveis de zoom |

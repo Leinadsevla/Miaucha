@@ -1,6 +1,6 @@
 # Próximos passos
 
-Atualizado em 20/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem. A S2 (ocorrências) está na `feat/ocorrencias`, criada a partir da `feat/pets` (ver a seção "S2 · Ocorrências").
+Atualizado em 20/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem. A S2 (ocorrências) está na `feat/ocorrencias`, criada a partir da `feat/pets` (ver a seção "S2 · Ocorrências"). A S5 (alertas) e a aba Perfil completa estão na `feat/alertas`, criada a partir da `feat/ocorrencias` (ver "S5 · Alertas de proximidade").
 
 ## Onde estamos
 
@@ -11,14 +11,14 @@ Sprint 1 (Fundação), parte do app pronta:
 | Monorepo (`apps/mobile`, `apps/api`, `packages/shared`) | Pronto |
 | Design system (tokens, Nunito, componentes base) | Pronto |
 | Telas de splash, login/cadastro, código de e-mail, consentimento, política | Prontas, com login **falso** (`createMockAuthClient`) |
-| Abas (Início, Mapa, Alertas, Chat, Perfil) | Início pronta (S2: pets num raio de 5 km); Mapa, Alertas e Chat nas S3 a S5 |
+| Abas (Início, Mapa, Alertas, Chat, Perfil) | Início (S2), Alertas (S5) e Perfil prontos; Mapa e Chat nas S3 e S4 |
 | Docker Compose (PostGIS + Redis) | Falta |
 | CI no GitHub Actions | Falta |
 | Login real (API + Google) | E-mail e senha prontos de ponta a ponta; Google falta no app (precisa dos client IDs e do development build) |
 | Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 420 passando (65 no shared, 218 no app, 137 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 639 passando (113 no shared, 324 no app, 202 na API) na `feat/alertas`. Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
 
 ## Ordem sugerida
 
@@ -139,6 +139,53 @@ Pendências:
 - [ ] Apagar uma foto de pet precisa conferir se o objeto não é usado por uma ocorrência (`occurrence_photos.object_key` pode apontar para a foto do pet). Relevante para a exclusão de conta (NF-01).
 - [ ] Rodar `pnpm dev` na API para aplicar a migração `004_occurrences.sql` no Supabase.
 - [ ] Testar no aparelho: permissão de localização, puxar para atualizar e "Como chegar". O `expo-location` em primeiro plano funciona no Expo Go.
+
+## S5 · Alertas de proximidade (`feat/alertas`)
+
+Feito em TDD (API contra PostGIS real via Testcontainers; app com RNTL). Branch criada a partir da `feat/ocorrencias`. Migração `007_alerts.sql` (a 006 fica para o chat).
+
+**Regras puras (`packages/shared`):** `encodeGeohash`/`decodeGeohash`/`geohashNeighbors` (valores de referência e conferido contra o `st_geohash` do PostGIS), `ALERT_GEOHASH_PRECISION = 6`, preferências (`validateAlertPreferences`, raios 1/3/5 km), `isInQuietHours` (fuso de São Paulo, silêncio pode atravessar a meia-noite, fim não incluso), `isValidPushToken`, `pickGeofenceRegions`/`shouldRecalculateGeofences` (AL-03: iOS 20, Android 100) e `formatApproxDistance`.
+
+**API:**
+
+| Rota | Formato |
+| --- | --- |
+| `PUT /me/location` | Corpo **só** `{ geohash }` com 6 caracteres → 204. Coordenada, outra precisão ou campo extra → 400 (AL-06) |
+| `GET /me/alert-preferences` | `{ enabled, radiusKm: 1\|3\|5, quietHours: { start: "HH:MM", end: "HH:MM" } \| null }`; sem linha = `{ true, 3, null }` |
+| `PUT /me/alert-preferences` | Mesmo formato → 200 com o salvo; inválido → 400 com `errors` por campo |
+| `POST /me/push-token` / `DELETE /me/push-token` | `{ token: "ExponentPushToken[...]" }` → 204. O token passa a ser só da conta que registrou por último |
+| `GET /me/alerts` | Até 100 `AlertItem`, mais recentes primeiro: `{ id, occurrenceId, distanceMeters, createdAt, seenAt, occurrence: { type, species, petName, breed, color, approxAddress, status, createdAt, photoUrl } }`. Sem coordenada, sem pseudônimo, sem e-mail |
+| `POST /me/alerts/:id/seen` | 204; de outra pessoa → 404 |
+| `GET /me` | `{ id, name, pseudonym, petCount, occurrenceCount }` (sem e-mail) |
+
+Tabelas: `user_locations` (uma linha por usuário: `geohash` e `updated_at`, nada mais), `alert_preferences` (silêncio em minutos), `push_tokens`, `alerts` (`unique (user_id, occurrence_id)`, AL-05). Todas com RLS.
+
+**Disparo (AL-01, AL-07):** o `POST /occurrences` enfileira e responde na hora (`InProcessAlertQueue`, atrás da interface `AlertQueue`, token `ALERT_QUEUE`). O job pega o ponto **público** da ocorrência, pré-filtra pela célula de precisão 4 dela e as 8 vizinhas (índice em `left(geohash, 4)`) e confirma no PostGIS se alguma parte da célula do usuário (`st_geomfromgeohash`) está a até o raio dele. Fica de fora: o autor, quem desligou os alertas e quem não atualiza a região há mais de 30 dias. `distanceMeters` é do centro da célula até o ponto público (aproximado por natureza). Quem está no horário de silêncio **recebe o alerta na lista, mas sem push** (decisão: o silêncio cala o celular, não esconde o caso). O push vai pela interface `PushSender`; a real (`ExpoPushSender`) chama `https://exp.host/--/api/v2/push/send` em lotes de 100 e apaga tokens com `DeviceNotRegistered`. `EXPO_ACCESS_TOKEN` é opcional.
+
+**App:**
+
+- `features/alerts`: `AlertsClient` (HTTP e memória), `createLocationSync` (calcula o geohash no aparelho e só envia ao mudar de célula; roda ao abrir, ao voltar para o primeiro plano e a cada 5 min com o app aberto, sem nunca abrir o diálogo de permissão: usa `getLocationIfAllowed`), `registerForPush`/`pushAvailability`, `notificationTarget` (AL-08), `AlertsProvider` (liga tudo quando há sessão com consentimento) e `runtime.ts` (as APIs reais do Expo).
+- Aba **Alertas**: lista com tipo, espécie, nome, distância aproximada e tempo; marca "Novo"; filtros por distância; tocar marca como visto e abre `/occurrences/[id]`; carregando/vazio/erro; puxar para atualizar. Funciona sem push.
+- Tela `/alert-preferences`: ligar/desligar, raio, silêncio (HH:MM), explicação da localização aproximada, estado das notificações e o geofencing.
+- Tocar na notificação (inclusive com o app fechado) abre o detalhe da ocorrência e marca o alerta como visto.
+
+**O que funciona no Expo Go:** aba Alertas, preferências, atualização da região e o disparo pelo servidor. **Não funciona no Expo Go:** push no Android (removido do Expo Go no SDK 53; o app detecta e explica, sem carregar o `expo-notifications`) e o geofencing. Push também exige `extra.eas.projectId` no `app.json` (sem ele o app mostra "falta o projeto no EAS").
+
+Pendências:
+
+- [ ] **Development build com EAS** (`eas init` grava o `projectId`; `eas build --profile development`) para testar o push no Android e o toque na notificação (AL-08, teste manual da matriz).
+- [ ] **Trocar a fila em processo por BullMQ + Redis** quando houver mais de uma instância da API ou se perder disparos num reinício for inaceitável: criar uma classe que implemente `AlertQueue` (`occurrenceCreated` adiciona um job; um worker chama `AlertsService.dispatchForOccurrence`) e registrá-la no token `ALERT_QUEUE` em `app.module.ts`. O disparo já é idempotente (AL-05), então reprocessar um job é seguro.
+- [ ] Ler os recibos do Expo Push (`/push/getReceipts`) num job agendado, para apagar tokens inválidos que só aparecem depois.
+- [ ] **Geofencing (AL-02, AL-03):** a lógica está testada (`features/alerts/geofencing.ts`) e a parte nativa pronta em `geofencingNative.ts` (tarefa do `expo-task-manager`, notificação local, sem repetir), mas desligada. Para ligar: no `app.json`, no plugin do `expo-location`, trocar `locationAlwaysAndWhenInUsePermission` por um texto, `isAndroidBackgroundLocationEnabled: true` e `isIosBackgroundLocationEnabled: true`; development build; `EXPO_PUBLIC_GEOFENCING=1`. A permissão "sempre" só é pedida pelo botão da tela de preferências, depois da explicação. No Expo Go o módulo nem é carregado. Teste de campo na matriz.
+- [ ] O fuso do silêncio é sempre São Paulo; usuários em outros fusos do Brasil ficam com 1 a 2 h de diferença.
+- [ ] Rodar `pnpm dev` na API para aplicar a `007_alerts.sql` no Supabase.
+
+## Perfil (`feat/alertas`)
+
+Aba Perfil seguindo o `ProfileScreen` do protótipo: nome, **nome público** (pseudônimo), contadores de pets e ocorrências (`GET /me`), card Meus Pets, **Minhas ocorrências** (`GET /me/occurrences`, abre o detalhe; mostra "Resolvida"), e configurações: Notificações e Localização (→ preferências de alerta), Política de privacidade (`/privacy`), Ajuda (`/help`, perguntas frequentes) e Sair (remove o token de push do aparelho antes de sair). Sem e-mail na tela: a API não devolve e-mail nem para o próprio usuário.
+
+- [ ] Exclusão de conta (NF-01, S6) entra na lista de configurações quando existir.
+- [ ] Foto de perfil (o protótipo tem): fora do MVP por enquanto.
 
 ## Banco no Supabase (`chore/supabase-db`)
 
