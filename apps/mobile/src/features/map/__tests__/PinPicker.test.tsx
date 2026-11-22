@@ -12,6 +12,9 @@ async function setup(v = value) {
 
 beforeEach(() => mapCommands.animateToRegion.mockClear());
 
+// A primeira renderização carrega mapa, ícones e imagens; com a suíte inteira em paralelo passa de 5 s.
+jest.setTimeout(15_000);
+
 describe("PinPicker (ajuste do pin ao registrar)", () => {
   it("centraliza o mapa no valor e põe nele um marcador arrastável", async () => {
     await setup();

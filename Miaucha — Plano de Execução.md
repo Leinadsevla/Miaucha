@@ -111,13 +111,13 @@ Cada sprint termina com uma demo no celular e só é considerada pronta quando c
 
 ### S3 · Mapa interativo (semanas 5–6)
 
-- [ ] Mapa com marcadores coloridos por tipo (MP-01)
-- [ ] Carregar por área visível ao mover o mapa, com debounce (MP-02)
-- [ ] Clustering com supercluster (MP-03)
-- [ ] Card de detalhe ao tocar no marcador (MP-04)
-- [ ] Filtros por tipo, espécie e período (MP-05)
-- [ ] Botão "Como chegar" com deep link para Google Maps e Waze (MP-06)
-- [ ] Cache do último mapa para uso offline (MP-08)
+- [x] Mapa com marcadores coloridos por tipo (MP-01)
+- [x] Carregar por área visível ao mover o mapa, com debounce (MP-02)
+- [x] Clustering com supercluster (MP-03)
+- [x] Card de detalhe ao tocar no marcador (MP-04)
+- [x] Filtros por tipo, espécie e período (MP-05)
+- [x] Botão "Como chegar" com deep link para Google Maps e Waze (MP-06), no detalhe e no card do mapa; falta o teste manual
+- [x] Cache do último mapa para uso offline (MP-08); falta o teste manual em modo avião
 
 ### S4 · Chat interno (semanas 7–8)
 
@@ -185,12 +185,12 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 | AL-04, AL-05 | S5 | Teste unitário das regras de raio, silêncio e deduplicação |
 | AL-06 | S5 | Inspeção do banco: só geohash, sem coordenada exata |
 | AL-08 | S5 | Teste manual tocando no push |
-| MP-01, MP-04, MP-05 | S3 | Teste de componente e revisão visual |
-| MP-02 | S2, S3 | Teste de carga com 5 mil ocorrências; resposta abaixo de 300 ms. 🟡 Parcial: busca por raio e bbox pela localização pública com índice GiST e teste de integração com 5 mil ocorrências abaixo de 300 ms (`apps/api/test/occurrences.test.ts`); falta o k6 e o mapa (S3) |
-| MP-03 | S3 | Teste visual com pontos agrupados em vários níveis de zoom |
+| MP-01, MP-04, MP-05 | S3 | Teste de componente e revisão visual. 🟡 Testes de componente passando (`apps/mobile/src/features/map/__tests__/map-components.test.tsx`, `MapScreen.test.tsx`, `filters.test.ts`); falta a revisão visual no aparelho |
+| MP-02 | S2, S3 | Teste de carga com 5 mil ocorrências; resposta abaixo de 300 ms. 🟡 Parcial: busca por raio e bbox pela localização pública com índice GiST e teste de integração com 5 mil ocorrências abaixo de 300 ms (`apps/api/test/occurrences.test.ts`); no app, busca só da área visível com debounce de 400 ms e sem repetir a busca em movimentos pequenos (`apps/mobile/src/features/map/__tests__/region.test.ts`, `mapLoader.test.ts`); falta o k6 |
+| MP-03 | S3 | Teste visual com pontos agrupados em vários níveis de zoom. 🟡 Agrupamento e separação por zoom testados (`apps/mobile/src/features/map/__tests__/clusters.test.ts`, `MapScreen.test.tsx`); falta o teste visual no aparelho |
 | MP-06 | S3 | Teste manual no Android e no iOS |
 | MP-07 | S2 | Teste unitário: distância entre ponto real e público fica entre 50 e 200 m. ✅ `packages/shared/src/__tests__/geo.test.ts` (2 mil sorteios) e, na API, ponto público entre 50 e 200 m e nenhuma resposta com a coordenada exata (`apps/api/test/occurrences.test.ts`) |
-| MP-08 | S3 | Teste manual em modo avião |
+| MP-08 | S3 | Teste manual em modo avião. 🟡 Cache e queda para o último mapa testados (`apps/mobile/src/features/map/__tests__/mapCache.test.ts`, `mapLoader.test.ts`, `MapScreen.test.tsx`); falta o teste manual |
 | NF-01 | S1, S6 | Checklist LGPD revisado pelo grupo |
 | NF-02 | S1 | Teste de integração: cadastro, verificação de e-mail, login com senha e com Google (token mockado). ✅ Passando na API (`apps/api/test/auth-*.test.ts`); app ligado à API por e-mail e senha (`httpAuthClient.test.ts`); falta o Google no app |
 | NF-03 | S2 | Teste unitário do job de expiração. ✅ Regra pura testada (`packages/shared/src/__tests__/occurrences.test.ts`) e aplicada na consulta: expirada some da busca (`apps/api/test/occurrences.test.ts`); o job diário ainda não existe |

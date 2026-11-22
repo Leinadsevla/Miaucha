@@ -56,6 +56,9 @@ async function setup({ location = { status: "ok", coords: here }, inArea = async
 
 beforeEach(() => mapCommands.animateToRegion.mockClear());
 
+// A primeira renderização carrega mapa, ícones e imagens; com a suíte inteira em paralelo passa de 5 s.
+jest.setTimeout(15_000);
+
 describe("MapScreen", () => {
   it("começa na localização atual e busca só a área visível (MP-02)", async () => {
     const { client } = await setup();

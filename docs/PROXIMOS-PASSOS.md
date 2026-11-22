@@ -11,14 +11,14 @@ Sprint 1 (Fundação), parte do app pronta:
 | Monorepo (`apps/mobile`, `apps/api`, `packages/shared`) | Pronto |
 | Design system (tokens, Nunito, componentes base) | Pronto |
 | Telas de splash, login/cadastro, código de e-mail, consentimento, política | Prontas, com login **falso** (`createMockAuthClient`) |
-| Abas (Início, Mapa, Alertas, Chat, Perfil) | Início pronta (S2: pets num raio de 5 km); Mapa, Alertas e Chat nas S3 a S5 |
+| Abas (Início, Mapa, Alertas, Chat, Perfil) | Início (S2) e Mapa (S3, `feat/mapa`) prontos; Alertas e Chat nas S4 e S5 |
 | Docker Compose (PostGIS + Redis) | Falta |
 | CI no GitHub Actions | Falta |
 | Login real (API + Google) | E-mail e senha prontos de ponta a ponta; Google falta no app (precisa dos client IDs e do development build) |
 | Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 420 passando (65 no shared, 218 no app, 137 na API). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 549 passando (66 no shared, 330 no app, 153 na API), na branch `feat/mapa`. Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
 
 ## Ordem sugerida
 
@@ -134,11 +134,41 @@ Pendências:
 
 - [ ] **Job diário de expiração (NF-03):** hoje a regra é aplicada na consulta (`updated_at > now() - 30 dias`), então a ocorrência some das buscas no prazo certo sem job. Um job (BullMQ, junto com os da S5) pode marcar `status = 'expired'` e avisar o autor, e limpar os pedidos de upload nunca confirmados.
 - [ ] Nada atualiza `updated_at` além de "resolver": falta uma ação "ainda procurando" (renova os 30 dias) e editar a ocorrência.
-- [ ] Ajustar o pin no mapa ao registrar (hoje usa a localização atual do aparelho + endereço digitado). Fica para a S3, com o mapa.
+- [ ] Ajustar o pin no mapa ao registrar: o componente `PinPicker` ficou pronto na S3 (`features/map/PinPicker.tsx`); falta ligá-lo no `OccurrenceForm`.
 - [ ] Teste de carga do MP-02 com k6. Há um teste de integração com 5 mil ocorrências que exige resposta abaixo de 300 ms no raio e no bbox, mas roda local, sem rede.
 - [ ] Apagar uma foto de pet precisa conferir se o objeto não é usado por uma ocorrência (`occurrence_photos.object_key` pode apontar para a foto do pet). Relevante para a exclusão de conta (NF-01).
 - [ ] Rodar `pnpm dev` na API para aplicar a migração `004_occurrences.sql` no Supabase.
 - [ ] Testar no aparelho: permissão de localização, puxar para atualizar e "Como chegar". O `expo-location` em primeiro plano funciona no Expo Go.
+
+## S3 · Mapa interativo (`feat/mapa`)
+
+Feito em TDD, criado a partir da `feat/ocorrencias`. Só o app mudou (a API da S2 já tinha a busca por bbox com filtros); nenhuma migração.
+
+**Dependências:** `react-native-maps` 1.29.11 (vem no Expo Go; sem chave do Google em desenvolvimento) e `supercluster` 9 (JS puro, traz os próprios tipos). Os dois são ESM e entraram no `transformIgnorePatterns` do Jest (com o `kdbush`). No Jest o mapa é um mock (`src/test-utils/reactNativeMapsMock.tsx`, ligado no `jest.setup.ts`).
+
+**Regras puras (`apps/mobile/src/features/map`):**
+
+| Arquivo | O que faz |
+| --- | --- |
+| `region.ts` | Região → bbox (com folga de 25% em cada lado), `shouldRefetch` (só busca de novo se a área visível sai do que já foi carregado ou, ao aproximar, se o último resultado veio cortado no limite de 200), zoom para o supercluster, região padrão (centro de São Paulo) |
+| `clusters.ts` | MP-03: índice do supercluster pelo `publicLocation`; `expansionRegion` dá o zoom em que um grupo se separa |
+| `filters.ts` | MP-05: tipo (um ou todos), espécie (um ou todos) e período (24 h, 7 dias, 30 dias; padrão 30 dias, que equivale a tudo por causa da expiração NF-03). A API só aceita um tipo por busca |
+| `mapCache.ts` | MP-08: último mapa (região + ocorrências) num arquivo JSON em `Paths.document` (`expo-file-system`). Nunca lança; conteúdo estragado vira "sem cache" |
+| `mapLoader.ts` | MP-02: debounce de 400 ms, descarta resposta antiga, salva no cache e, num erro de rede (`ApiError` com status 0), mostra o cache com os filtros atuais aplicados |
+
+**Telas e componentes:** `MapScreen` (aba Mapa: contagem da área, botão de filtros com o número de ativos, legenda das cores, botão "Minha localização", avisos de sem conexão, de erro e de localização negada), `OccurrencePin`/`ClusterBubble` e os `Marker` (MP-01: cor = tipo, ícone = espécie), `OccurrenceCard` (MP-04, com "Ver detalhes" e "Como chegar", MP-06), `MapFiltersSheet` (MP-05, `Modal` que sobe de baixo; só aplica ao tocar em "Aplicar filtros") e `PinPicker` (mapa pequeno com marcador arrastável). `OccurrencesClient` ganhou `inArea({ bbox, type, species, sinceDays })`.
+
+Sem permissão de localização, o mapa abre no último mapa salvo ou no centro de São Paulo, com um aviso e o botão "Permitir localização" (ou "Abrir configurações", se bloqueado). Ao voltar para a aba, busca a mesma área de novo.
+
+Pendências:
+
+- [ ] Ligar o `PinPicker` no `OccurrenceForm` (props `value`/`onChange`; padrão = localização atual).
+- [ ] Atalho "Ver no mapa" na aba Início (o `HomeScreen` está sendo mexido em outra branch).
+- [ ] **Development build / produção no Android:** fora do Expo Go, o Google Maps precisa de chave (`android.config.googleMaps.apiKey` no `app.json` ou o plugin do `react-native-maps`). No iOS usa o Apple Maps, sem chave.
+- [ ] Testar no aparelho: arrastar e dar zoom (debounce, clusters se separando), marcadores customizados no Android (usam `tracksViewChanges` só por 500 ms depois de mudar), "Como chegar" pelo card, modo avião (MP-08) e o `PinPicker` arrastando o marcador.
+- [ ] Apagar o cache do mapa ao sair da conta (`mapCache.clear()` existe; não foi ligado ao logout para não mexer no `AuthProvider`). Só guarda dados públicos.
+- [ ] Fotos no modo offline: as URLs são assinadas e expiram em 1 h; sem internet, o card mostra a foto só se o `expo-image` já a tiver em cache.
+- [ ] Teste de carga do MP-02 com k6 (continua pendente da S2).
 
 ## Banco no Supabase (`chore/supabase-db`)
 

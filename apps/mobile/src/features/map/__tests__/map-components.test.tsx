@@ -26,6 +26,9 @@ const thor: PublicOccurrence = {
 
 const bg = (label: string) => StyleSheet.flatten(screen.getByLabelText(label).props.style)?.backgroundColor;
 
+// A primeira renderização carrega mapa, ícones e imagens; com a suíte inteira em paralelo passa de 5 s.
+jest.setTimeout(15_000);
+
 describe("OccurrencePin (MP-01)", () => {
   it.each([
     ["lost", "dog", "Cão perdido", colors.lost],
