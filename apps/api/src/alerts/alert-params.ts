@@ -1,7 +1,7 @@
 import {
   ALERT_GEOHASH_PRECISION,
   ALERT_MESSAGES,
-  formatDistance,
+  formatApproxDistance,
   isValidGeohash,
   validateAlertPreferences,
   type AlertPreferences,
@@ -47,11 +47,6 @@ const TITLES: Record<OccurrenceType, string> = {
 
 const SPECIES = { dog: "cão", cat: "gato" } as const;
 
-/** Distância aproximada: abaixo de 1 km, de 100 em 100 m (a posição do usuário já é uma célula de ~1 km). */
-function approxDistance(meters: number): string {
-  return formatDistance(meters < 1000 ? Math.max(100, Math.round(meters / 100) * 100) : meters);
-}
-
 export type AlertPushInput = {
   occurrenceId: string;
   alertId: string;
@@ -65,7 +60,7 @@ export type AlertPushInput = {
 export function buildAlertPush(alert: AlertPushInput, token: string): PushMessage {
   const species = SPECIES[alert.species];
   const who = alert.petName ? `${alert.petName} (${species})` : `${species.charAt(0).toUpperCase()}${species.slice(1)} sem nome`;
-  const parts = [who, `a ${approxDistance(alert.distanceMeters)}`];
+  const parts = [who, `a ${formatApproxDistance(alert.distanceMeters)}`];
   if (alert.approxAddress) parts.push(alert.approxAddress);
   return {
     to: token,

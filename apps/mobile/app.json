@@ -53,6 +53,12 @@
           "locationAlwaysPermission": false,
           "motionUsagePermission": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A3D"
+        }
       ]
     ],
     "experiments": {
