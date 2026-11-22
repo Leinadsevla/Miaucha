@@ -118,7 +118,7 @@ Feito em TDD (API contra PostGIS e storage reais via Testcontainers; app com RNT
 | Rota | Resposta |
 | --- | --- |
 | `POST /occurrences` | 201 + `PublicOccurrence`. Com `petId` (pet do autor, senão 404), os dados do pet completam o que faltar e as fotos dele entram na ocorrência (mesmo objeto no storage) |
-| `GET /occurrences?lat=&lng=&radiusKm=` | Até 200 abertas e não expiradas, mais recentes primeiro, com `distanceMeters`. Raio padrão 5 km, máximo 20 km |
+| `GET /occurrences?lat=&lng=&radiusKm=` | Até 200 abertas e não expiradas, mais recentes primeiro, com `distanceMeters`. Raio padrão 5 km, máximo 30 km (o app oferece 1, 3, 5, 10, 20 e 30 km) |
 | `GET /occurrences?bbox=minLng,minLat,maxLng,maxLat` | Igual, sem `distanceMeters` (MP-02) |
 | Filtros nas duas buscas | `type`, `species`, `sinceDays` (1 a 365, pela data de criação) |
 | `GET /occurrences/:id` | Detalhe público para qualquer usuário logado (inclusive resolvida) |
@@ -179,6 +179,12 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 - [x] Migrações 001 e 002 aplicadas no Supabase em 20/11/2026; as quatro tabelas estão com RLS. Cadastro, código e login testados contra o Supabase (usuário de teste apagado depois).
 - [ ] A tabela `spatial_ref_sys` do PostGIS fica no `public` sem RLS (é do superusuário do Supabase, não dá para alterar). São dados públicos de referência, mas o Security Advisor do painel vai apontar; desligar a Data API resolve.
 - [ ] Se ninguém for usar o `supabase-js`, desligar a Data API em Project Settings → Data API (segunda camada de proteção).
+
+### Melhorias pedidas no teste (S2)
+
+- [x] Raio da aba Início escolhido pelo usuário: 1, 3, 5, 10, 20 ou 30 km (API aceita até 30).
+- [x] "Perdi meu pet" lista os pets cadastrados para escolher; os dados e as fotos do pet entram no alerta.
+- [x] Local da ocorrência: "Minha localização" ou "Outro endereço", procurado com o geocodificador do aparelho (`expo-location`). Arrastar o pino no mapa entra com a S3.
 
 ## Decisões em aberto
 

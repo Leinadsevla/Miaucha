@@ -22,11 +22,11 @@ describe("parseOccurrenceSearch", () => {
     expect(ok({ lat: "0", lng: "0" }).area).toEqual({ kind: "radius", lat: 0, lng: 0, radiusMeters: 5000 });
   });
 
-  it("raio acima de 20 km, zero ou negativo → erro", () => {
-    expect(error({ lat: "0", lng: "0", radiusKm: "20.1" })).toBe("O raio máximo é de 20 km");
+  it("raio acima de 30 km, zero ou negativo → erro", () => {
+    expect(error({ lat: "0", lng: "0", radiusKm: "30.1" })).toBe("O raio máximo é de 30 km");
     expect(error({ lat: "0", lng: "0", radiusKm: "0" })).toBe("Informe um raio válido");
     expect(error({ lat: "0", lng: "0", radiusKm: "abc" })).toBe("Informe um raio válido");
-    expect(ok({ lat: "0", lng: "0", radiusKm: "20" }).area).toMatchObject({ radiusMeters: 20000 });
+    expect(ok({ lat: "0", lng: "0", radiusKm: "30" }).area).toMatchObject({ radiusMeters: 30000 });
   });
 
   it("lat/lng inválidos → erro", () => {

@@ -25,7 +25,9 @@ export const MAX_OCCURRENCE_PHOTOS = MAX_PET_PHOTOS;
 /** NF-03: ocorrência sem atualização por este tempo deixa de aparecer nas buscas. */
 export const OCCURRENCE_EXPIRY_DAYS = 30;
 /** Raio máximo da busca por proximidade (MP-02). */
-export const MAX_SEARCH_RADIUS_KM = 20;
+export const MAX_SEARCH_RADIUS_KM = 30;
+/** Raios que o usuário pode escolher na busca de pets perdidos. */
+export const SEARCH_RADIUS_OPTIONS_KM = [1, 3, 5, 10, 20, 30] as const;
 /** Máximo de ocorrências devolvidas por busca. */
 export const OCCURRENCE_SEARCH_LIMIT = 200;
 

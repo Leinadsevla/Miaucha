@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { AlertTriangle, Plus } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type PublicOccurrence } from "@miaucha/shared";
+import { SEARCH_RADIUS_OPTIONS_KM, colors, type PublicOccurrence } from "@miaucha/shared";
+import { cn } from "@/lib/cn";
 import { PetCard, PrimaryButton } from "@/components";
 import type { GetLocation, LocationResult } from "@/features/location/currentLocation";
 import { LocationProblem } from "@/features/location/LocationProblem";
 import type { OccurrencesClient } from "./occurrencesClient";
 
+/** Raio inicial da busca; o usuário escolhe outro entre `SEARCH_RADIUS_OPTIONS_KM` (até 30 km). */
 export const HOME_RADIUS_KM = 5;
 
 type State =
@@ -33,11 +35,12 @@ export function lostNearbyLabel(count: number): string {
   return count === 1 ? "1 pet perdido próximo" : `${count} pets perdidos próximos`;
 }
 
-/** Aba Início: pets perdidos, avistados e encontrados num raio de 5 km da localização atual. */
+/** Aba Início: pets perdidos, avistados e encontrados no raio escolhido (5 km de início, até 30 km). */
 export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, onOpenSettings, refreshSignal, now }: Props) {
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<State>({ status: "loading" });
   const [refreshing, setRefreshing] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(HOME_RADIUS_KM);
   // Só a resposta do pedido mais recente vale (evita uma busca antiga sobrescrever uma nova).
   const latest = useRef(0);
 
@@ -52,7 +55,7 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
         if (location.status !== "ok") {
           next = { status: "location", result: location };
         } else {
-          const occurrences = await client.nearby({ ...location.coords, radiusKm: HOME_RADIUS_KM });
+          const occurrences = await client.nearby({ ...location.coords, radiusKm });
           next = { status: "ready", occurrences };
         }
       } catch (e) {
@@ -62,7 +65,7 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
       setState(next);
       setRefreshing(false);
     },
-    [client, getLocation],
+    [client, getLocation, radiusKm],
   );
 
   useEffect(() => {
@@ -89,6 +92,7 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
           <Text accessibilityRole="header" className="font-nunito-black text-lg text-white">
             Encontre pets perto de você
           </Text>
+          <RadiusSelector value={radiusKm} onChange={setRadiusKm} />
         </View>
 
         <View className="gap-4 px-5 pt-4">
@@ -110,7 +114,7 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
               <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void load("full")} />
             </View>
           ) : (
-            <NearbyList occurrences={state.occurrences} now={now} onOpen={onOpen} />
+            <NearbyList occurrences={state.occurrences} radiusKm={radiusKm} now={now} onOpen={onOpen} />
           )}
         </View>
       </ScrollView>
@@ -128,7 +132,39 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
   );
 }
 
-function NearbyList({ occurrences, now, onOpen }: { occurrences: PublicOccurrence[]; now?: Date; onOpen: (id: string) => void }) {
+function RadiusSelector({ value, onChange }: { value: number; onChange: (km: number) => void }) {
+  return (
+    <View className="mt-3 flex-row flex-wrap gap-2">
+      {SEARCH_RADIUS_OPTIONS_KM.map((km) => {
+        const selected = km === value;
+        return (
+          <Pressable
+            key={km}
+            accessibilityRole="button"
+            accessibilityLabel={`${km} km`}
+            accessibilityState={{ selected }}
+            onPress={() => onChange(km)}
+            className={cn("rounded-xl px-3 py-1.5", selected ? "bg-white" : "bg-white/20")}
+          >
+            <Text className={cn("font-nunito-bold text-xs", selected ? "text-primary" : "text-white")}>{km} km</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function NearbyList({
+  occurrences,
+  radiusKm,
+  now,
+  onOpen,
+}: {
+  occurrences: PublicOccurrence[];
+  radiusKm: number;
+  now?: Date;
+  onOpen: (id: string) => void;
+}) {
   const lost = occurrences.filter((o) => o.type === "lost").length;
   return (
     <>
@@ -141,7 +177,7 @@ function NearbyList({ occurrences, now, onOpen }: { occurrences: PublicOccurrenc
         </View>
         <View className="flex-1">
           <Text className="font-nunito-bold text-xs text-foreground">{lostNearbyLabel(lost)}</Text>
-          <Text className="font-sans text-xs text-muted-foreground">Raio de {HOME_RADIUS_KM} km</Text>
+          <Text className="font-sans text-xs text-muted-foreground">Raio de {radiusKm} km</Text>
         </View>
       </View>
 
@@ -149,7 +185,7 @@ function NearbyList({ occurrences, now, onOpen }: { occurrences: PublicOccurrenc
         <Text className="mb-3 font-nunito-bold text-sm text-foreground">Pets próximos</Text>
         {occurrences.length === 0 ? (
           <View className="items-center rounded-3xl border border-border bg-card p-5">
-            <Text className="text-center font-sans text-sm text-muted-foreground">Nenhuma ocorrência num raio de {HOME_RADIUS_KM} km.</Text>
+            <Text className="text-center font-sans text-sm text-muted-foreground">Nenhuma ocorrência num raio de {radiusKm} km.</Text>
           </View>
         ) : (
           <FlatList

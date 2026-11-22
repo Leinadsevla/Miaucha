@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Linking, Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, type MyPet, type OccurrenceInput } from "@miaucha/shared";
-import { getCurrentLocation, type LocationResult } from "@/features/location";
+import { KeyboardScreen } from "@/components";
+import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
 
@@ -19,6 +20,7 @@ export default function NewOccurrence() {
   const [location, setLocation] = useState<LocationResult | null>(null);
   // undefined = carregando o pet; null = sem pet (ou não foi possível carregar).
   const [pet, setPet] = useState<MyPet | null | undefined>(petId ? undefined : null);
+  const [myPets, setMyPets] = useState<MyPet[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -28,6 +30,11 @@ export default function NewOccurrence() {
   }, []);
 
   useEffect(locate, [locate]);
+
+  // Para "Perdi meu pet" mostrar os pets cadastrados; sem eles o formulário segue normal.
+  useEffect(() => {
+    petsClient.listMine().then(setMyPets, () => setMyPets([]));
+  }, [petsClient]);
 
   useEffect(() => {
     if (!petId) return;
@@ -72,7 +79,7 @@ export default function NewOccurrence() {
       {pet === undefined ? (
         <Text className="p-5 text-center font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : (
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled">
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
           <OccurrenceForm
             location={location}
             onRetryLocation={locate}
@@ -81,10 +88,12 @@ export default function NewOccurrence() {
             onPickPhotos={pickPhotos}
             initial={pet ? { type: "lost", species: pet.species, petName: pet.name, breed: pet.breed ?? "", color: pet.color ?? "" } : undefined}
             fromPet={pet ? { id: pet.id, name: pet.name, photoCount: pet.photos.length } : undefined}
+            myPets={myPets}
+            onGeocode={geocodeAddress}
             loading={busy}
             serverError={error}
           />
-        </ScrollView>
+        </KeyboardScreen>
       )}
     </View>
   );

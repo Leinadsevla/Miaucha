@@ -5,6 +5,8 @@ import {
   occurrenceExpiryCutoff,
   validateOccurrence,
   type OccurrenceInput,
+  MAX_SEARCH_RADIUS_KM,
+  SEARCH_RADIUS_OPTIONS_KM,
 } from "../occurrences";
 
 const valid: OccurrenceInput = {
@@ -91,4 +93,12 @@ describe("expiração (NF-03)", () => {
 
 it("até 5 fotos por ocorrência", () => {
   expect(MAX_OCCURRENCE_PHOTOS).toBe(5);
+});
+
+describe("raio da busca de pets perdidos", () => {
+  it("vai até 30 km, com opções de 1 a 30 km", () => {
+    expect(MAX_SEARCH_RADIUS_KM).toBe(30);
+    expect(SEARCH_RADIUS_OPTIONS_KM).toEqual([1, 3, 5, 10, 20, 30]);
+    expect(Math.max(...SEARCH_RADIUS_OPTIONS_KM)).toBe(MAX_SEARCH_RADIUS_KM);
+  });
 });
