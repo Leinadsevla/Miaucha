@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import { InProcessAlertQueue } from "./alerts/alert-queue";
 import { AlertsController } from "./alerts/alerts.controller";
 import { AlertsService } from "./alerts/alerts.service";
-import { ExpoPushSender } from "./alerts/push-sender";
+import { ExpoPushSender, type PushSender } from "./alerts/push-sender";
 import { AccessTokenGuard } from "./auth/access-token.guard";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
@@ -14,7 +14,8 @@ import { ChatController } from "./chat/chat.controller";
 import { ChatGateway } from "./chat/chat.gateway";
 import { ChatService } from "./chat/chat.service";
 import { ChatThrottlerGuard } from "./chat/chat-throttler.guard";
-import { CHAT_PUSH_SENDER, LogChatPushSender } from "./chat/push-sender";
+import { ExpoChatPushSender } from "./chat/expo-chat-push-sender";
+import { CHAT_PUSH_SENDER } from "./chat/push-sender";
 import type { AppConfig } from "./config";
 import { ConsoleMailer } from "./mail/mailer";
 import { MeController } from "./me/me.controller";
@@ -48,7 +49,7 @@ export class AppModule implements OnApplicationShutdown {
         ChatService,
         ChatGateway,
         ChatThrottlerGuard,
-        { provide: CHAT_PUSH_SENDER, useClass: LogChatPushSender },
+        { provide: CHAT_PUSH_SENDER, useFactory: (pool: Pool, expo: PushSender) => new ExpoChatPushSender(pool, expo), inject: [PG_POOL, PUSH_SENDER] },
         { provide: PHOTO_STORAGE, useFactory: () => new S3PhotoStorage(config.storage) },
         { provide: APP_CONFIG, useValue: config },
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },

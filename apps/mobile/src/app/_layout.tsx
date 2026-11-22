@@ -76,6 +76,7 @@ function AlertsLayer({ clients, children }: { clients: AppClients; children: Rea
       active={state.status === "signedIn" && state.user.hasConsent}
       deps={deps}
       onOpenOccurrence={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
+      onOpenConversation={(id) => router.push({ pathname: "/chat/[id]", params: { id } })}
     >
       {children}
     </AlertsProvider>

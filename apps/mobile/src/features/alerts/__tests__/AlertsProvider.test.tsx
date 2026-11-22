@@ -113,6 +113,20 @@ describe("AlertsProvider", () => {
     expect(s.onOpenOccurrence).toHaveBeenCalledWith("o9");
   });
 
+  it("tocar na notificação de mensagem nova abre a conversa", async () => {
+    const s = setup();
+    const onOpenConversation = jest.fn();
+    s.notifications.getLastNotificationResponse = () => ({ notification: { request: { content: { data: { conversationId: "c7" } } } } });
+    await render(
+      <AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence} onOpenConversation={onOpenConversation}>
+        <PushStatus />
+      </AlertsProvider>,
+    );
+    await screen.findByText("Notificações ativas neste aparelho.");
+    expect(onOpenConversation).toHaveBeenCalledWith("c7");
+    expect(s.onOpenOccurrence).not.toHaveBeenCalled();
+  });
+
   it("Expo Go no Android: nem carrega o expo-notifications e explica o motivo", async () => {
     const loadNotifications = jest.fn();
     const s = setup({ env: { os: "android", isExpoGo: true, projectId: null }, loadNotifications });

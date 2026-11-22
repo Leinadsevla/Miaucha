@@ -55,17 +55,22 @@ export function AlertsProvider({
   active,
   deps,
   onOpenOccurrence,
+  onOpenConversation,
   children,
 }: {
   client: AlertsClient;
   active: boolean;
   deps: AlertsRuntimeDeps;
   onOpenOccurrence: (occurrenceId: string) => void;
+  /** Toque numa notificação de mensagem nova do chat. */
+  onOpenConversation?: (conversationId: string) => void;
   children: ReactNode;
 }) {
   const [push, setPush] = useState<PushStatus | null>(null);
   const openRef = useRef(onOpenOccurrence);
   openRef.current = onOpenOccurrence;
+  const openConversationRef = useRef(onOpenConversation);
+  openConversationRef.current = onOpenConversation;
   const depsRef = useRef(deps);
   depsRef.current = deps;
 
@@ -119,6 +124,10 @@ export function AlertsProvider({
     const handle = (response: NotificationResponseLike | null) => {
       const target = notificationTarget(response?.notification.request.content.data);
       if (!target) return;
+      if ("conversationId" in target) {
+        openConversationRef.current?.(target.conversationId);
+        return;
+      }
       if (target.alertId) client.markSeen(target.alertId).catch(() => {});
       openRef.current(target.occurrenceId);
     };

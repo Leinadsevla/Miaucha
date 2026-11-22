@@ -18,7 +18,7 @@ Sprint 1 (Fundação), parte do app pronta:
 | Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 917 passando (195 no shared, 479 no app, 243 na API), na `feat/chat`, que inclui todas as branches anteriores. Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 923 passando (195 no shared, 481 no app, 247 na API), na `feat/chat`, que inclui todas as branches anteriores. Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
 
 ## Ordem sugerida
 
@@ -209,7 +209,7 @@ Feito em TDD, a partir da `feat/ocorrencias`. API testada contra PostGIS, storag
 
 Pendências:
 
-- [ ] **Push real (CH-04):** implementar `PushSender` com o Expo Push usando os tokens que a S5 (alertas) vai registrar; precisa de development build. Tocar no push deve abrir `chat/<conversationId>`.
+- [x] **Push real (CH-04):** `ExpoChatPushSender` envia pelo Expo Push para os tokens registrados pela S5 e apaga os inválidos; tocar na notificação abre `chat/<conversationId>`. Receber de fato exige o development build (no Expo Go Android não chega).
 - [ ] Telefone opcional no perfil (CH-07 fala em "e-mail ou telefone"); hoje só o e-mail é revelado.
 - [ ] Tela ou rotina de moderação para `chat_reports` (hoje só a fila no banco).
 - [ ] O mascaramento não pega número por extenso ("nove oito sete...") nem perfil de rede social ("@fulano").
