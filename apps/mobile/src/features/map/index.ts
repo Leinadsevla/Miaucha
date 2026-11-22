@@ -7,3 +7,4 @@ export * from "./MapMarkers";
 export * from "./MapScreen";
 export * from "./OccurrenceCard";
 export * from "./region";
+export * from "./PinPicker";
