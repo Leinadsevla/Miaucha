@@ -122,12 +122,12 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Registrar pet perdido"
+        accessibilityLabel="Registrar ocorrência"
         onPress={onRegister}
         className="absolute bottom-4 right-5 flex-row items-center gap-2 rounded-2xl bg-accent px-4 py-3 shadow-lg active:opacity-90"
       >
         <Plus size={18} color={colors.white} />
-        <Text className="font-nunito-bold text-sm text-white">Registrar pet perdido</Text>
+        <Text className="font-nunito-bold text-sm text-white">Registrar ocorrência</Text>
       </Pressable>
     </View>
   );

@@ -113,7 +113,7 @@ describe("HomeScreen (aba Início)", () => {
     await render(<HomeScreen {...props} />);
     await fireEvent.press(await screen.findByRole("button", { name: "Pet 3, Perdido" }));
     expect(props.onOpen).toHaveBeenCalledWith("3");
-    await fireEvent.press(screen.getByRole("button", { name: "Registrar pet perdido" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Registrar ocorrência" }));
     expect(props.onRegister).toHaveBeenCalled();
   });
 

@@ -8,3 +8,4 @@ export * from "./occurrences";
 export * from "./chat";
 export * from "./geohash";
 export * from "./alerts";
+export * from "./species";

@@ -158,7 +158,7 @@ describe("POST /occurrences", () => {
     const t = await tutor();
     const res = await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", species: "peixe", lat: 200, lng: 0 }).expect(400);
     expect(res.body.errors).toEqual({
-      species: "Escolha cão ou gato",
+      species: "Escolha a espécie do animal",
       petName: "Informe o nome do pet",
       location: "Não foi possível obter o local. Ative a localização e tente de novo.",
     });
@@ -432,5 +432,28 @@ describe("POST /occurrences/:id/resolve", () => {
     await bia.resolve(o.id).expect(404);
     await bia.resolve("nao-e-uuid").expect(404);
     expect((await ana.get(o.id).expect(200)).body.status).toBe("open");
+  });
+});
+
+describe("outras espécies além de cão e gato", () => {
+  it("registra coelho e pássaro e o filtro 'others' traz só quem não é cão nem gato", async () => {
+    const t = await tutor();
+    const center = uniqueSpot();
+    const coelho = await t.create(offset(center, 100), { type: "seen", species: "rabbit", petName: "" });
+    const passaro = await t.create(offset(center, 200), { type: "found", species: "bird", petName: "" });
+    await t.create(offset(center, 300), { species: "dog" });
+    expect(coelho.species).toBe("rabbit");
+
+    const others = await t.search({ ...center, radiusKm: 2, species: "others" });
+    expect(others.map((o) => o.id).sort()).toEqual([coelho.id, passaro.id].sort());
+    const birds = await t.search({ ...center, radiusKm: 2, species: "bird" });
+    expect(birds.map((o) => o.id)).toEqual([passaro.id]);
+  });
+
+  it("ocorrência a partir de um pet réptil herda a espécie dele", async () => {
+    const t = await tutor();
+    const pet = (await ctx.http.post("/pets").set(t.auth).send({ name: "Tuca", species: "reptile" }).expect(201)).body;
+    const res = await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", petId: pet.id, ...uniqueSpot() }).expect(201);
+    expect(res.body.species).toBe("reptile");
   });
 });

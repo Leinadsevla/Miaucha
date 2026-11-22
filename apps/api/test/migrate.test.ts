@@ -30,6 +30,7 @@ describe("runMigrations", () => {
       "005_password_reset.sql",
       "006_chat.sql",
       "007_alerts.sql",
+      "008_more_species.sql",
     ]);
   });
 

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Bell, ChevronRight, HelpCircle, LogOut, MapPin, ShieldCheck } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, formatTimeAgo, type MyPet, type PublicOccurrence } from "@miaucha/shared";
+import { colors, speciesLabel, formatTimeAgo, type MyPet, type PublicOccurrence } from "@miaucha/shared";
 import { Card, SpeciesIcon, StatusBadge } from "@/components";
 import { MyPetsCard } from "@/features/pets/MyPetsCard";
 import type { MyProfile } from "./profileClient";
@@ -25,7 +25,6 @@ type Props = {
   onLogout: () => void;
 };
 
-const SPECIES_NAME = { dog: "Cão", cat: "Gato" } as const;
 
 /** Aba Perfil (protótipo `ProfileScreen`): nome, pseudônimo público, contadores, pets, ocorrências e configurações. */
 export function ProfileView(p: Props) {
@@ -79,7 +78,7 @@ export function ProfileView(p: Props) {
           ) : (
             <View className="gap-2">
               {p.occurrences.map((o) => {
-                const title = o.petName ?? `${SPECIES_NAME[o.species]} sem nome`;
+                const title = o.petName ?? `${speciesLabel(o.species)} sem nome`;
                 return (
                   <Pressable
                     key={o.id}

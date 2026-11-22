@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Clock, MapPin, Navigation, X } from "lucide-react-native";
-import { colors, formatTimeAgo, type LatLng, type PublicOccurrence } from "@miaucha/shared";
+import { colors, speciesLabel, formatTimeAgo, type LatLng, type PublicOccurrence } from "@miaucha/shared";
 import { SpeciesIcon, StatusBadge } from "@/components";
 import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 
@@ -17,7 +17,7 @@ type Props = {
 /** MP-04: card ao tocar num marcador, com foto, nome, espécie e tempo desde o registro. */
 export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, now = new Date() }: Props) {
   const title = occurrenceTitle(o);
-  const subtitle = [o.species === "dog" ? "Cão" : "Gato", o.breed].filter(Boolean).join(" · ");
+  const subtitle = [speciesLabel(o.species), o.breed].filter(Boolean).join(" · ");
   return (
     <View className="flex-row gap-3 rounded-3xl bg-white p-4 shadow-lg">
       <View className="h-20 w-20 overflow-hidden rounded-2xl bg-muted">
