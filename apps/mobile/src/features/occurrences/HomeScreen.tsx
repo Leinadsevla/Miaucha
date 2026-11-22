@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
-import { AlertTriangle, Plus } from "lucide-react-native";
+import { AlertTriangle, Map as MapIcon, Plus } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SEARCH_RADIUS_OPTIONS_KM, colors, type PublicOccurrence } from "@miaucha/shared";
 import { cn } from "@/lib/cn";
@@ -25,6 +25,7 @@ type Props = {
   onOpen: (id: string) => void;
   onRegister: () => void;
   onOpenSettings: () => void;
+  onOpenMap?: () => void;
   /** Mude o valor para recarregar sem mostrar "carregando" (ex.: ao voltar para a aba). */
   refreshSignal?: number;
   now?: Date;
@@ -36,7 +37,7 @@ export function lostNearbyLabel(count: number): string {
 }
 
 /** Aba Início: pets perdidos, avistados e encontrados no raio escolhido (5 km de início, até 30 km). */
-export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, onOpenSettings, refreshSignal, now }: Props) {
+export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, onOpenSettings, onOpenMap, refreshSignal, now }: Props) {
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<State>({ status: "loading" });
   const [refreshing, setRefreshing] = useState(false);
@@ -114,7 +115,7 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
               <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void load("full")} />
             </View>
           ) : (
-            <NearbyList occurrences={state.occurrences} radiusKm={radiusKm} now={now} onOpen={onOpen} />
+            <NearbyList occurrences={state.occurrences} radiusKm={radiusKm} now={now} onOpen={onOpen} onOpenMap={onOpenMap} />
           )}
         </View>
       </ScrollView>
@@ -159,11 +160,13 @@ function NearbyList({
   radiusKm,
   now,
   onOpen,
+  onOpenMap,
 }: {
   occurrences: PublicOccurrence[];
   radiusKm: number;
   now?: Date;
   onOpen: (id: string) => void;
+  onOpenMap?: () => void;
 }) {
   const lost = occurrences.filter((o) => o.type === "lost").length;
   return (
@@ -182,7 +185,15 @@ function NearbyList({
       </View>
 
       <View>
-        <Text className="mb-3 font-nunito-bold text-sm text-foreground">Pets próximos</Text>
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="font-nunito-bold text-sm text-foreground">Pets próximos</Text>
+          {onOpenMap ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Ver no mapa" onPress={onOpenMap} className="flex-row items-center gap-1">
+              <MapIcon size={14} color={colors.primary} />
+              <Text className="font-nunito-bold text-xs text-primary">Ver no mapa</Text>
+            </Pressable>
+          ) : null}
+        </View>
         {occurrences.length === 0 ? (
           <View className="items-center rounded-3xl border border-border bg-card p-5">
             <Text className="text-center font-sans text-sm text-muted-foreground">Nenhuma ocorrência num raio de {radiusKm} km.</Text>

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { AlertTriangle, Eye, HandHeart, MapPin, Navigation, Search, SearchX } from "lucide-react-native";
 import { Image } from "expo-image";
@@ -17,6 +17,7 @@ import {
 import { Card, PrimaryButton, SectionLabel, SpeciesIcon, TextField } from "@/components";
 import { cn } from "@/lib/cn";
 import type { LocationResult } from "@/features/location/currentLocation";
+import { PinPicker } from "@/features/map/PinPicker";
 import { LocationProblem } from "@/features/location/LocationProblem";
 import { PhotoPickerField } from "@/features/pets/PhotoPickerField";
 import { SpeciesSelector } from "@/features/pets/SpeciesSelector";
@@ -99,6 +100,10 @@ export function OccurrenceForm({
   const remainingPhotos = MAX_OCCURRENCE_PHOTOS - (selectedPet?.photoCount ?? 0);
   const address = values.approxAddress.trim();
   const addressPoint = found && found.query === address ? found.coords : null;
+  // Ponto de partida (localização atual ou endereço encontrado) e o ajuste feito arrastando o pino.
+  const basePoint = locationMode === "address" ? addressPoint : location?.status === "ok" ? location.coords : null;
+  const [pin, setPin] = useState<LatLng | null>(null);
+  useEffect(() => setPin(null), [locationMode, found, location]);
 
   function chooseType(type: OccurrenceType) {
     set("type", type);
@@ -134,8 +139,7 @@ export function OccurrenceForm({
       setErrors({ location: MESSAGES.searchFirst });
       return;
     }
-    const current = location?.status === "ok" ? location.coords : { lat: Number.NaN, lng: Number.NaN };
-    const coords = locationMode === "address" && addressPoint ? addressPoint : current;
+    const coords = pin ?? basePoint ?? { lat: Number.NaN, lng: Number.NaN };
     const input: OccurrenceInput = {
       type: values.type,
       species: values.species,
@@ -284,6 +288,7 @@ export function OccurrenceForm({
         ) : (
           <LocationProblem result={location} purpose="marcar onde o pet foi visto" onRetry={onRetryLocation} onOpenSettings={onOpenSettings} />
         )}
+        {basePoint ? <PinPicker value={pin ?? basePoint} onChange={setPin} /> : null}
         {errors.location ? <Text className="font-nunito-semibold text-xs text-lost">{errors.location}</Text> : null}
         {locationMode === "current" ? (
           <TextField

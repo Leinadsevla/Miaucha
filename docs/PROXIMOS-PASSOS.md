@@ -134,7 +134,7 @@ Pendências:
 
 - [ ] **Job diário de expiração (NF-03):** hoje a regra é aplicada na consulta (`updated_at > now() - 30 dias`), então a ocorrência some das buscas no prazo certo sem job. Um job (BullMQ, junto com os da S5) pode marcar `status = 'expired'` e avisar o autor, e limpar os pedidos de upload nunca confirmados.
 - [ ] Nada atualiza `updated_at` além de "resolver": falta uma ação "ainda procurando" (renova os 30 dias) e editar a ocorrência.
-- [ ] Ajustar o pin no mapa ao registrar: o componente `PinPicker` ficou pronto na S3 (`features/map/PinPicker.tsx`); falta ligá-lo no `OccurrenceForm`.
+- [x] Ajustar o pin no mapa ao registrar (`PinPicker` ligado no `OccurrenceForm`).
 - [ ] Teste de carga do MP-02 com k6. Há um teste de integração com 5 mil ocorrências que exige resposta abaixo de 300 ms no raio e no bbox, mas roda local, sem rede.
 - [ ] Apagar uma foto de pet precisa conferir se o objeto não é usado por uma ocorrência (`occurrence_photos.object_key` pode apontar para a foto do pet). Relevante para a exclusão de conta (NF-01).
 - [ ] Rodar `pnpm dev` na API para aplicar a migração `004_occurrences.sql` no Supabase.
@@ -162,8 +162,8 @@ Sem permissão de localização, o mapa abre no último mapa salvo ou no centro 
 
 Pendências:
 
-- [ ] Ligar o `PinPicker` no `OccurrenceForm` (props `value`/`onChange`; padrão = localização atual).
-- [ ] Atalho "Ver no mapa" na aba Início (o `HomeScreen` está sendo mexido em outra branch).
+- [x] `PinPicker` ligado no `OccurrenceForm`: começa na localização atual ou no endereço encontrado; procurar outro endereço recoloca o pino.
+- [x] Atalho "Ver no mapa" na aba Início.
 - [ ] **Development build / produção no Android:** fora do Expo Go, o Google Maps precisa de chave (`android.config.googleMaps.apiKey` no `app.json` ou o plugin do `react-native-maps`). No iOS usa o Apple Maps, sem chave.
 - [ ] Testar no aparelho: arrastar e dar zoom (debounce, clusters se separando), marcadores customizados no Android (usam `tracksViewChanges` só por 500 ms depois de mudar), "Como chegar" pelo card, modo avião (MP-08) e o `PinPicker` arrastando o marcador.
 - [ ] Apagar o cache do mapa ao sair da conta (`mapCache.clear()` existe; não foi ligado ao logout para não mexer no `AuthProvider`). Só guarda dados públicos.
@@ -184,7 +184,7 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 
 - [x] Raio da aba Início escolhido pelo usuário: 1, 3, 5, 10, 20 ou 30 km (API aceita até 30).
 - [x] "Perdi meu pet" lista os pets cadastrados para escolher; os dados e as fotos do pet entram no alerta.
-- [x] Local da ocorrência: "Minha localização" ou "Outro endereço", procurado com o geocodificador do aparelho (`expo-location`). Arrastar o pino no mapa entra com a S3.
+- [x] Local da ocorrência: "Minha localização" ou "Outro endereço", procurado com o geocodificador do aparelho (`expo-location`), com ajuste fino arrastando o pino no mapa (`PinPicker`).
 
 ## Decisões em aberto
 

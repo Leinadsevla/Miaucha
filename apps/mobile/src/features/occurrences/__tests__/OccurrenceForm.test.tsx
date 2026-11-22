@@ -215,3 +215,41 @@ describe("OccurrenceForm: local por endereço", () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining(paulista), []);
   });
 });
+
+describe("OccurrenceForm: ajustar o ponto no mapa", () => {
+  jest.setTimeout(15_000);
+  const drag = (latitude: number, longitude: number) =>
+    fireEvent(screen.getByTestId("pin-picker-marker"), "dragEnd", { nativeEvent: { coordinate: { latitude, longitude } } });
+
+  it("com a localização atual, mostra o pino nela; arrastar muda o ponto enviado", async () => {
+    const { onSubmit } = await setup();
+    expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.5614, longitude: -46.6559 });
+    await drag(-23.562, -46.657);
+    await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
+    await emit();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.562, lng: -46.657 }), []);
+  });
+
+  it("com endereço, o pino começa no ponto encontrado e um endereço novo recoloca o pino", async () => {
+    const points = [
+      { lat: -23.5617, lng: -46.6559 },
+      { lat: -23.555, lng: -46.66 },
+    ];
+    const { onSubmit } = await setup({ onGeocode: async () => points.shift()! });
+    await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
+    await fireEvent.press(screen.getByRole("button", { name: "Outro endereço" }));
+    expect(screen.queryByTestId("pin-picker-marker")).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText("Endereço"), "Av. Paulista, 1578");
+    await fireEvent.press(screen.getByRole("button", { name: "Procurar endereço" }));
+    expect((await screen.findByTestId("pin-picker-marker")).props.coordinate).toEqual({ latitude: -23.5617, longitude: -46.6559 });
+    await drag(-23.5618, -46.656);
+
+    await fireEvent.changeText(screen.getByLabelText("Endereço"), "Rua Augusta, 100");
+    await fireEvent.press(screen.getByRole("button", { name: "Procurar endereço" }));
+    await screen.findByText("Endereço encontrado. No mapa aparece uma região aproximada (~150 m).");
+    expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.555, longitude: -46.66 });
+    await emit();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.555, lng: -46.66, approxAddress: "Rua Augusta, 100" }), []);
+  });
+});

@@ -28,6 +28,7 @@ export default function Home() {
       onOpen={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
       onRegister={() => router.push("/occurrences/new")}
       onOpenSettings={() => void Linking.openSettings()}
+      onOpenMap={() => router.push("/map")}
     />
   );
 }

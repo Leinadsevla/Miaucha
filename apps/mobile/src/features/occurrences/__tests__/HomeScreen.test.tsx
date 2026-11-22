@@ -61,6 +61,15 @@ describe("HomeScreen (aba Início)", () => {
     expect(screen.getByRole("button", { name: "30 km" })).toBeSelected();
   });
 
+  it("'Ver no mapa' abre o mapa", async () => {
+    const { props } = setup();
+    const onOpenMap = jest.fn();
+    await render(<HomeScreen {...props} onOpenMap={onOpenMap} />);
+    await screen.findByText("Pet 1");
+    await fireEvent.press(screen.getByRole("button", { name: "Ver no mapa" }));
+    expect(onOpenMap).toHaveBeenCalled();
+  });
+
   it("a faixa conta só os perdidos", async () => {
     const { props } = setup();
     await render(<HomeScreen {...props} />);
