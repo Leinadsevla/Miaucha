@@ -1,3 +1,6 @@
+import { createHttpChatClient, createMockChatClient, type ChatClient } from "@/features/chat/chatClient";
+import { createChatRealtime, createLocalChatRealtime, type ChatRealtime } from "@/features/chat/chatRealtime";
+import { socketIoFactory } from "@/features/chat/socketFactory";
 import { createHttpOccurrencesClient, createMockOccurrencesClient, type OccurrencesClient } from "@/features/occurrences/occurrencesClient";
 import { createFileUploader } from "@/features/pets/fileUploader";
 import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/features/pets/petsClient";
@@ -13,7 +16,13 @@ export function chooseAuthClient({ apiUrl, isDev }: { apiUrl: string | undefined
   throw new Error("EXPO_PUBLIC_API_URL não definida: um build de produção não pode usar o login falso");
 }
 
-export type AppClients = { auth: AuthClient; pets: PetsClient; occurrences: OccurrencesClient };
+export type AppClients = {
+  auth: AuthClient;
+  pets: PetsClient;
+  occurrences: OccurrencesClient;
+  chat: ChatClient;
+  chatRealtime: ChatRealtime;
+};
 
 /**
  * Clientes da API do app. Todos usam a mesma sessão, para existir um único refresh por vez.
@@ -23,7 +32,13 @@ export function createClients(): AppClients {
   // Acesso estático: o Expo só embute `EXPO_PUBLIC_*` escrito assim, com ponto.
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
   if (chooseAuthClient({ apiUrl, isDev: __DEV__ }) === "mock") {
-    return { auth: createMockAuthClient(), pets: createMockPetsClient(), occurrences: createMockOccurrencesClient() };
+    return {
+      auth: createMockAuthClient(),
+      pets: createMockPetsClient(),
+      occurrences: createMockOccurrencesClient(),
+      chat: createMockChatClient(),
+      chatRealtime: createLocalChatRealtime(),
+    };
   }
   const storage = createSecureSessionStorage();
   const session = createApiSession({ baseUrl: apiUrl!, storage });
@@ -32,5 +47,7 @@ export function createClients(): AppClients {
     auth: createHttpAuthClient({ baseUrl: apiUrl!, storage, session }),
     pets: createHttpPetsClient({ session, upload }),
     occurrences: createHttpOccurrencesClient({ session, upload }),
+    chat: createHttpChatClient({ session, upload }),
+    chatRealtime: createChatRealtime({ url: apiUrl!, session, connect: socketIoFactory }),
   };
 }

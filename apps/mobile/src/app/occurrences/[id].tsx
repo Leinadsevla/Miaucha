@@ -3,6 +3,7 @@ import { Alert, Linking, Platform, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import type { PublicOccurrence } from "@miaucha/shared";
 import { PrimaryButton } from "@/components";
+import { useChat } from "@/features/chat";
 import { OccurrenceDetails, openDirections, useOccurrencesClient } from "@/features/occurrences";
 
 export default function OccurrenceDetailsRoute() {
@@ -12,6 +13,22 @@ export default function OccurrenceDetailsRoute() {
   const [error, setError] = useState<string>();
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState<string>();
+  const { client: chat } = useChat();
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string>();
+
+  async function openChat() {
+    setChatLoading(true);
+    setChatError(undefined);
+    try {
+      const conversation = await chat.start(id);
+      router.push({ pathname: "/chat/[id]", params: { id: conversation.id } });
+    } catch (e) {
+      setChatError(e instanceof Error ? e.message : "Não foi possível abrir a conversa");
+    } finally {
+      setChatLoading(false);
+    }
+  }
 
   // Busca de novo ao abrir: as URLs das fotos são assinadas e expiram.
   useFocusEffect(
@@ -56,6 +73,9 @@ export default function OccurrenceDetailsRoute() {
         onResolve={confirmResolve}
         resolving={resolving}
         resolveError={resolveError}
+        onChat={() => void openChat()}
+        chatLoading={chatLoading}
+        chatError={chatError}
       />
     );
   }

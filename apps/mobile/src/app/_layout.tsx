@@ -12,6 +12,7 @@ import {
   Nunito_900Black,
 } from "@expo-google-fonts/nunito";
 import { AuthProvider, createClients, redirectTarget, routeFor, useAuth } from "@/features/auth";
+import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
 import { PetsClientProvider } from "@/features/pets";
 
@@ -33,9 +34,11 @@ export default function RootLayout() {
       <AuthProvider client={clients.auth}>
         <PetsClientProvider client={clients.pets}>
           <OccurrencesClientProvider client={clients.occurrences}>
-            <StatusBar style="light" />
-            <AuthGate />
-            <Stack screenOptions={{ headerShown: false }} />
+            <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
+              <StatusBar style="light" />
+              <AuthGate />
+              <Stack screenOptions={{ headerShown: false }} />
+            </SessionChatProvider>
           </OccurrencesClientProvider>
         </PetsClientProvider>
       </AuthProvider>

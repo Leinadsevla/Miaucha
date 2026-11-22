@@ -18,6 +18,10 @@ type Props = {
   onResolve: () => void;
   resolving?: boolean;
   resolveError?: string;
+  /** Abre (ou reabre) a conversa com quem registrou (CH-01). */
+  onChat: () => void;
+  chatLoading?: boolean;
+  chatError?: string;
   now?: Date;
 };
 
@@ -38,7 +42,18 @@ function Info({ icon, label, value }: { icon: ReactNode; label: string; value: s
 }
 
 /** Detalhe público da ocorrência (PetDetailsScreen do protótipo): pseudônimo do autor e local aproximado. */
-export function OccurrenceDetails({ occurrence: o, onBack, onDirections, onResolve, resolving, resolveError, now = new Date() }: Props) {
+export function OccurrenceDetails({
+  occurrence: o,
+  onBack,
+  onDirections,
+  onResolve,
+  resolving,
+  resolveError,
+  onChat,
+  chatLoading,
+  chatError,
+  now = new Date(),
+}: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const title = occurrenceTitle(o);
@@ -163,8 +178,17 @@ export function OccurrenceDetails({ occurrence: o, onBack, onDirections, onResol
       </ScrollView>
 
       <View className="gap-1 border-t border-border bg-white px-5 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
-        <PrimaryButton title="Conversar" onPress={() => {}} disabled icon={<MessageCircle size={16} color={colors.white} />} />
-        <Text className="text-center font-sans text-xs text-muted-foreground">Chat em breve</Text>
+        {chatError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{chatError}</Text> : null}
+        <PrimaryButton
+          title="Conversar"
+          onPress={onChat}
+          disabled={o.isMine}
+          loading={chatLoading}
+          icon={<MessageCircle size={16} color={colors.white} />}
+        />
+        <Text className="text-center font-sans text-xs text-muted-foreground">
+          {o.isMine ? "Esta ocorrência é sua: as conversas aparecem na aba Chat" : `Converse com ${o.authorPseudonym} sem expor seu contato`}
+        </Text>
       </View>
     </View>
   );
