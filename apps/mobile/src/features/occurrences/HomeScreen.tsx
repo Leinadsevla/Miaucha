@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { AlertTriangle, Map as MapIcon, Plus } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SEARCH_RADIUS_OPTIONS_KM, colors, type PublicOccurrence } from "@miaucha/shared";
@@ -199,14 +199,14 @@ function NearbyList({
             <Text className="text-center font-sans text-sm text-muted-foreground">Nenhuma ocorrência num raio de {radiusKm} km.</Text>
           </View>
         ) : (
-          <FlatList
-            horizontal
-            data={occurrences}
-            keyExtractor={(o) => o.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingBottom: 8 }}
-            renderItem={({ item }) => <PetCard occurrence={item} now={now} onPress={() => onOpen(item.id)} />}
-          />
+          // Grade de duas colunas. São no máximo 200 itens, e a tela já rola (ScrollView): sem lista virtualizada aninhada.
+          <View testID="nearby-grid" style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12 }}>
+            {occurrences.map((item) => (
+              <View key={item.id} style={{ width: "48.5%" }}>
+                <PetCard occurrence={item} now={now} onPress={() => onOpen(item.id)} fill />
+              </View>
+            ))}
+          </View>
         )}
       </View>
     </>

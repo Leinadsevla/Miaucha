@@ -89,7 +89,7 @@ export default function NewOccurrence() {
             initial={pet ? { type: "lost", species: pet.species, petName: pet.name, breed: pet.breed ?? "", color: pet.color ?? "" } : undefined}
             fromPet={pet ? { id: pet.id, name: pet.name, photoCount: pet.photos.length } : undefined}
             myPets={myPets}
-            onGeocode={geocodeAddress}
+            onGeocode={(address) => geocodeAddress(address, location?.status === "ok" ? location.coords : null)}
             loading={busy}
             serverError={error}
           />

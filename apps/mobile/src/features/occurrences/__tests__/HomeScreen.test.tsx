@@ -70,6 +70,15 @@ describe("HomeScreen (aba Início)", () => {
     expect(onOpenMap).toHaveBeenCalled();
   });
 
+  it("mostra as ocorrências em grade de duas colunas (não numa lista horizontal)", async () => {
+    const { props } = setup();
+    await render(<HomeScreen {...props} />);
+    await screen.findByText("Pet 1");
+    const grid = screen.getByTestId("nearby-grid");
+    expect(grid).toHaveStyle({ flexDirection: "row", flexWrap: "wrap" });
+    expect(screen.getAllByRole("button", { name: /, (Perdido|Avistado|Encontrado)$/ })).toHaveLength(3);
+  });
+
   it("a faixa conta só os perdidos", async () => {
     const { props } = setup();
     await render(<HomeScreen {...props} />);

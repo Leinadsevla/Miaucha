@@ -14,7 +14,7 @@ describe("StatusBadge (MP-01)", () => {
   ] as const)("%s mostra '%s' com a cor do tipo", async (type, label, color) => {
     await render(<StatusBadge type={type} />);
     expect(screen.getByText(label)).toBeOnTheScreen();
-    expect(screen.getByTestId("status-dot")).toHaveStyle({ backgroundColor: color });
+    expect(screen.getByTestId("status-badge")).toHaveStyle({ backgroundColor: color });
   });
 });
 
@@ -122,5 +122,39 @@ describe("BottomNav", () => {
     await render(<BottomNav active="index" onNavigate={onNavigate} />);
     await fireEvent.press(screen.getByRole("tab", { name: "Alertas" }));
     expect(onNavigate).toHaveBeenCalledWith("alerts");
+  });
+});
+
+describe("tipo da ocorrência bem visível", () => {
+  const base = {
+    id: "1",
+    species: "dog" as const,
+    petName: "Thor",
+    breed: null,
+    color: null,
+    description: null,
+    photoUrls: [],
+    publicLocation: { lat: 0, lng: 0 },
+    approxAddress: null,
+    authorPseudonym: "Tutor Azul 10",
+    status: "open" as const,
+    isMine: false,
+    createdAt: "2026-11-17T13:00:00Z",
+  };
+
+  it.each([
+    ["lost", colors.lost, colors.white, "Perdido"],
+    ["seen", colors.seen, colors.foreground, "Avistado"],
+    ["found", colors.found, colors.foreground, "Encontrado"],
+  ] as const)("etiqueta %s: fundo sólido na cor do tipo e texto legível", async (type, bg, fg, label) => {
+    await render(<StatusBadge type={type} />);
+    expect(screen.getByTestId("status-badge")).toHaveStyle({ backgroundColor: bg });
+    expect(screen.getByText(label)).toHaveStyle({ color: fg });
+  });
+
+  it("o card tem uma faixa no topo, na cor do tipo, com o tipo escrito", async () => {
+    await render(<PetCard occurrence={{ ...base, type: "seen" }} onPress={() => {}} />);
+    expect(screen.getByTestId("pet-card-band")).toHaveStyle({ backgroundColor: colors.seen });
+    expect(screen.getByText("Avistado")).toHaveStyle({ color: colors.foreground });
   });
 });

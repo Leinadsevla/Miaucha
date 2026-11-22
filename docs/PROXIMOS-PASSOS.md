@@ -18,7 +18,7 @@ Sprint 1 (Fundação), parte do app pronta:
 | Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 923 passando (195 no shared, 481 no app, 247 na API), na `feat/chat`, que inclui todas as branches anteriores. Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 941 passando (198 no shared, 496 no app, 247 na API), na `feat/ajustes-teste-2`. Os de integração da API precisam do Docker rodando.
 
 ## Ordem sugerida
 
@@ -280,6 +280,14 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 - [x] Raio da aba Início escolhido pelo usuário: 1, 3, 5, 10, 20 ou 30 km (API aceita até 30).
 - [x] "Perdi meu pet" lista os pets cadastrados para escolher; os dados e as fotos do pet entram no alerta.
 - [x] Local da ocorrência: "Minha localização" ou "Outro endereço", procurado com o geocodificador do aparelho (`expo-location`), com ajuste fino arrastando o pino no mapa (`PinPicker`).
+
+### Ajustes do segundo teste no Expo Go (`feat/ajustes-teste-2`)
+
+- [x] "Como chegar" quebrava ao escolher Maps/Waze: o `Linking.openURL` era passado solto e perdia o `this`. Agora `createDeviceDirections` chama pelo objeto e, se não abrir, avisa em vez de quebrar.
+- [x] Aba Início em grade de duas colunas.
+- [x] Tipo da ocorrência em destaque: faixa colorida no topo do card e etiqueta sólida em todo o app, com cor de texto legível por tipo (`textOn` + `contrastRatio` no shared; branco não lê no amarelo nem no verde).
+- [x] "Marcar no mapa": terceira opção de local, com mapa maior em que se toca na rua; funciona sem permissão de localização.
+- [x] Busca de endereço restrita a 50 km de quem procura, com a cidade dele acrescentada ao texto quando não foi digitada.
 
 ## Decisões em aberto
 

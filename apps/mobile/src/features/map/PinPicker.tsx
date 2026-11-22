@@ -10,8 +10,11 @@ const PIN_DELTA = 0.005;
 const MAP_HEIGHT = 192;
 
 type Props = {
-  value: LatLng;
+  /** null = ainda sem ponto: o mapa abre em `center` e espera o primeiro toque. */
+  value: LatLng | null;
   onChange: (point: LatLng) => void;
+  center?: LatLng;
+  height?: number;
 };
 
 type Coordinate = { latitude: number; longitude: number };
@@ -23,14 +26,16 @@ const toLatLng = ({ latitude, longitude }: Coordinate): LatLng => ({ lat: latitu
  * Mapa pequeno para ajustar o ponto de uma ocorrência: arraste o marcador ou toque no mapa.
  * O ponto escolhido é o real (só a API o vê); no mapa público aparece o ponto deslocado (MP-07).
  */
-export function PinPicker({ value, onChange }: Props) {
+export function PinPicker({ value, onChange, center, height = MAP_HEIGHT }: Props) {
   const mapRef = useRef<MapView>(null);
   // O último ponto escolhido aqui: quando o valor volta igual, não recentraliza (o usuário já está vendo).
-  const lastPicked = useRef<LatLng>(value);
+  const lastPicked = useRef<LatLng | null>(value);
+  const start = value ?? center ?? { lat: 0, lng: 0 };
 
   useEffect(() => {
+    if (!value) return;
     const picked = lastPicked.current;
-    if (picked.lat === value.lat && picked.lng === value.lng) return;
+    if (picked && picked.lat === value.lat && picked.lng === value.lng) return;
     lastPicked.current = value;
     mapRef.current?.animateToRegion(regionAround(value, PIN_DELTA), 300);
   }, [value]);
@@ -43,30 +48,34 @@ export function PinPicker({ value, onChange }: Props) {
 
   return (
     <View className="gap-2">
-      <View className="overflow-hidden rounded-2xl border border-border" style={{ height: MAP_HEIGHT }}>
+      <View className="overflow-hidden rounded-2xl border border-border" style={{ height }}>
         <MapView
           ref={mapRef}
           testID="pin-picker-map"
           style={{ flex: 1 }}
-          initialRegion={regionAround(value, PIN_DELTA)}
+          initialRegion={regionAround(start, PIN_DELTA)}
           toolbarEnabled={false}
           rotateEnabled={false}
           pitchEnabled={false}
           onPress={pick}
         >
-          <Marker
-            testID="pin-picker-marker"
-            coordinate={{ latitude: value.lat, longitude: value.lng }}
-            draggable
-            pinColor={colors.primary}
-            onDragEnd={pick}
-          />
+          {value ? (
+            <Marker
+              testID="pin-picker-marker"
+              coordinate={{ latitude: value.lat, longitude: value.lng }}
+              draggable
+              pinColor={colors.primary}
+              onDragEnd={pick}
+            />
+          ) : null}
         </MapView>
       </View>
       <View className="flex-row items-start gap-2">
         <MapPin size={14} color={colors.accent} />
         <Text className="flex-1 font-sans text-xs text-muted-foreground">
-          Arraste o marcador ou toque no mapa para ajustar o local. Para os outros, o mapa mostra só uma região aproximada (~150 m).
+          {value
+            ? "Arraste o marcador ou toque no mapa para ajustar o local. Para os outros, o mapa mostra só uma região aproximada (~150 m)."
+            : "Toque na rua onde o pet foi visto para marcar o local."}
         </Text>
       </View>
     </View>
