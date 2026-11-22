@@ -6,6 +6,11 @@ import { AccessTokenGuard } from "./auth/access-token.guard";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
 import { GoogleAuthLibraryVerifier } from "./auth/google-verifier";
+import { ChatController } from "./chat/chat.controller";
+import { ChatGateway } from "./chat/chat.gateway";
+import { ChatService } from "./chat/chat.service";
+import { ChatThrottlerGuard } from "./chat/chat-throttler.guard";
+import { LogPushSender, PUSH_SENDER } from "./chat/push-sender";
 import type { AppConfig } from "./config";
 import { ConsoleMailer } from "./mail/mailer";
 import { MeController } from "./me/me.controller";
@@ -30,12 +35,16 @@ export class AppModule implements OnApplicationShutdown {
           errorMessage: "Muitas tentativas. Espere um pouco e tente de novo.",
         }),
       ],
-      controllers: [AuthController, MeController, PetsController, OccurrencesController],
+      controllers: [AuthController, MeController, PetsController, OccurrencesController, ChatController],
       providers: [
         AuthService,
         AccessTokenGuard,
         PetsService,
         OccurrencesService,
+        ChatService,
+        ChatGateway,
+        ChatThrottlerGuard,
+        { provide: PUSH_SENDER, useClass: LogPushSender },
         { provide: PHOTO_STORAGE, useFactory: () => new S3PhotoStorage(config.storage) },
         { provide: APP_CONFIG, useValue: config },
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },

@@ -21,6 +21,7 @@ describe("loadConfig", () => {
       refreshTokenTtlDays: 30,
       googleClientIds: [],
       throttle: { ttlMs: 60_000, limit: 10 },
+      chatThrottle: { ttlMs: 60_000, limit: 30 },
       storage: {
         endpoint: required.STORAGE_ENDPOINT,
         region: "us-east-1",
@@ -47,6 +48,13 @@ describe("loadConfig", () => {
     expect(config.port).toBe(4000);
     expect(config.googleClientIds).toEqual(["android.apps.googleusercontent.com", "ios.apps.googleusercontent.com"]);
     expect(config.throttle).toEqual({ ttlMs: 1000, limit: 3 });
+  });
+
+  it("lê o limite de mensagens do chat e o Redis opcional (adapter do Socket.IO)", () => {
+    const config = loadConfig({ ...required, CHAT_THROTTLE_LIMIT: "5", CHAT_THROTTLE_TTL_MS: "2000", REDIS_URL: "redis://localhost:6379" });
+    expect(config.chatThrottle).toEqual({ ttlMs: 2000, limit: 5 });
+    expect(config.redisUrl).toBe("redis://localhost:6379");
+    expect(loadConfig(required).redisUrl).toBeUndefined();
   });
 
   it.each(Object.keys(required))("falha sem %s", (key) => {

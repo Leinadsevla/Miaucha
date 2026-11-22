@@ -28,6 +28,7 @@ describe("runMigrations", () => {
       "003_pets.sql",
       "004_occurrences.sql",
       "005_password_reset.sql",
+      "006_chat.sql",
     ]);
   });
 
