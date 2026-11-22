@@ -19,7 +19,7 @@ import type { PhotoStorage } from "../storage/photo-storage";
 import { PhotoUploads, UUID_RE } from "../storage/photo-uploads";
 import { PG_POOL, PHOTO_STORAGE } from "../tokens";
 import { ChatGateway } from "./chat.gateway";
-import { PUSH_SENDER, type PushSender } from "./push-sender";
+import { CHAT_PUSH_SENDER, type ChatPushSender } from "./push-sender";
 
 /** Uma conversa já pode ter centenas de fotos; o limite só evita abuso do storage. */
 export const MAX_CHAT_PHOTOS = 200;
@@ -108,7 +108,7 @@ export class ChatService {
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
     @Inject(PHOTO_STORAGE) storage: PhotoStorage,
-    @Inject(PUSH_SENDER) private readonly push: PushSender,
+    @Inject(CHAT_PUSH_SENDER) private readonly push: ChatPushSender,
     private readonly gateway: ChatGateway,
   ) {
     this.photos = new PhotoUploads(pool, storage, {

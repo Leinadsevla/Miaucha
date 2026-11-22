@@ -34,7 +34,7 @@ describe("Socket.IO com Redis entre duas instâncias", () => {
       const received = nextEvent<{ message: ChatMessage }>(socket, "message:new");
       const sent = await other.sendText(conversation.id, "olá de outra instância");
       expect((await received).message).toEqual({ ...sent, mine: false });
-      expect(a.push.sent.filter((p) => p.data.conversationId === conversation.id)).toEqual([]);
+      expect(a.chatPush.sent.filter((p) => p.data.conversationId === conversation.id)).toEqual([]);
     } finally {
       socket.close();
     }

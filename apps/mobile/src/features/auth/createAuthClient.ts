@@ -1,9 +1,11 @@
+import { createHttpAlertsClient, createMockAlertsClient, type AlertsClient } from "@/features/alerts/alertsClient";
 import { createHttpChatClient, createMockChatClient, type ChatClient } from "@/features/chat/chatClient";
 import { createChatRealtime, createLocalChatRealtime, type ChatRealtime } from "@/features/chat/chatRealtime";
 import { socketIoFactory } from "@/features/chat/socketFactory";
 import { createHttpOccurrencesClient, createMockOccurrencesClient, type OccurrencesClient } from "@/features/occurrences/occurrencesClient";
 import { createFileUploader } from "@/features/pets/fileUploader";
 import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/features/pets/petsClient";
+import { createHttpProfileClient, createMockProfileClient, type ProfileClient } from "@/features/profile/profileClient";
 import type { AuthClient } from "./AuthProvider";
 import { createApiSession } from "./apiSession";
 import { createHttpAuthClient } from "./httpAuthClient";
@@ -20,6 +22,8 @@ export type AppClients = {
   auth: AuthClient;
   pets: PetsClient;
   occurrences: OccurrencesClient;
+  alerts: AlertsClient;
+  profile: ProfileClient;
   chat: ChatClient;
   chatRealtime: ChatRealtime;
 };
@@ -32,10 +36,14 @@ export function createClients(): AppClients {
   // Acesso estático: o Expo só embute `EXPO_PUBLIC_*` escrito assim, com ponto.
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
   if (chooseAuthClient({ apiUrl, isDev: __DEV__ }) === "mock") {
+    const pets = createMockPetsClient();
+    const occurrences = createMockOccurrencesClient();
     return {
       auth: createMockAuthClient(),
-      pets: createMockPetsClient(),
-      occurrences: createMockOccurrencesClient(),
+      pets,
+      occurrences,
+      alerts: createMockAlertsClient(),
+      profile: createMockProfileClient({ pets, occurrences }),
       chat: createMockChatClient(),
       chatRealtime: createLocalChatRealtime(),
     };
@@ -47,6 +55,8 @@ export function createClients(): AppClients {
     auth: createHttpAuthClient({ baseUrl: apiUrl!, storage, session }),
     pets: createHttpPetsClient({ session, upload }),
     occurrences: createHttpOccurrencesClient({ session, upload }),
+    alerts: createHttpAlertsClient({ session }),
+    profile: createHttpProfileClient({ session }),
     chat: createHttpChatClient({ session, upload }),
     chatRealtime: createChatRealtime({ url: apiUrl!, session, connect: socketIoFactory }),
   };

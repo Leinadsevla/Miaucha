@@ -32,6 +32,11 @@ describe("loadConfig", () => {
     });
   });
 
+  it("lê o access token opcional do Expo Push", () => {
+    expect(loadConfig(required).expoAccessToken).toBeUndefined();
+    expect(loadConfig({ ...required, EXPO_ACCESS_TOKEN: "token-do-expo" }).expoAccessToken).toBe("token-do-expo");
+  });
+
   it("lê região e bucket do storage", () => {
     const config = loadConfig({ ...required, STORAGE_REGION: "us-west-2", STORAGE_BUCKET: "fotos" });
     expect(config.storage).toMatchObject({ region: "us-west-2", bucket: "fotos" });

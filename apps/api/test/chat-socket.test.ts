@@ -113,7 +113,7 @@ describe("push para quem está offline (CH-04)", () => {
   it("destinatário sem socket conectado recebe push com o pseudônimo e um trecho", async () => {
     const { author, other, conversation } = await conversationPair(ctx);
     await other.sendText(conversation.id, "Oi! Me chama no 11 98765-4321");
-    const push = ctx.push.sent.filter((p) => p.data.conversationId === conversation.id);
+    const push = ctx.chatPush.sent.filter((p) => p.data.conversationId === conversation.id);
     expect(push).toEqual([
       {
         userId: author.user.id,
@@ -130,7 +130,7 @@ describe("push para quem está offline (CH-04)", () => {
     const { author, other, conversation } = await conversationPair(ctx);
     await connect(author);
     await other.sendText(conversation.id, "online");
-    expect(ctx.push.sent.filter((p) => p.data.conversationId === conversation.id)).toEqual([]);
+    expect(ctx.chatPush.sent.filter((p) => p.data.conversationId === conversation.id)).toEqual([]);
   });
 
   it("depois que desconecta volta a receber push", async () => {
@@ -139,6 +139,6 @@ describe("push para quem está offline (CH-04)", () => {
     socket.close();
     await wait(200);
     await other.sendText(conversation.id, "voltei");
-    expect(ctx.push.sent.filter((p) => p.data.conversationId === conversation.id)).toHaveLength(1);
+    expect(ctx.chatPush.sent.filter((p) => p.data.conversationId === conversation.id)).toHaveLength(1);
   });
 });

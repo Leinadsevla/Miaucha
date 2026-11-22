@@ -6,8 +6,9 @@ import { AppModule, configureApp } from "../src/app.module";
 import { InvalidGoogleTokenError, type GoogleProfile, type GoogleVerifier } from "../src/auth/google-verifier";
 import type { AppConfig, StorageConfig } from "../src/config";
 import { runMigrations } from "../src/db/migrate";
-import { GOOGLE_VERIFIER, MAILER } from "../src/tokens";
+import { GOOGLE_VERIFIER, MAILER, PUSH_SENDER } from "../src/tokens";
 import type { Mailer } from "../src/mail/mailer";
+import type { PushMessage, PushResult, PushSender } from "../src/alerts/push-sender";
 
 export class FakeMailer implements Mailer {
   sent: { to: string; code: string }[] = [];
@@ -31,6 +32,29 @@ export class FakeGoogleVerifier implements GoogleVerifier {
     const profile = this.tokens.get(idToken);
     if (!profile) throw new InvalidGoogleTokenError();
     return profile;
+  }
+}
+
+/** Substitui o Expo Push: guarda as mensagens. `hold()` segura os envios até `release()`. */
+export class FakePushSender implements PushSender {
+  sent: PushMessage[] = [];
+  invalidTokens = new Set<string>();
+  private gate: Promise<void> | null = null;
+  private open: () => void = () => {};
+
+  async send(messages: PushMessage[]): Promise<PushResult> {
+    if (this.gate) await this.gate;
+    this.sent.push(...messages);
+    return { invalidTokens: messages.map((m) => m.to).filter((t) => this.invalidTokens.has(t)) };
+  }
+
+  hold() {
+    this.gate = new Promise((resolve) => (this.open = resolve));
+  }
+
+  release() {
+    this.gate = null;
+    this.open();
   }
 }
 
@@ -64,6 +88,7 @@ export type TestContext = {
   http: ReturnType<typeof request>;
   mailer: FakeMailer;
   google: FakeGoogleVerifier;
+  push: FakePushSender;
   pool: Pool;
 };
 
@@ -74,16 +99,19 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
 
   const mailer = new FakeMailer();
   const google = new FakeGoogleVerifier();
+  const push = new FakePushSender();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
     .overrideProvider(MAILER)
     .useValue(mailer)
     .overrideProvider(GOOGLE_VERIFIER)
     .useValue(google)
+    .overrideProvider(PUSH_SENDER)
+    .useValue(push)
     .compile();
 
   const app = configureApp(moduleRef.createNestApplication());
   await app.init();
-  return { app, http: request(app.getHttpServer()), mailer, google, pool };
+  return { app, http: request(app.getHttpServer()), mailer, google, push, pool };
 }
 
 export async function closeTestApp(ctx: TestContext) {

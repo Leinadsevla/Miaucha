@@ -5,21 +5,21 @@ import { Pool } from "pg";
 import { io, type Socket } from "socket.io-client";
 import request from "supertest";
 import { AppModule, configureApp } from "../src/app.module";
-import { PUSH_SENDER, type PushNotification, type PushSender } from "../src/chat/push-sender";
+import { CHAT_PUSH_SENDER, type ChatPushNotification, type ChatPushSender } from "../src/chat/push-sender";
 import type { AppConfig } from "../src/config";
 import { runMigrations } from "../src/db/migrate";
-import { GOOGLE_VERIFIER, MAILER } from "../src/tokens";
-import { FakeGoogleVerifier, FakeMailer, signUpVerified, testConfig, type TestContext } from "./helpers";
+import { GOOGLE_VERIFIER, MAILER, PUSH_SENDER } from "../src/tokens";
+import { FakeGoogleVerifier, FakeMailer, FakePushSender, signUpVerified, testConfig, type TestContext } from "./helpers";
 
-export class FakePushSender implements PushSender {
-  sent: PushNotification[] = [];
+export class FakeChatPushSender implements ChatPushSender {
+  sent: ChatPushNotification[] = [];
 
-  async send(notification: PushNotification) {
+  async send(notification: ChatPushNotification) {
     this.sent.push(notification);
   }
 }
 
-export type ChatTestContext = TestContext & { push: FakePushSender; url: string };
+export type ChatTestContext = TestContext & { chatPush: FakeChatPushSender; url: string };
 
 /**
  * Igual ao `createTestApp`, mas escuta numa porta de verdade (o socket.io-client precisa) e troca o
@@ -35,12 +35,16 @@ export async function createChatTestApp(
 
   const mailer = new FakeMailer();
   const google = new FakeGoogleVerifier();
+  const chatPush = new FakeChatPushSender();
+  // Push dos alertas também falso: criar ocorrência num teste não pode chamar o Expo Push de verdade.
   const push = new FakePushSender();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
     .overrideProvider(MAILER)
     .useValue(mailer)
     .overrideProvider(GOOGLE_VERIFIER)
     .useValue(google)
+    .overrideProvider(CHAT_PUSH_SENDER)
+    .useValue(chatPush)
     .overrideProvider(PUSH_SENDER)
     .useValue(push)
     .compile();
@@ -49,7 +53,7 @@ export async function createChatTestApp(
   await prepare?.(app);
   await app.listen(0, "127.0.0.1");
   const url = await app.getUrl();
-  return { app, http: request(app.getHttpServer()), mailer, google, pool, push, url };
+  return { app, http: request(app.getHttpServer()), mailer, google, pool, push, chatPush, url };
 }
 
 /** Ponto sorteado longe dos outros testes (todos usam o mesmo banco). */

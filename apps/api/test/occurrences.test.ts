@@ -363,7 +363,7 @@ describe("GET /occurrences (MP-02)", () => {
   it("parâmetros inválidos → 400", async () => {
     const t = await tutor();
     const bad = (query: object) => ctx.http.get("/occurrences").query(query).set(t.auth).expect(400);
-    expect((await bad({ lat: 0, lng: 0, radiusKm: 21 })).body.message).toBe("O raio máximo é de 20 km");
+    expect((await bad({ lat: 0, lng: 0, radiusKm: 31 })).body.message).toBe("O raio máximo é de 30 km");
     expect((await bad({})).body.message).toBe("Informe lat e lng (com radiusKm) ou bbox");
     expect((await bad({ bbox: "1,2,3" })).body.message).toBe("bbox inválida: use minLng,minLat,maxLng,maxLat");
     await bad({ lat: 0, lng: 0, type: "stolen" });

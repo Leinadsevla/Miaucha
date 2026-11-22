@@ -81,3 +81,27 @@ describe("createLocationProvider", () => {
     expect(await createLocationProvider(fake)()).toEqual({ status: "unavailable" });
   });
 });
+
+describe("createLocationProvider({ ask: false }) (atualização da região para os alertas)", () => {
+  it("não pede permissão: só confere se já foi dada", async () => {
+    const fake = api({
+      requestForegroundPermissionsAsync: async () => {
+        throw new Error("não devia pedir");
+      },
+    });
+    const check = jest.fn(async () => ({ granted: true, canAskAgain: true }));
+    const provider = createLocationProvider({ ...fake, getForegroundPermissionsAsync: check }, { ask: false });
+    expect(await provider()).toEqual({ status: "ok", coords: { lat: -23.56, lng: -46.65 } });
+    expect(check).toHaveBeenCalled();
+  });
+
+  it("sem permissão ainda → denied, sem abrir o diálogo do sistema", async () => {
+    const fake = api();
+    const provider = createLocationProvider(
+      { ...fake, getForegroundPermissionsAsync: async () => ({ granted: false, canAskAgain: true }) },
+      { ask: false },
+    );
+    expect(await provider()).toEqual({ status: "denied", canAskAgain: true });
+    expect(fake.calls).toEqual([]);
+  });
+});

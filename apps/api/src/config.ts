@@ -27,6 +27,8 @@ export type AppConfig = {
    */
   redisUrl?: string;
   storage: StorageConfig;
+  /** Access token do Expo Push (opcional; só se o projeto exigir "enhanced security" no painel do Expo). */
+  expoAccessToken?: string;
 };
 
 export const DEFAULT_CHAT_THROTTLE = { ttlMs: 60_000, limit: 30 };
@@ -77,5 +79,6 @@ export function loadConfig(env: Env): AppConfig {
       accessKeyId: required(env, "STORAGE_ACCESS_KEY_ID"),
       secretAccessKey: required(env, "STORAGE_SECRET_ACCESS_KEY"),
     },
+    expoAccessToken: env.EXPO_ACCESS_TOKEN || undefined,
   };
 }

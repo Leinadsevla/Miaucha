@@ -18,3 +18,8 @@ export function formatDistance(meters: number): string {
   const rounded = Math.round(km * 10) / 10;
   return `${String(rounded).replace(".", ",")} km`;
 }
+
+/** Distância aproximada: abaixo de 1 km, de 100 em 100 m (mínimo 100 m). Usada nos alertas, cuja origem é uma célula de ~1 km. */
+export function formatApproxDistance(meters: number): string {
+  return formatDistance(meters < 950 ? Math.max(100, Math.round(meters / 100) * 100) : Math.max(1000, meters));
+}
