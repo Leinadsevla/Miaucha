@@ -48,6 +48,28 @@ describe("HomeScreen (aba Início)", () => {
     expect(screen.getAllByText("300 m")).toHaveLength(3);
   });
 
+  it("o raio é ajustável de 1 a 30 km e refaz a busca", async () => {
+    const { props, client } = setup({ nearby: async () => [] });
+    await render(<HomeScreen {...props} />);
+    expect(await screen.findByText("Nenhuma ocorrência num raio de 5 km.")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "5 km" })).toBeSelected();
+    for (const km of [1, 3, 10, 20, 30]) expect(screen.getByRole("button", { name: `${km} km` })).not.toBeSelected();
+
+    await fireEvent.press(screen.getByRole("button", { name: "30 km" }));
+    expect(client.nearby).toHaveBeenLastCalledWith({ lat: -23.5, lng: -46.6, radiusKm: 30 });
+    expect(await screen.findByText("Nenhuma ocorrência num raio de 30 km.")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "30 km" })).toBeSelected();
+  });
+
+  it("'Ver no mapa' abre o mapa", async () => {
+    const { props } = setup();
+    const onOpenMap = jest.fn();
+    await render(<HomeScreen {...props} onOpenMap={onOpenMap} />);
+    await screen.findByText("Pet 1");
+    await fireEvent.press(screen.getByRole("button", { name: "Ver no mapa" }));
+    expect(onOpenMap).toHaveBeenCalled();
+  });
+
   it("a faixa conta só os perdidos", async () => {
     const { props } = setup();
     await render(<HomeScreen {...props} />);

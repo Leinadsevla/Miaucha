@@ -70,6 +70,16 @@ describe("createHttpOccurrencesClient", () => {
     expect(calls[0].authorization).toBe("Bearer access");
   });
 
+  it("inArea faz GET com bbox e só os filtros informados (MP-02, MP-05)", async () => {
+    const { client } = setup({
+      "GET /occurrences?bbox=-46.65000,-23.56000,-46.61000,-23.54000&sinceDays=30": () => ({ status: 200, body: [thor] }),
+      "GET /occurrences?bbox=-46.65000,-23.56000,-46.61000,-23.54000&type=seen&species=cat&sinceDays=1": () => ({ status: 200, body: [] }),
+    });
+    const bbox = { minLng: -46.65, minLat: -23.56, maxLng: -46.61, maxLat: -23.54 };
+    expect(await client.inArea({ bbox, sinceDays: 30 })).toEqual([thor]);
+    expect(await client.inArea({ bbox, type: "seen", species: "cat", sinceDays: 1 })).toEqual([]);
+  });
+
   it("get, listMine e resolve", async () => {
     const { client, calls } = setup({
       "GET /occurrences/o1": () => ({ status: 200, body: thor }),
@@ -110,6 +120,7 @@ describe("saveOccurrence", () => {
     return {
       added,
       nearby: async () => [],
+      inArea: async () => [],
       get: async () => thor,
       listMine: async () => [],
       resolve: async () => thor,
@@ -160,6 +171,22 @@ describe("createMockOccurrencesClient", () => {
     const found = await client.nearby({ lat: 10, lng: 10, radiusKm: 5 });
     expect(found.length).toBeGreaterThan(0);
     expect(found.every((o) => !o.isMine)).toBe(true);
+  });
+
+  it("inArea devolve só as abertas dentro da área e que passam nos filtros", async () => {
+    const client = createMockOccurrencesClient({ seed: false });
+    const created = await client.create(input);
+    const around = { minLng: input.lng - 0.01, minLat: input.lat - 0.01, maxLng: input.lng + 0.01, maxLat: input.lat + 0.01 };
+    expect((await client.inArea({ bbox: around })).map((o) => o.id)).toEqual([created.id]);
+    expect(await client.inArea({ bbox: around, type: "seen" })).toEqual([]);
+    expect(await client.inArea({ bbox: around, species: "cat" })).toEqual([]);
+    expect(await client.inArea({ bbox: { minLng: 0, minLat: 0, maxLng: 1, maxLat: 1 } })).toEqual([]);
+  });
+
+  it("com seed, a primeira busca por área também mostra exemplos no centro dela", async () => {
+    const client = createMockOccurrencesClient();
+    const found = await client.inArea({ bbox: { minLng: 9.9, minLat: 9.9, maxLng: 10.1, maxLat: 10.1 } });
+    expect(found.length).toBeGreaterThan(0);
   });
 
   it("get de id desconhecido → erro", async () => {
