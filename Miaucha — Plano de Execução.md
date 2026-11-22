@@ -121,14 +121,14 @@ Cada sprint termina com uma demo no celular e só é considerada pronta quando c
 
 ### S4 · Chat interno (semanas 7–8)
 
-- [ ] Modelo de conversa ligado à ocorrência, com pseudônimos (CH-01, CH-02)
-- [ ] Gateway WebSocket com Socket.IO e Redis pub/sub (CH-03)
-- [ ] Push quando o destinatário está offline (CH-04)
-- [ ] Envio de foto e de localização atual (CH-05)
-- [ ] Filtro que mascara telefone, e-mail e links (CH-06)
-- [ ] Compartilhar contato com opt-in duplo (CH-07)
-- [ ] Bloquear e denunciar, com fila de moderação (CH-08)
-- [ ] Histórico paginado e confirmação de leitura (CH-09)
+- [x] Modelo de conversa ligado à ocorrência, com pseudônimos (CH-01, CH-02)
+- [x] Gateway WebSocket com Socket.IO e Redis pub/sub (CH-03; Redis opcional, só com `REDIS_URL`)
+- [ ] Push quando o destinatário está offline (CH-04): interface `PushSender` chamada e testada; falta o Expo Push
+- [x] Envio de foto e de localização atual (CH-05)
+- [x] Filtro que mascara telefone, e-mail e links (CH-06)
+- [x] Compartilhar contato com opt-in duplo (CH-07)
+- [x] Bloquear e denunciar, com fila de moderação (CH-08; falta a tela de moderação)
+- [x] Histórico paginado e confirmação de leitura (CH-09)
 
 ### S5 · Alertas de proximidade (semanas 9–10)
 
@@ -173,13 +173,13 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 
 | Especificação | Sprint | Como verificar |
 | --- | --- | --- |
-| CH-01, CH-02 | S4 | Teste de integração: resposta da API do chat não contém telefone nem e-mail |
-| CH-03 | S4 | Teste E2E com dois aparelhos, medindo o tempo de entrega |
-| CH-04 | S4 | Teste manual com o app fechado |
-| CH-05 | S4 | Teste E2E de envio de foto e localização |
-| CH-06 | S4 | Teste unitário do filtro com lista de casos (telefones, e-mails, links) |
-| CH-07, CH-08 | S4 | Teste de integração dos fluxos de opt-in, bloqueio e denúncia |
-| CH-09 | S4 | Teste de integração da paginação |
+| CH-01, CH-02 | S4 | Teste de integração: resposta da API do chat não contém telefone nem e-mail. ✅ `apps/api/test/chat.test.ts` (conversa só com ocorrência aberta, idempotente, nunca consigo mesmo; nenhuma resposta com e-mail, nome real ou id do outro) e `chat-socket.test.ts` (o mesmo nos eventos do socket) |
+| CH-03 | S4 | Teste E2E com dois aparelhos, medindo o tempo de entrega. 🟡 Parcial: integração com `socket.io-client` (chega ao outro em < 2 s, terceiros não recebem, token inválido recusado) em `chat-socket.test.ts`, e entre duas instâncias com Redis em `chat-redis.test.ts`; falta o E2E com aparelhos |
+| CH-04 | S4 | Teste manual com o app fechado. 🟡 Parcial: `PushSender` chamado só com o destinatário offline, com pseudônimo e trecho mascarado (`chat-socket.test.ts`); o envio real (Expo Push) ainda não existe |
+| CH-05 | S4 | Teste E2E de envio de foto e localização. 🟡 Parcial: integração (foto por URL assinada com as validações das fotos; localização guardada e devolvida a 50–200 m do real) em `chat.test.ts` e tela em `ConversationScreen.test.tsx`; falta o E2E |
+| CH-06 | S4 | Teste unitário do filtro com lista de casos (telefones, e-mails, links). ✅ `packages/shared/src/__tests__/chat.test.ts` (inclui o que não pode ser mascarado: horários, valores, datas, CEP) e aplicado antes de salvar (`chat.test.ts`) |
+| CH-07, CH-08 | S4 | Teste de integração dos fluxos de opt-in, bloqueio e denúncia. ✅ `apps/api/test/chat.test.ts` |
+| CH-09 | S4 | Teste de integração da paginação. ✅ Cursor e leitura em `apps/api/test/chat.test.ts`; evento `message:read` em `chat-socket.test.ts` |
 | AL-01, AL-07 | S5 | Teste de integração do job: usuário dentro do raio recebe, fora não recebe |
 | AL-02, AL-03 | S5 | Teste de campo caminhando até uma ocorrência com o app fechado |
 | AL-04, AL-05 | S5 | Teste unitário das regras de raio, silêncio e deduplicação |
@@ -194,7 +194,7 @@ Todas as 31 especificações têm sprint e forma de verificação definidas; o p
 | NF-01 | S1, S6 | Checklist LGPD revisado pelo grupo |
 | NF-02 | S1 | Teste de integração: cadastro, verificação de e-mail, login com senha e com Google (token mockado). ✅ Passando na API (`apps/api/test/auth-*.test.ts`); app ligado à API por e-mail e senha (`httpAuthClient.test.ts`); falta o Google no app |
 | NF-03 | S2 | Teste unitário do job de expiração. ✅ Regra pura testada (`packages/shared/src/__tests__/occurrences.test.ts`) e aplicada na consulta: expirada some da busca (`apps/api/test/occurrences.test.ts`); o job diário ainda não existe |
-| NF-04 | S2, S4 | Teste de integração: excesso de requisições retorna 429. Rotas `/auth`, criação de pet e criação de ocorrência cobertas (`apps/api/test/rate-limit.test.ts`); falta o chat |
+| NF-04 | S2, S4 | Teste de integração: excesso de requisições retorna 429. Rotas `/auth`, criação de pet e criação de ocorrência cobertas (`apps/api/test/rate-limit.test.ts`); mensagens do chat (por usuário) e abrir conversa em `apps/api/test/chat-rate-limit.test.ts` |
 | NF-05 | S1 | Verificação de que não há URL pública de foto. ✅ Fotos de pets: acesso sem assinatura recusado e toda URL devolvida é assinada (`apps/api/test/pets.test.ts`, `photo-storage.test.ts`); HTTPS/WSS em produção ainda a conferir |
 | NF-06 | S6 | Teste em aparelhos Android 10 e iOS 15 ou emuladores |
 

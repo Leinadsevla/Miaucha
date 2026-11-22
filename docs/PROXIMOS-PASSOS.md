@@ -1,6 +1,6 @@
 # Próximos passos
 
-Atualizado em 20/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem. A S2 (ocorrências) está na `feat/ocorrencias`, criada a partir da `feat/pets` (ver a seção "S2 · Ocorrências").
+Atualizado em 20/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem. A S2 (ocorrências) está na `feat/ocorrencias`, criada a partir da `feat/pets` (ver a seção "S2 · Ocorrências"). A S4 (chat) está na `feat/chat`, criada a partir da `feat/ocorrencias` (ver "S4 · Chat interno").
 
 ## Onde estamos
 
@@ -139,6 +139,54 @@ Pendências:
 - [ ] Apagar uma foto de pet precisa conferir se o objeto não é usado por uma ocorrência (`occurrence_photos.object_key` pode apontar para a foto do pet). Relevante para a exclusão de conta (NF-01).
 - [ ] Rodar `pnpm dev` na API para aplicar a migração `004_occurrences.sql` no Supabase.
 - [ ] Testar no aparelho: permissão de localização, puxar para atualizar e "Como chegar". O `expo-location` em primeiro plano funciona no Expo Go.
+
+## S4 · Chat interno (`feat/chat`)
+
+Feito em TDD, a partir da `feat/ocorrencias`. API testada contra PostGIS, storage S3 e Redis reais (Testcontainers) e com `socket.io-client`; app com RNTL.
+
+**Regras puras (`packages/shared/src/chat.ts`):** `maskContactInfo` (CH-06: telefones brasileiros em vários formatos, e-mails, inclusive "arroba ... ponto com", links com e sem `http`, `www.`, `wa.me` e domínios simples; não mascara horários, valores com `R$`, datas, CEP nem microchip), `validateChatText` (até 2000 caracteres), `chatPushPreview`, motivos de denúncia e os tipos `ChatConversation`/`ChatMessage`.
+
+**API:** migração `006_chat.sql` (`conversations`, `chat_messages`, `chat_photos`, `chat_blocks`, `chat_reports`, todas com RLS). A conversa guarda o autor da ocorrência e quem puxou conversa; o par + ocorrência é único (iniciar é idempotente). Mensagens ordenadas por `seq` (identity) para o cursor ser estável. O texto já entra mascarado e a localização já entra aproximada: nem o telefone digitado nem o ponto exato chegam ao banco.
+
+| Rota | Resposta |
+| --- | --- |
+| `POST /conversations` `{ occurrenceId }` | 200 + `ChatConversation`. 400 para o próprio autor; 409 se a ocorrência foi resolvida ou expirou (a conversa que já existia continua); 403 com bloqueio entre os dois |
+| `GET /conversations` | As do usuário, da atividade mais recente para a mais antiga, com última mensagem e não lidas |
+| `GET /conversations/:id` | Uma conversa (404 para quem não participa, em todas as rotas abaixo) |
+| `GET /conversations/:id/messages?before=<id>&limit=` | `{ messages, nextCursor }`, mais novas primeiro, 30 por página |
+| `POST /conversations/:id/messages` | `{ text }`, `{ photoId }` (foto já confirmada, uma mensagem por foto) ou `{ location: { lat, lng } }` → 201 + `ChatMessage`. 403 com bloqueio |
+| `POST /conversations/:id/read` | 204; marca como lidas as recebidas |
+| `POST /conversations/:id/photos` e `.../photos/:photoId/confirm` | Mesmo fluxo e validações das fotos de pet (`PhotoUploads`, agora aceitando mais de uma coluna de dono) |
+| `POST`/`DELETE /conversations/:id/contact-consent` | Aceitar/desistir de trocar contato (CH-07). `contact.otherEmail` só vem quando os dois aceitaram e não há bloqueio (decidido no SQL) |
+| `POST`/`DELETE /conversations/:id/block` | Bloqueio vale para o par: nenhum dos dois envia, e não se abre conversa nova entre eles |
+| `POST /conversations/:id/report` `{ reason, details? }` | 204; grava em `chat_reports` com status `pending` |
+
+`ChatConversation` traz `otherPseudonym`, `iAmAuthor`, dados públicos do pet, `lastMessage`, `unreadCount`, `blockedByMe`, `canSend` e `contact { mine, theirs, otherEmail }`. `ChatMessage` traz `mine` (calculado para quem recebe), nunca o id de quem enviou.
+
+**Socket.IO (CH-03):** namespace `/chat`, handshake com `auth: { token: <access token> }` (recusado com `connect_error` "unauthorized"); a conexão cai quando o token expira e o app reconecta com o token renovado. O app só recebe eventos; tudo o que ele envia vai por HTTP (uma validação, um rate limit e o refresh do `ApiSession`). Eventos, enviados para a sala de cada participante já na visão dele:
+
+- `message:new` `{ conversationId, message }` (também para os outros aparelhos de quem enviou, com `mine: true`)
+- `message:read` `{ conversationId, readAt }` (para quem enviou)
+- `conversation:updated` `{ conversation }` (contato e bloqueio)
+
+**Redis:** só é preciso com mais de uma instância da API. Com `REDIS_URL`, o `main.ts` liga o `@socket.io/redis-adapter` (`chat/redis-io-adapter.ts`): eventos e o `fetchSockets` (usado para saber se o destinatário está online) passam a valer entre instâncias. Testado com duas instâncias em `chat-redis.test.ts`.
+
+**Push (CH-04):** quando o destinatário não tem socket conectado, o `ChatService` chama `PushSender.send({ userId, title: pseudônimo, body: trecho mascarado, data: { conversationId } })`. Hoje a implementação é o `LogPushSender` (só registra no log, sem o texto).
+
+**Rate limit (NF-04):** mensagens têm limite próprio por usuário (`CHAT_THROTTLE_LIMIT`, padrão 30 por minuto); abrir conversa, fotos e denúncia usam o limite geral por IP.
+
+**App:** `ChatClient` (HTTP e memória), `createChatRealtime` (adaptador do `socket.io-client`, só websocket, injetável; renova a sessão quando o token é recusado e reconecta quando o servidor derruba ou a rede falha no primeiro handshake), aba Chat (`ChatListScreen`: pseudônimo, pet, última mensagem, hora, não lidas, atualizada pelo socket) e tela `chat/[id]` (`ConversationScreen`: aviso fixo contra golpes, mensagens com "Lida", texto, foto da galeria, localização aproximada com "Abrir no mapa", carregar mais antigas, menu com compartilhar contato, bloquear e denunciar). O botão "Conversar" do detalhe da ocorrência abre a conversa (desabilitado para o autor). O socket conecta só com a sessão aberta (`SessionChatProvider`). Sem `EXPO_PUBLIC_API_URL`, chat em memória e nada em tempo real.
+
+Pendências:
+
+- [ ] **Push real (CH-04):** implementar `PushSender` com o Expo Push usando os tokens que a S5 (alertas) vai registrar; precisa de development build. Tocar no push deve abrir `chat/<conversationId>`.
+- [ ] Telefone opcional no perfil (CH-07 fala em "e-mail ou telefone"); hoje só o e-mail é revelado.
+- [ ] Tela ou rotina de moderação para `chat_reports` (hoje só a fila no banco).
+- [ ] O mascaramento não pega número por extenso ("nove oito sete...") nem perfil de rede social ("@fulano").
+- [ ] Fotos do chat nunca enviadas deixam linhas em `chat_photos` (mesma limpeza pendente das fotos de pet).
+- [ ] Indicador de "digitando" e de online não existem.
+- [ ] Rodar `pnpm dev` na API para aplicar a migração `006_chat.sql` no Supabase.
+- [ ] Testar com dois aparelhos (Expo Go) e medir o tempo de entrega (CH-03 E2E); teste de carga do chat com k6.
 
 ## Banco no Supabase (`chore/supabase-db`)
 
