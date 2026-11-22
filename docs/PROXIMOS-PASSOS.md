@@ -289,6 +289,12 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 - [x] "Marcar no mapa": terceira opção de local, com mapa maior em que se toca na rua; funciona sem permissão de localização.
 - [x] Busca de endereço restrita a 50 km de quem procura, com a cidade dele acrescentada ao texto quando não foi digitada.
 
+### Terceira rodada de pedidos (`feat/ajustes-teste-2`)
+
+- [x] Botão da aba Início: "Registrar ocorrência".
+- [x] Outras espécies: em "Outros", pássaro, coelho, roedor, réptil e outro animal (`SPECIES`/`speciesLabel` no shared, migração `008_more_species.sql`, filtro "Outros" no mapa e `species=others` na API).
+- [x] Tutorial de boas-vindas em 4 passos, mostrado uma vez depois do primeiro acesso (guardado no `expo-secure-store`) e revisto em Ajuda → "Ver o tutorial de novo".
+
 ## Decisões em aberto
 
 | Decisão | Quem | Impacto |
