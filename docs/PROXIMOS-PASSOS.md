@@ -45,7 +45,8 @@ Feito. Resumo do que ficou decidido e do que falta:
 - **Reenvio de código:** um por minuto por e-mail (429). E-mail desconhecido ou já verificado responde 204 sem enviar nada.
 - **Google:** liga à conta com o mesmo e-mail. Se esse cadastro ainda não estava verificado, a senha e o nome dele são descartados (evita sequestro de conta por pré-cadastro).
 - **Pendências:**
-  - [ ] Provedor de e-mail real: hoje o `ConsoleMailer` só escreve o código no log. Basta implementar a interface `Mailer` (`apps/api/src/mail/mailer.ts`).
+  - [x] Provedor de e-mail: `ResendMailer` (API HTTP do Resend) quando há `RESEND_API_KEY`; sem ela, o `ConsoleMailer` escreve o código no log.
+- [ ] Verificar um domínio no Resend para enviar a qualquer pessoa (sem domínio, só chega ao e-mail do dono da conta). Ver `docs/DEPLOY-RENDER.md`.
   - [ ] Em produção atrás de proxy (Railway/Render), configurar `trust proxy` no Express para o rate limit enxergar o IP real.
   - [ ] Rate limit em memória: com mais de uma instância da API, trocar o storage do throttler por Redis.
 

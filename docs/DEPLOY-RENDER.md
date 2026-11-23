@@ -18,6 +18,7 @@ O banco e as fotos já estão no Supabase. O Render hospeda só a API (`apps/api
    | `DATABASE_URL` | A mesma do `.env`: URL do Session pooler do Supabase, terminando em `?sslmode=verify-full&sslrootcert=certs/supabase-ca.crt` |
    | `STORAGE_ENDPOINT`, `STORAGE_REGION` | Os mesmos do `.env` |
    | `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | As chaves S3 do Supabase Storage |
+   | `RESEND_API_KEY`, `MAIL_FROM` | E-mail dos códigos (ver a seção "E-mail" abaixo); vazias = códigos só nos Logs |
    | `GOOGLE_CLIENT_IDS`, `EXPO_ACCESS_TOKEN` | Podem ficar vazias por enquanto |
 
    `JWT_SECRET` e `CODE_SECRET` são gerados pelo Render; `TRUST_PROXY=1` e `NODE_VERSION=24` já vêm no arquivo.
@@ -41,9 +42,18 @@ Depois reinicie o Expo com `npx expo start --tunnel ngrok --clear` (a variável 
 - **750 horas por mês** por conta: dá para um serviço ligado o mês todo. Se acabar, o serviço fica suspenso até o mês seguinte.
 - O disco é apagado a cada reinício. A API não guarda nada em disco (banco e fotos estão no Supabase).
 
-## Importante: e-mail
+## E-mail dos códigos (Resend, plano gratuito)
 
-Ainda não há provedor de e-mail. **Os códigos de verificação e de troca de senha aparecem só nos Logs do Render** (`Código de verificação para ...`). Para testes do grupo isso serve; para outras pessoas usarem o app, é preciso implementar o `Mailer` com um provedor (ex.: Resend, que tem plano gratuito).
+A API manda os códigos de verificação e de troca de senha pelo [Resend](https://resend.com) quando `RESEND_API_KEY` está configurada. Sem ela, os códigos aparecem só nos **Logs** do Render.
+
+Plano gratuito: 100 e-mails por dia e 3.000 por mês, até 3 domínios.
+
+1. Crie a conta no Resend e, em **API Keys**, gere uma chave com permissão "Sending access".
+2. No Render, preencha `RESEND_API_KEY` com a chave e `MAIL_FROM` com `Miaucha <onboarding@resend.dev>`.
+3. **Limite sem domínio próprio:** o remetente de teste `onboarding@resend.dev` **só entrega para o e-mail do dono da conta no Resend**. Para qualquer outro endereço, o Resend recusa e o app mostra "Não foi possível enviar o e-mail com o código" (o motivo aparece nos Logs).
+4. **Para enviar a qualquer pessoa**, é preciso um domínio verificado: em **Domains → Add domain**, use um subdomínio (ex.: `mail.seudominio.com.br`) e crie no DNS os registros que o Resend mostrar (SPF e DKIM). Depois troque `MAIL_FROM` para um endereço desse domínio, ex.: `Miaucha <codigo@mail.seudominio.com.br>`. O Resend não dá domínio de graça: um `.com.br` custa por ano no Registro.br, e o GitHub Student Developer Pack costuma oferecer um domínio grátis por um ano (confira as ofertas atuais).
+
+Se o envio falhar durante o cadastro, a API desfaz o cadastro (a pessoa pode tentar de novo, sem cair em "e-mail já cadastrado").
 
 ## Conferência rápida depois do deploy
 

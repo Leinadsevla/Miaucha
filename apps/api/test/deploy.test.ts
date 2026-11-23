@@ -1,4 +1,9 @@
-import { closeTestApp, createTestApp, type TestContext } from "./helpers";
+import { Test } from "@nestjs/testing";
+import { AppModule } from "../src/app.module";
+import { ConsoleMailer } from "../src/mail/mailer";
+import { ResendMailer } from "../src/mail/resend-mailer";
+import { MAILER } from "../src/tokens";
+import { PASSWORD, closeTestApp, createTestApp, testConfig, uniqueEmail, type TestContext } from "./helpers";
 
 describe("GET /health (verificação do Render)", () => {
   let ctx: TestContext;
@@ -36,5 +41,38 @@ describe("trust proxy (rate limit atrás do proxy do Render)", () => {
     } finally {
       await closeTestApp(ctx);
     }
+  });
+});
+
+describe("e-mail: Resend quando configurado", () => {
+  it("com RESEND_API_KEY usa o Resend; sem ela, o log de desenvolvimento", async () => {
+    const withResend = await Test.createTestingModule({
+      imports: [AppModule.forRoot(testConfig({ resend: { apiKey: "re_x", from: "Miaucha <onboarding@resend.dev>" } }))],
+    }).compile();
+    expect(withResend.get(MAILER)).toBeInstanceOf(ResendMailer);
+    await withResend.close();
+
+    const without = await Test.createTestingModule({ imports: [AppModule.forRoot(testConfig())] }).compile();
+    expect(without.get(MAILER)).toBeInstanceOf(ConsoleMailer);
+    await without.close();
+  });
+});
+
+describe("cadastro quando o e-mail não sai", () => {
+  let ctx: TestContext;
+  beforeAll(async () => {
+    ctx = await createTestApp();
+  });
+  afterAll(() => closeTestApp(ctx));
+
+  it("responde 503 e desfaz o cadastro, para a pessoa poder tentar de novo", async () => {
+    const email = uniqueEmail();
+    ctx.mailer.failNext = true;
+    const res = await ctx.http.post("/auth/signup").send({ name: "Ana", email, password: PASSWORD }).expect(503);
+    expect(res.body.message).toBe("Não foi possível enviar o e-mail com o código. Tente de novo em instantes.");
+    const { rows } = await ctx.pool.query("select 1 from users where email = $1", [email]);
+    expect(rows).toHaveLength(0);
+
+    await ctx.http.post("/auth/signup").send({ name: "Ana", email, password: PASSWORD }).expect(201);
   });
 });

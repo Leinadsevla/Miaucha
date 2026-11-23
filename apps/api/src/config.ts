@@ -31,6 +31,8 @@ export type AppConfig = {
   expoAccessToken?: string;
   /** Quantos proxies ficam na frente da API (Render: 1). Com 0, o `X-Forwarded-For` é ignorado. */
   trustProxy: number;
+  /** E-mail pelo Resend; sem `RESEND_API_KEY`, os códigos só aparecem no log (desenvolvimento). */
+  resend?: { apiKey: string; from: string };
 };
 
 export const DEFAULT_CHAT_THROTTLE = { ttlMs: 60_000, limit: 30 };
@@ -83,5 +85,7 @@ export function loadConfig(env: Env): AppConfig {
     },
     expoAccessToken: env.EXPO_ACCESS_TOKEN || undefined,
     trustProxy: int(env, "TRUST_PROXY", 0),
+    // Sem domínio verificado, o remetente de teste do Resend só entrega para o e-mail do dono da conta.
+    resend: env.RESEND_API_KEY ? { apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || "Miaucha <onboarding@resend.dev>" } : undefined,
   };
 }

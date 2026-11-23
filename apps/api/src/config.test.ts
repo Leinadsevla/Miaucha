@@ -43,6 +43,14 @@ describe("loadConfig", () => {
     expect(loadConfig({ ...required, TRUST_PROXY: "1" }).trustProxy).toBe(1);
   });
 
+  it("Resend: só com RESEND_API_KEY; remetente padrão é o de teste do Resend", () => {
+    expect(loadConfig(required).resend).toBeUndefined();
+    expect(loadConfig({ ...required, RESEND_API_KEY: "re_123" }).resend).toEqual({ apiKey: "re_123", from: "Miaucha <onboarding@resend.dev>" });
+    expect(loadConfig({ ...required, RESEND_API_KEY: "re_123", MAIL_FROM: "Miaucha <codigo@miaucha.app>" }).resend?.from).toBe(
+      "Miaucha <codigo@miaucha.app>",
+    );
+  });
+
   it("lê região e bucket do storage", () => {
     const config = loadConfig({ ...required, STORAGE_REGION: "us-west-2", STORAGE_BUCKET: "fotos" });
     expect(config.storage).toMatchObject({ region: "us-west-2", bucket: "fotos" });

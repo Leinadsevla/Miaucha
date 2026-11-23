@@ -36,6 +36,12 @@ services:
         sync: false
       - key: STORAGE_SECRET_ACCESS_KEY
         sync: false
+      # E-mail dos códigos pelo Resend (ver docs/DEPLOY-RENDER.md). Sem a chave, os códigos só aparecem nos Logs.
+      - key: RESEND_API_KEY
+        sync: false
+      # Remetente: "Miaucha <onboarding@resend.dev>" (teste, só entrega ao dono da conta) ou um endereço do domínio verificado.
+      - key: MAIL_FROM
+        sync: false
       # Opcionais.
       - key: GOOGLE_CLIENT_IDS
         sync: false
