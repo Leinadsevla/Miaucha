@@ -18,6 +18,7 @@ import { ExpoChatPushSender } from "./chat/expo-chat-push-sender";
 import { CHAT_PUSH_SENDER } from "./chat/push-sender";
 import type { AppConfig } from "./config";
 import { ConsoleMailer } from "./mail/mailer";
+import { GmailApiMailer } from "./mail/gmail-mailer";
 import { ResendMailer } from "./mail/resend-mailer";
 import { HealthController } from "./health.controller";
 import { MeController } from "./me/me.controller";
@@ -55,7 +56,11 @@ export class AppModule implements OnApplicationShutdown {
         { provide: PHOTO_STORAGE, useFactory: () => new S3PhotoStorage(config.storage) },
         { provide: APP_CONFIG, useValue: config },
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },
-        { provide: MAILER, useFactory: () => (config.resend ? new ResendMailer(config.resend) : new ConsoleMailer()) },
+        {
+          provide: MAILER,
+          useFactory: () =>
+            config.gmail ? new GmailApiMailer(config.gmail) : config.resend ? new ResendMailer(config.resend) : new ConsoleMailer(),
+        },
         { provide: GOOGLE_VERIFIER, useFactory: () => new GoogleAuthLibraryVerifier(config.googleClientIds) },
         AlertsService,
         InProcessAlertQueue,

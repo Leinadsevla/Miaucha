@@ -1,4 +1,5 @@
 import { Logger, ServiceUnavailableException } from "@nestjs/common";
+import { emailCodeContent } from "./email-content";
 import type { CodePurpose, Mailer } from "./mailer";
 
 export const RESEND_API_URL = "https://api.resend.com/emails";
@@ -12,22 +13,6 @@ type Options = { apiKey: string; from: string; fetch?: FetchLike; log?: (message
 
 const FAILED = "Não foi possível enviar o e-mail com o código. Tente de novo em instantes.";
 
-function content(code: string, purpose: CodePurpose) {
-  const reset = purpose === "reset";
-  const subject = reset ? `Código para trocar sua senha no Miaucha: ${code}` : `Seu código do Miaucha: ${code}`;
-  const intro = reset ? "Use este código para trocar sua senha no Miaucha:" : "Use este código para confirmar seu e-mail no Miaucha:";
-  const outro = reset
-    ? "Se não foi você que pediu para trocar a senha, ignore este e-mail: sua senha continua a mesma."
-    : "Se não foi você que criou a conta, ignore este e-mail.";
-  const text = `${intro}\n\n${code}\n\nO código vale por 10 minutos.\n\n${outro}`;
-  const html = `<div style="font-family:Arial,sans-serif;color:#1F2430">
-<p>${intro}</p>
-<p style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#FF8A3D">${code}</p>
-<p>O código vale por 10 minutos.</p>
-<p style="color:#6B7280;font-size:13px">${outro}</p>
-</div>`;
-  return { subject, text, html };
-}
 
 /** Códigos de verificação e de troca de senha pela API HTTP do Resend. */
 export class ResendMailer implements Mailer {
@@ -41,7 +26,7 @@ export class ResendMailer implements Mailer {
   }
 
   async sendEmailCode(to: string, code: string, purpose: CodePurpose = "verify"): Promise<void> {
-    const { subject, text, html } = content(code, purpose);
+    const { subject, text, html } = emailCodeContent(code, purpose);
     let response: Awaited<ReturnType<FetchLike>>;
     try {
       response = await this.fetch(RESEND_API_URL, {

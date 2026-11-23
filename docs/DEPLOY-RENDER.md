@@ -18,7 +18,8 @@ O banco e as fotos já estão no Supabase. O Render hospeda só a API (`apps/api
    | `DATABASE_URL` | A mesma do `.env`: URL do Session pooler do Supabase, terminando em `?sslmode=verify-full&sslrootcert=certs/supabase-ca.crt` |
    | `STORAGE_ENDPOINT`, `STORAGE_REGION` | Os mesmos do `.env` |
    | `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | As chaves S3 do Supabase Storage |
-   | `RESEND_API_KEY`, `MAIL_FROM` | E-mail dos códigos (ver a seção "E-mail" abaixo); vazias = códigos só nos Logs |
+   | `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER` | E-mail dos códigos pela API do Gmail (ver "E-mail" abaixo) |
+   | `RESEND_API_KEY`, `MAIL_FROM` | Alternativa ao Gmail; vazias = códigos só nos Logs |
    | `GOOGLE_CLIENT_IDS`, `EXPO_ACCESS_TOKEN` | Podem ficar vazias por enquanto |
 
    `JWT_SECRET` e `CODE_SECRET` são gerados pelo Render; `TRUST_PROXY=1` e `NODE_VERSION=24` já vêm no arquivo.
@@ -42,7 +43,47 @@ Depois reinicie o Expo com `npx expo start --tunnel ngrok --clear` (a variável 
 - **750 horas por mês** por conta: dá para um serviço ligado o mês todo. Se acabar, o serviço fica suspenso até o mês seguinte.
 - O disco é apagado a cada reinício. A API não guarda nada em disco (banco e fotos estão no Supabase).
 
-## E-mail dos códigos (Resend, plano gratuito)
+## E-mail dos códigos pela API do Gmail (recomendado)
+
+Os códigos saem de uma conta Gmail do projeto para qualquer pessoa, sem domínio próprio. A API usa a **API do Gmail por HTTPS**: o plano grátis do Render bloqueia as portas de SMTP, então SMTP não funcionaria lá. Limite de uma conta Gmail pessoal: cerca de 500 e-mails por dia.
+
+Use uma conta Gmail **só do projeto** (ex.: `projeto.miaucha@gmail.com`), não a pessoal de alguém.
+
+### 1. Google Cloud (uma vez)
+
+1. Em [console.cloud.google.com](https://console.cloud.google.com), crie um projeto (ex.: "Miaucha"), logado com a conta do projeto.
+2. **APIs e serviços → Biblioteca**: procure **Gmail API** e clique em **Ativar**.
+3. **Google Auth Platform** (ou "Tela de permissão OAuth"):
+   - **Branding:** nome do app "Miaucha" e o e-mail de suporte.
+   - **Público-alvo (Audience):** "Externo". Depois clique em **Publicar app** para o status ficar **"Em produção"**. Em "Teste", a autorização expira a cada 7 dias e os e-mails param.
+   - **Acesso a dados (Data access):** adicione o escopo `https://www.googleapis.com/auth/gmail.send` (só enviar; não lê nem apaga e-mails).
+4. **Clientes (Credenciais) → Criar cliente → tipo "App para computador"**. Copie o **ID do cliente** e a **chave secreta do cliente**.
+
+### 2. Gerar o refresh token (uma vez)
+
+No `apps/api/.env`, preencha:
+
+```
+GMAIL_CLIENT_ID=<ID do cliente>
+GMAIL_CLIENT_SECRET=<chave secreta>
+GMAIL_SENDER=projeto.miaucha@gmail.com
+```
+
+E rode:
+
+```bash
+cd apps/api && pnpm gmail:authorize
+```
+
+O comando mostra um link. Abra, entre com a **conta do projeto** e autorize. O Google vai avisar que "não verificou este app": clique em **Avançado → Acessar Miaucha** (o app é de vocês). No fim, o navegador vai para `localhost` e a página **não abre**; isso é esperado. Copie o endereço inteiro da barra e cole no terminal. Ele mostra a linha `GMAIL_REFRESH_TOKEN=...` para colar no `.env`.
+
+### 3. Render
+
+Preencha as quatro variáveis (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER`) com os mesmos valores. Elas precisam vir juntas: se faltar alguma, a API não sobe e o log diz qual está faltando.
+
+Se um dia os códigos pararem de chegar e o log disser "Não foi possível renovar o acesso ao Gmail", a autorização foi revogada (ex.: senha da conta trocada). Rode `pnpm gmail:authorize` de novo e atualize `GMAIL_REFRESH_TOKEN`.
+
+## Alternativa: e-mail pelo Resend
 
 A API manda os códigos de verificação e de troca de senha pelo [Resend](https://resend.com) quando `RESEND_API_KEY` está configurada. Sem ela, os códigos aparecem só nos **Logs** do Render.
 

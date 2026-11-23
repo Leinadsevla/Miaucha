@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
 import { AppModule } from "../src/app.module";
 import { ConsoleMailer } from "../src/mail/mailer";
+import { GmailApiMailer } from "../src/mail/gmail-mailer";
 import { ResendMailer } from "../src/mail/resend-mailer";
 import { MAILER } from "../src/tokens";
 import { PASSWORD, closeTestApp, createTestApp, testConfig, uniqueEmail, type TestContext } from "./helpers";
@@ -55,6 +56,17 @@ describe("e-mail: Resend quando configurado", () => {
     const without = await Test.createTestingModule({ imports: [AppModule.forRoot(testConfig())] }).compile();
     expect(without.get(MAILER)).toBeInstanceOf(ConsoleMailer);
     await without.close();
+  });
+});
+
+describe("e-mail: Gmail quando configurado", () => {
+  it("com as variáveis do Gmail usa a API do Gmail, mesmo se o Resend também estiver configurado", async () => {
+    const gmail = { clientId: "c", clientSecret: "s", refreshToken: "r", sender: "projeto.miaucha@gmail.com" };
+    const ref = await Test.createTestingModule({
+      imports: [AppModule.forRoot(testConfig({ gmail, resend: { apiKey: "re_x", from: "f" } }))],
+    }).compile();
+    expect(ref.get(MAILER)).toBeInstanceOf(GmailApiMailer);
+    await ref.close();
   });
 });
 

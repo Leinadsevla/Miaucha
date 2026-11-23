@@ -7,7 +7,8 @@
     "start": "node --env-file-if-exists=.env -r @swc-node/register src/main.ts",
     "test": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js",
     "test:unit": "pnpm test --selectProjects unit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gmail:authorize": "node --env-file-if-exists=.env -r @swc-node/register scripts/gmail-authorize.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1172.0",
