@@ -49,7 +49,7 @@ export async function createChatTestApp(
     .useValue(push)
     .compile();
 
-  const app = configureApp(moduleRef.createNestApplication());
+  const app = configureApp(moduleRef.createNestApplication(), config);
   await prepare?.(app);
   await app.listen(0, "127.0.0.1");
   const url = await app.getUrl();

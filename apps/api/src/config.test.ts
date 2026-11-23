@@ -22,6 +22,7 @@ describe("loadConfig", () => {
       googleClientIds: [],
       throttle: { ttlMs: 60_000, limit: 10 },
       chatThrottle: { ttlMs: 60_000, limit: 30 },
+      trustProxy: 0,
       storage: {
         endpoint: required.STORAGE_ENDPOINT,
         region: "us-east-1",
@@ -35,6 +36,11 @@ describe("loadConfig", () => {
   it("lê o access token opcional do Expo Push", () => {
     expect(loadConfig(required).expoAccessToken).toBeUndefined();
     expect(loadConfig({ ...required, EXPO_ACCESS_TOKEN: "token-do-expo" }).expoAccessToken).toBe("token-do-expo");
+  });
+
+  it("TRUST_PROXY: número de proxies na frente da API (0 = nenhum, o padrão)", () => {
+    expect(loadConfig(required).trustProxy).toBe(0);
+    expect(loadConfig({ ...required, TRUST_PROXY: "1" }).trustProxy).toBe(1);
   });
 
   it("lê região e bucket do storage", () => {

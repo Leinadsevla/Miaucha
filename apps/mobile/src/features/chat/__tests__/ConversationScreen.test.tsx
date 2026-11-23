@@ -66,6 +66,9 @@ async function setup(o: Overrides = {}) {
   return { client, realtime, handlers };
 }
 
+// A primeira renderização da conversa é pesada; com a suíte inteira em paralelo pode passar de 5 s.
+jest.setTimeout(15_000);
+
 describe("ConversationScreen", () => {
   it("mostra o pseudônimo, o pet, o aviso contra golpes e as mensagens; marca como lida ao abrir", async () => {
     const { client, handlers } = await setup();

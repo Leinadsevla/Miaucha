@@ -79,6 +79,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     googleClientIds: ["teste.apps.googleusercontent.com"],
     throttle: { ttlMs: 60_000, limit: 1000 },
     storage: storageConfigFromEnv(),
+    trustProxy: 0,
     ...overrides,
   };
 }
@@ -109,7 +110,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
     .useValue(push)
     .compile();
 
-  const app = configureApp(moduleRef.createNestApplication());
+  const app = configureApp(moduleRef.createNestApplication(), config);
   await app.init();
   return { app, http: request(app.getHttpServer()), mailer, google, push, pool };
 }

@@ -29,6 +29,8 @@ export type AppConfig = {
   storage: StorageConfig;
   /** Access token do Expo Push (opcional; só se o projeto exigir "enhanced security" no painel do Expo). */
   expoAccessToken?: string;
+  /** Quantos proxies ficam na frente da API (Render: 1). Com 0, o `X-Forwarded-For` é ignorado. */
+  trustProxy: number;
 };
 
 export const DEFAULT_CHAT_THROTTLE = { ttlMs: 60_000, limit: 30 };
@@ -80,5 +82,6 @@ export function loadConfig(env: Env): AppConfig {
       secretAccessKey: required(env, "STORAGE_SECRET_ACCESS_KEY"),
     },
     expoAccessToken: env.EXPO_ACCESS_TOKEN || undefined,
+    trustProxy: int(env, "TRUST_PROXY", 0),
   };
 }
