@@ -96,10 +96,12 @@ export class GmailApiMailer implements Mailer {
     });
     const body = (await response.json().catch(() => null)) as { access_token?: string; expires_in?: number; error?: string; error_description?: string } | null;
     if (!response.ok || !body?.access_token) {
-      this.log(
-        `Não foi possível renovar o acesso ao Gmail (${response.status} ${body?.error ?? ""}: ${body?.error_description ?? ""}). ` +
-          "Se a autorização expirou ou foi revogada, rode `pnpm gmail:authorize` de novo e atualize GMAIL_REFRESH_TOKEN.",
-      );
+      // A dica depende do erro: client errado se corrige nas variáveis; autorização revogada, gerando outro refresh token.
+      const hint =
+        body?.error === "invalid_client" || body?.error === "unauthorized_client"
+          ? "Confira GMAIL_CLIENT_ID e GMAIL_CLIENT_SECRET (devem ser iguais aos do cliente OAuth no Google Cloud)."
+          : "Se a autorização expirou ou foi revogada, rode `pnpm gmail:authorize` de novo e atualize GMAIL_REFRESH_TOKEN.";
+      this.log(`Não foi possível renovar o acesso ao Gmail (${response.status} ${body?.error ?? ""}: ${body?.error_description ?? ""}). ${hint}`);
       throw new ServiceUnavailableException(FAILED);
     }
     this.access = { token: body.access_token, expiresAt: Date.now() + (body.expires_in ?? 3600) * 1000 };

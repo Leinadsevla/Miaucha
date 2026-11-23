@@ -83,6 +83,13 @@ describe("GmailApiMailer", () => {
     expect(logs.join(" ")).not.toContain("987654");
   });
 
+  it("client secret ou client id errado (invalid_client) → o log manda conferir essas variáveis, não autorizar de novo", async () => {
+    const { fetch } = fakeGoogle({ token: [{ status: 401, body: { error: "invalid_client", error_description: "The provided client secret is invalid." } }] });
+    await expect(new GmailApiMailer({ ...credentials, fetch, log }).sendEmailCode("a@exemplo.com", "1")).rejects.toMatchObject({ status: 503 });
+    expect(logs.join(" ")).toContain("GMAIL_CLIENT_ID e GMAIL_CLIENT_SECRET");
+    expect(logs.join(" ")).not.toContain("gmail:authorize");
+  });
+
   it("recusa do Gmail no envio (ex.: limite diário) → 503 sem o código no log", async () => {
     const { fetch } = fakeGoogle({ send: [{ status: 429, body: { error: { message: "User-rate limit exceeded" } } }] });
     await expect(new GmailApiMailer({ ...credentials, fetch, log }).sendEmailCode("a@exemplo.com", "555666")).rejects.toMatchObject({ status: 503 });
