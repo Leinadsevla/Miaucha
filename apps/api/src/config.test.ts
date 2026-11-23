@@ -68,6 +68,28 @@ describe("loadConfig", () => {
     expect(() => loadConfig({ ...required, GMAIL_CLIENT_ID: "x", GMAIL_SENDER: "y" })).toThrow("GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN");
   });
 
+  it("valores colados com espaço, quebra de linha ou aspas em volta são limpos (erro comum no painel do Render)", () => {
+    const config = loadConfig({
+      ...required,
+      GMAIL_CLIENT_ID: " cliente.apps.googleusercontent.com\n",
+      GMAIL_CLIENT_SECRET: '"GOCSPX-segredo"',
+      GMAIL_REFRESH_TOKEN: "'1//refresh' ",
+      GMAIL_SENDER: ' "miaucha26@gmail.com"\r\n',
+      RESEND_API_KEY: "  re_123  ",
+    });
+    expect(config.gmail).toEqual({
+      clientId: "cliente.apps.googleusercontent.com",
+      clientSecret: "GOCSPX-segredo",
+      refreshToken: "1//refresh",
+      sender: "miaucha26@gmail.com",
+    });
+    expect(config.resend?.apiKey).toBe("re_123");
+  });
+
+  it("variável só com espaços conta como vazia", () => {
+    expect(loadConfig({ ...required, GMAIL_CLIENT_ID: "  ", GMAIL_CLIENT_SECRET: "", GMAIL_REFRESH_TOKEN: " ", GMAIL_SENDER: "" }).gmail).toBeUndefined();
+  });
+
   it("lê região e bucket do storage", () => {
     const config = loadConfig({ ...required, STORAGE_REGION: "us-west-2", STORAGE_BUCKET: "fotos" });
     expect(config.storage).toMatchObject({ region: "us-west-2", bucket: "fotos" });

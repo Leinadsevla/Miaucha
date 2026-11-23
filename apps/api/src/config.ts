@@ -60,19 +60,30 @@ function int(env: Env, key: string, fallback: number): number {
   return value ? Number.parseInt(value, 10) : fallback;
 }
 
+/** Remove espaços, quebras de linha e aspas em volta: valores colados no painel do Render costumam vir assim. */
+function clean(value: string | undefined): string | undefined {
+  const trimmed = value?.trim().replace(/^(["'])(.*)\1$/s, "$2").trim();
+  return trimmed || undefined;
+}
+
 const GMAIL_VARS = ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN", "GMAIL_SENDER"] as const;
 
 /** As quatro variáveis juntas ou nenhuma: configuração pela metade falha ao subir, em vez de falhar no primeiro cadastro. */
 function gmailConfig(env: Env): AppConfig["gmail"] {
-  const missing = GMAIL_VARS.filter((key) => !env[key]);
+  const missing = GMAIL_VARS.filter((key) => !clean(env[key]));
   if (missing.length === GMAIL_VARS.length) return undefined;
   if (missing.length > 0) throw new Error(`Configuração do Gmail incompleta: falta ${missing.join(", ")}`);
   return {
-    clientId: env.GMAIL_CLIENT_ID!,
-    clientSecret: env.GMAIL_CLIENT_SECRET!,
-    refreshToken: env.GMAIL_REFRESH_TOKEN!,
-    sender: env.GMAIL_SENDER!,
+    clientId: clean(env.GMAIL_CLIENT_ID)!,
+    clientSecret: clean(env.GMAIL_CLIENT_SECRET)!,
+    refreshToken: clean(env.GMAIL_REFRESH_TOKEN)!,
+    sender: clean(env.GMAIL_SENDER)!,
   };
+}
+
+/** Provedor de e-mail ativo, na mesma prioridade do AppModule (Gmail > Resend > log). */
+export function mailProvider(config: Pick<AppConfig, "gmail" | "resend">): "gmail" | "resend" | "log" {
+  return config.gmail ? "gmail" : config.resend ? "resend" : "log";
 }
 
 export function loadConfig(env: Env): AppConfig {
@@ -104,6 +115,8 @@ export function loadConfig(env: Env): AppConfig {
     trustProxy: int(env, "TRUST_PROXY", 0),
     // Sem domínio verificado, o remetente de teste do Resend só entrega para o e-mail do dono da conta.
     gmail: gmailConfig(env),
-    resend: env.RESEND_API_KEY ? { apiKey: env.RESEND_API_KEY, from: env.MAIL_FROM || "Miaucha <onboarding@resend.dev>" } : undefined,
+    resend: clean(env.RESEND_API_KEY)
+      ? { apiKey: clean(env.RESEND_API_KEY)!, from: clean(env.MAIL_FROM) ?? "Miaucha <onboarding@resend.dev>" }
+      : undefined,
   };
 }

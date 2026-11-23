@@ -15,7 +15,19 @@ describe("GET /health (verificação do Render)", () => {
 
   it("responde 200 sem login quando o banco está acessível", async () => {
     const res = await ctx.http.get("/health").expect(200);
-    expect(res.body).toEqual({ status: "ok" });
+    expect(res.body).toEqual({ status: "ok", mail: "log" });
+  });
+
+  it("diz qual provedor de e-mail está ativo (sem expor nenhum valor)", async () => {
+    const gmail = { clientId: "c", clientSecret: "segredo", refreshToken: "r", sender: "p@gmail.com" };
+    const withGmail = await createTestApp({ gmail });
+    try {
+      const res = await withGmail.http.get("/health").expect(200);
+      expect(res.body).toEqual({ status: "ok", mail: "gmail" });
+      expect(JSON.stringify(res.body)).not.toContain("segredo");
+    } finally {
+      await closeTestApp(withGmail);
+    }
   });
 });
 
