@@ -25,6 +25,7 @@ export class OccurrencesController {
       lat: num(body, "lat"),
       lng: num(body, "lng"),
       petId: str(body, "petId") || undefined,
+      sightingOf: str(body, "sightingOf") || undefined,
     });
   }
 

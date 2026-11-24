@@ -69,3 +69,28 @@ export function buildAlertPush(alert: AlertPushInput, token: string): PushMessag
     data: { occurrenceId: alert.occurrenceId, alertId: alert.alertId },
   };
 }
+
+export type SightingPushInput = {
+  /** O avistamento (é ele que o toque abre). */
+  occurrenceId: string;
+  alertId: string;
+  /** Nome e espécie do pet perdido. */
+  petName: string | null;
+  species: Species;
+  approxAddress: string | null;
+  /** Distância entre o avistamento e o ponto onde o pet sumiu (os dois públicos). */
+  distanceMeters: number;
+};
+
+/** "Vi este pet": push só para o tutor do pet perdido. */
+export function buildSightingPush(sighting: SightingPushInput, token: string): PushMessage {
+  const who = sighting.petName ?? `seu ${speciesLabel(sighting.species).toLowerCase()}`;
+  const parts = [`Avistado a ~${formatApproxDistance(sighting.distanceMeters)} de onde sumiu`];
+  if (sighting.approxAddress) parts.push(sighting.approxAddress);
+  return {
+    to: token,
+    title: `Alguém viu o ${who}!`,
+    body: parts.join(" · "),
+    data: { occurrenceId: sighting.occurrenceId, alertId: sighting.alertId },
+  };
+}

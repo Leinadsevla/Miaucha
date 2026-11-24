@@ -17,9 +17,11 @@ export type OccurrenceInput = {
   lng: number;
   /** Pet do próprio autor ("registrar meu pet como perdido"): a API completa os dados que faltarem. */
   petId?: string;
+  /** "Vi este pet": o avistamento (tipo `seen`) aponta para a ocorrência de pet perdido de outra pessoa. */
+  sightingOf?: string;
 };
 
-export type OccurrenceErrors = Partial<Record<Exclude<keyof OccurrenceInput, "lat" | "lng" | "petId"> | "location", string>>;
+export type OccurrenceErrors = Partial<Record<Exclude<keyof OccurrenceInput, "lat" | "lng" | "petId" | "sightingOf"> | "location", string>>;
 
 export const MAX_OCCURRENCE_PHOTOS = MAX_PET_PHOTOS;
 /** NF-03: ocorrência sem atualização por este tempo deixa de aparecer nas buscas. */

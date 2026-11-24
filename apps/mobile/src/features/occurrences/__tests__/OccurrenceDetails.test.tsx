@@ -21,7 +21,7 @@ const thor: PublicOccurrence = {
 };
 
 async function setup(data: Partial<PublicOccurrence> = {}, extra: { resolving?: boolean; chatLoading?: boolean; chatError?: string } = {}) {
-  const handlers = { onBack: jest.fn(), onDirections: jest.fn(), onResolve: jest.fn(), onChat: jest.fn() };
+  const handlers = { onBack: jest.fn(), onDirections: jest.fn(), onResolve: jest.fn(), onChat: jest.fn(), onReportSighting: jest.fn() };
   await render(<OccurrenceDetails occurrence={{ ...thor, ...data }} now={now} {...handlers} {...extra} />);
   return handlers;
 }
@@ -89,6 +89,22 @@ describe("OccurrenceDetails", () => {
     await setup({ isMine: true, status: "resolved" });
     expect(screen.getByText("Este caso foi resolvido")).toBeOnTheScreen();
     expect(screen.queryByRole("button", { name: "Marcar como resolvido" })).toBeNull();
+  });
+
+  it("'Vi este pet' em pet perdido de outra pessoa abre o registro de avistamento", async () => {
+    const { onReportSighting } = await setup();
+    await fireEvent.press(screen.getByRole("button", { name: "Vi este pet" }));
+    expect(onReportSighting).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["o próprio pet", { isMine: true }],
+    ["pet já reencontrado", { status: "resolved" as const }],
+    ["ocorrência de avistado", { type: "seen" as const }],
+    ["ocorrência de encontrado", { type: "found" as const }],
+  ])("sem 'Vi este pet' para %s", async (_label, data) => {
+    await setup(data);
+    expect(screen.queryByRole("button", { name: "Vi este pet" })).toBeNull();
   });
 
   it("Voltar chama onBack", async () => {

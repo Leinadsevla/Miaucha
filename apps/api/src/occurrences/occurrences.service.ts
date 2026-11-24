@@ -47,6 +47,7 @@ const FROM = "from occurrences o join users u on u.id = o.author_id";
 
 const notFound = () => new NotFoundException("Ocorrência não encontrada");
 const petNotFound = () => new NotFoundException("Pet não encontrado");
+const lostNotFound = () => new NotFoundException("Esse pet perdido não foi encontrado (talvez já tenha sido reencontrado)");
 const optional = (value: string) => value.trim() || null;
 
 @Injectable()
@@ -74,14 +75,15 @@ export class OccurrencesService {
     const input = raw.petId ? await this.fillFromPet(authorId, raw.petId, raw) : raw;
     const errors = validateOccurrence(input);
     if (Object.keys(errors).length > 0) throw new BadRequestException({ message: "Confira os dados da ocorrência", errors });
+    if (input.sightingOf) await this.checkSightingTarget(authorId, input);
 
     const shown = publicPoint(input.lat, input.lng);
     const id = await transaction(this.pool, async (client) => {
       const { rows } = await client.query<{ id: string }>(
         `insert into occurrences (author_id, pet_id, type, species, pet_name, breed, color, description, approx_address,
-                                  location, public_location)
+                                  location, public_location, sighting_of)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-                 st_setsrid(st_makepoint($10, $11), 4326)::geography, st_setsrid(st_makepoint($12, $13), 4326)::geography)
+                 st_setsrid(st_makepoint($10, $11), 4326)::geography, st_setsrid(st_makepoint($12, $13), 4326)::geography, $14)
          returning id`,
         [
           authorId,
@@ -97,6 +99,7 @@ export class OccurrencesService {
           input.lat,
           shown.lng,
           shown.lat,
+          input.sightingOf ?? null,
         ],
       );
       if (input.petId) {
@@ -114,6 +117,18 @@ export class OccurrencesService {
     // AL-01: o disparo dos alertas roda depois, sem segurar a resposta.
     this.alertQueue.occurrenceCreated(id);
     return this.findPublic(authorId, id);
+  }
+
+  /** "Vi este pet": só avistamento, de um pet perdido ainda aberto e de outra pessoa. */
+  private async checkSightingTarget(authorId: string, input: OccurrenceInput): Promise<void> {
+    if (input.type !== "seen") throw new BadRequestException("Só um avistamento pode apontar para um pet perdido");
+    if (!UUID_RE.test(input.sightingOf!)) throw lostNotFound();
+    const { rows } = await this.pool.query<{ author_id: string }>(
+      "select author_id from occurrences where id = $1 and type = 'lost' and status = 'open'",
+      [input.sightingOf],
+    );
+    if (!rows[0]) throw lostNotFound();
+    if (rows[0].author_id === authorId) throw new BadRequestException("Esse pet é seu: atualize a sua ocorrência em vez de registrar um avistamento");
   }
 
   /** Os dados digitados valem; o pet completa o que faltar. O pet precisa ser do autor. */

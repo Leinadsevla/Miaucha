@@ -99,6 +99,19 @@ describe("OccurrenceForm (registrar ocorrência)", () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ petId: "p1", petName: "Mia", breed: "Persa" }), []);
   });
 
+  it("'Vi este pet': já vem como avistado, com os dados do pet perdido, e envia o sightingOf", async () => {
+    const { onSubmit } = await setup({
+      initial: { type: "seen", species: "cat", petName: "Mia", breed: "Persa", color: "Branca" },
+      sightingOf: { id: "lost-1", petName: "Mia" },
+    });
+    expect(screen.getByText("Você viu Mia. O tutor recebe um aviso na hora, com a região aproximada de onde você está.")).toBeOnTheScreen();
+    // O tipo fica fixo em avistado.
+    expect(screen.queryByRole("button", { name: "Perdi meu pet" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Gato" })).toBeSelected();
+    await emit();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ type: "seen", sightingOf: "lost-1", petName: "Mia" }), []);
+  });
+
   it("adiciona e remove fotos (até 5)", async () => {
     const { onSubmit, onPickPhotos } = await setup({ initial: { petName: "Thor" } }, [[{ uri: "file:///a.jpg" }, { uri: "file:///b.jpg" }]]);
     await fireEvent.press(screen.getByRole("button", { name: "Adicionar foto" }));

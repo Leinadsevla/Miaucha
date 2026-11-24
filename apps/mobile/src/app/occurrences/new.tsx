@@ -3,7 +3,7 @@ import { Alert, Linking, Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet, type OccurrenceInput } from "@miaucha/shared";
+import { colors, type MyPet, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
 import { KeyboardScreen } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
@@ -11,15 +11,20 @@ import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/p
 
 const pickPhotos = createPhotoPicker();
 
-/** Registrar ocorrência. `?petId=` pré-preenche com um pet do usuário ("registrar como perdido"). */
+/**
+ * Registrar ocorrência. `?petId=` pré-preenche com um pet do usuário ("registrar como perdido");
+ * `?sightingOf=` registra um avistamento do pet perdido dessa ocorrência ("Vi este pet").
+ */
 export default function NewOccurrence() {
-  const { petId } = useLocalSearchParams<{ petId?: string }>();
+  const { petId, sightingOf } = useLocalSearchParams<{ petId?: string; sightingOf?: string }>();
   const client = useOccurrencesClient();
   const petsClient = usePetsClient();
   const insets = useSafeAreaInsets();
   const [location, setLocation] = useState<LocationResult | null>(null);
   // undefined = carregando o pet; null = sem pet (ou não foi possível carregar).
   const [pet, setPet] = useState<MyPet | null | undefined>(petId ? undefined : null);
+  // undefined = carregando o pet perdido; null = registro normal.
+  const [lost, setLost] = useState<PublicOccurrence | null | undefined>(sightingOf ? undefined : null);
   const [myPets, setMyPets] = useState<MyPet[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -40,6 +45,11 @@ export default function NewOccurrence() {
     if (!petId) return;
     petsClient.get(petId).then(setPet, () => setPet(null));
   }, [petId, petsClient]);
+
+  useEffect(() => {
+    if (!sightingOf) return;
+    client.get(sightingOf).then(setLost, () => setLost(null));
+  }, [sightingOf, client]);
 
   async function save(input: OccurrenceInput, photos: PickedPhoto[]) {
     setBusy(true);
@@ -76,7 +86,7 @@ export default function NewOccurrence() {
           <Text className="font-sans text-xs text-muted-foreground">Avise quem está perto</Text>
         </View>
       </View>
-      {pet === undefined ? (
+      {pet === undefined || lost === undefined ? (
         <Text className="p-5 text-center font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : (
         <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
@@ -86,7 +96,14 @@ export default function NewOccurrence() {
             onOpenSettings={() => void Linking.openSettings()}
             onSubmit={save}
             onPickPhotos={pickPhotos}
-            initial={pet ? { type: "lost", species: pet.species, petName: pet.name, breed: pet.breed ?? "", color: pet.color ?? "" } : undefined}
+            initial={
+              pet
+                ? { type: "lost", species: pet.species, petName: pet.name, breed: pet.breed ?? "", color: pet.color ?? "" }
+                : lost
+                  ? { type: "seen", species: lost.species, petName: lost.petName ?? "", breed: lost.breed ?? "", color: lost.color ?? "" }
+                  : undefined
+            }
+            sightingOf={lost ? { id: lost.id, petName: lost.petName ?? "este pet" } : undefined}
             fromPet={pet ? { id: pet.id, name: pet.name, photoCount: pet.photos.length } : undefined}
             myPets={myPets}
             onGeocode={(address) => geocodeAddress(address, location?.status === "ok" ? location.coords : null)}
