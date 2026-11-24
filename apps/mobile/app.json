@@ -75,6 +75,12 @@
         "projectId": "9da59bd1-20aa-4e69-988d-b1bc09ba9bfd"
       }
     },
-    "owner": "leinadsevlas-team"
+    "owner": "leinadsevlas-team",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9da59bd1-20aa-4e69-988d-b1bc09ba9bfd"
+    }
   }
 }

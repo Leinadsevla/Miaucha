@@ -3,6 +3,7 @@
 App mobile (TCC) para reencontrar pets perdidos: ocorrências no mapa, alertas de proximidade e chat por pseudônimo.
 
 - Plano, specs (CH/AL/MP/NF) e matriz de testes: `Miaucha — Plano de Execução.md`
+- Deploy: API no Render (`docs/DEPLOY-RENDER.md`); app pelo EAS com CI/CD no GitHub Actions (`docs/DEPLOY-APP.md`)
 - Estado atual e próximas tarefas: `docs/PROXIMOS-PASSOS.md`
 - Protótipo visual (referência, não roda no app): `docs/design/design.tsx`
 

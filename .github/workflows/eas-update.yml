@@ -1,0 +1,42 @@
+# Deploy automático do app: a cada push na branch principal, roda o CI e publica o JavaScript novo
+# pelo EAS Update no canal "preview". Os APKs do perfil preview baixam a atualização ao abrir.
+# Mudança nativa (pacote novo, app.json) muda o runtimeVersion (fingerprint): aí precisa de build novo
+# (workflow "EAS Build"); a atualização só chega a builds com o mesmo runtime.
+name: EAS Update
+
+on:
+  push:
+    branches: [s1/fundacao, main]
+  workflow_dispatch:
+
+concurrency:
+  group: eas-update
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  update:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Publicar no canal preview
+        working-directory: apps/mobile
+        env:
+          # O eas update não lê o "env" do eas.json: sem isto o app publicado cairia no login falso.
+          EXPO_PUBLIC_API_URL: https://miaucha-api.onrender.com
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'Atualização manual' }}
+        run: eas update --channel preview --message "$COMMIT_MESSAGE" --non-interactive

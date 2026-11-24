@@ -1,0 +1,26 @@
+# Testes e typecheck de todo o monorepo. Roda em todo PR e é chamado pelos workflows de deploy.
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # versão do pnpm vem do "packageManager" do package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # Inclui os testes de integração da API (Testcontainers: o runner do GitHub já tem Docker).
+      - run: pnpm test
