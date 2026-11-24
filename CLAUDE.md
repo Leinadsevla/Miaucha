@@ -34,7 +34,9 @@ cd apps/api && pnpm test test/auth-google    # um arquivo de integração
 cd apps/api && pnpm dev                      # API local (lê apps/api/.env; ver .env.example)
 cd apps/mobile && npx expo install <pkg> "--" --dev   # no Windows, o "--" é obrigatório para --dev
 cd apps/mobile && npx expo export --platform android  # valida Metro + NativeWind sem aparelho
-cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (o --tunnel padrão do SDK 58 exige login na conta Expo)
+cd apps/mobile && npx expo start --tunnel ngrok        # development build pela internet (o --tunnel padrão do SDK 58 exige login na conta Expo)
+cd apps/mobile && npx eas-cli build -p android --profile development  # APK com o dev client (o mapa MapLibre não roda no Expo Go)
+cd apps/mobile && npx eas-cli build -p android --profile preview      # APK para instalar e apresentar
 ```
 
 ## Armadilhas já resolvidas (não desfaça)
@@ -61,8 +63,10 @@ cd apps/mobile && npx expo start --tunnel ngrok        # Expo Go pela internet (
 - Chat: testes que usam o socket sobem a API com `app.listen(0)` (`createChatTestApp` em `test/chat-helpers.ts`, que também troca o `PushSender` por um falso); o `createTestApp` só faz `init()` e o `socket.io-client` não conecta.
 - Chat: o `ChatThrottlerGuard` sobrescreve o `canActivate` do `ThrottlerGuard` de propósito. A rota de mensagens usa `@SkipThrottle()` para sair do limite geral, e o `canActivate` original leria esse mesmo metadado e pularia o limite do chat.
 - Socket.IO no app: o `socket.io-client` não reconecta sozinho quando o servidor recusa o handshake (token expirado) ou derruba a conexão; o `createChatRealtime` (`features/chat/chatRealtime.ts`) cuida disso. O token vai por `auth` em função, para cada tentativa ler o token salvo mais novo.
-- Mapa: `react-native-maps` e `supercluster` (com o `kdbush`) são ESM e estão no `transformIgnorePatterns` do Jest. No Jest o mapa é o mock `src/test-utils/reactNativeMapsMock.tsx` (ligado no `jest.setup.ts`): `MapView`/`Marker` viram `View` com as props, e `mapCommands.animateToRegion` é um `jest.fn`. Para simular o mapa: `fireEvent(map, "regionChangeComplete", region)`.
-- Marcador com view própria (`Marker` com filhos): `tracksViewChanges` ligado só por um momento depois de montar ou mudar a aparência (`MapMarkers.tsx`). Sempre ligado deixa o mapa lento; desligado de cara deixa o marcador em branco no Android.
+- Mapa: MapLibre (`@maplibre/maplibre-react-native` 11) com o estilo gratuito do OpenFreeMap (OpenStreetMap, sem chave nem cartão). Só `features/map/MapCanvas.tsx` importa o MapLibre; as telas usam `MapCanvas`, `MapPoint` e `DraggablePoint`, que falam em `Region` (centro + deltas) e `LatLng`. O MapLibre usa `[lng, lat]` e limites `[oeste, sul, leste, norte]` (`regionToBounds`/`boundsToRegion` em `region.ts`).
+- O MapLibre não existe no Expo Go: o app precisa de development build (`eas build --profile development`, com o `expo-dev-client`). Com o dev client instalado, o `expo start` abre no development build; `--go` força o Expo Go, mas o mapa não funciona lá.
+- No Jest o mapa é o mock `src/test-utils/maplibreMock.tsx` (ligado no `jest.setup.ts`): `Map`, `Camera`, `Marker` e `ViewAnnotation` viram `View` com as props, e `cameraCommands.fitBounds` é um `jest.fn`. Para simular o mapa: `fireEvent(map, "regionDidChange", mapEvents.region(region))` e `fireEvent.press(map, mapEvents.at(lat, lng))`. O `supercluster` (com o `kdbush`) é ESM e está no `transformIgnorePatterns`.
+- A atribuição do mapa (botão "i") é exigida pela licença do OpenStreetMap: não desligue `attribution` no `MapCanvas`.
 - Cache grande no aparelho (ex.: último mapa, MP-08) vai num arquivo do `expo-file-system` (`File`/`Paths.document`), não no `expo-secure-store`.
 - App: chamadas autenticadas passam pelo `ApiSession` (`features/auth/apiSession.ts`), compartilhado por todos os clientes, para existir um único refresh por vez.
 - Alertas (S5): o disparo roda depois da resposta do `POST /occurrences`. Nos testes de integração, espere com `await ctx.app.get<AlertQueue>(ALERT_QUEUE).onIdle()` antes de conferir alertas ou push. O `createTestApp` sempre troca o Expo Push pelo `FakePushSender` (`ctx.push`): nenhum teste chama o Expo de verdade.

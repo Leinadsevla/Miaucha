@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View, useWindowDimensions } from "react-native";
-import MapView from "react-native-maps";
 import { CloudOff, LocateFixed, MapPinOff, SlidersHorizontal, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OCCURRENCE_TYPES, colors, occurrenceStyle, type LatLng } from "@miaucha/shared";
@@ -11,6 +10,7 @@ import { activeFilterCount, type MapFilters } from "./filters";
 import type { MapCache } from "./mapCache";
 import { createMapLoader, type MapDataState } from "./mapLoader";
 import { MapFiltersSheet } from "./MapFiltersSheet";
+import { MapCanvas, type MapCanvasRef } from "./MapCanvas";
 import { ClusterMarker, OccurrenceMarker } from "./MapMarkers";
 import { OccurrenceCard } from "./OccurrenceCard";
 import { DEFAULT_REGION, bboxContains, regionAround, regionToBBox, type Region } from "./region";
@@ -43,7 +43,7 @@ const FLOATING = { elevation: 4, shadowColor: "#000", shadowOpacity: 0.12, shado
 export function MapScreen({ getLocation, client, cache, onOpen, onDirections, onOpenSettings, refreshSignal, now }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapCanvasRef>(null);
   const [start, setStart] = useState<Start | null>(null);
   const [location, setLocation] = useState<LocationResult | null>(null);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -130,15 +130,10 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
 
   return (
     <View className="flex-1 bg-background">
-      <MapView
+      <MapCanvas
         ref={mapRef}
-        style={{ flex: 1 }}
         initialRegion={start.region}
         showsUserLocation={location?.status === "ok"}
-        showsMyLocationButton={false}
-        toolbarEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
         onRegionChangeComplete={onRegionChangeComplete}
         onPress={() => setSelectedId(null)}
       >
@@ -158,7 +153,7 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
             />
           ),
         )}
-      </MapView>
+      </MapCanvas>
 
       <View pointerEvents="box-none" className="absolute left-0 right-0 top-0 gap-2 px-4" style={{ paddingTop: insets.top + 12 }}>
         <View pointerEvents="box-none" className="flex-row items-center gap-2">
