@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "br.tcc.miaucha",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#FF8A3D",
         "foregroundImage": "./assets/android-icon-foreground.png",

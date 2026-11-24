@@ -11,3 +11,6 @@ android/
 
 # worktrees de subagentes do Claude Code
 .claude/worktrees/
+
+# Chave de conta de serviço do Firebase (secreta: vai só para o Expo, pelo eas credentials)
+*-firebase-adminsdk-*.json
