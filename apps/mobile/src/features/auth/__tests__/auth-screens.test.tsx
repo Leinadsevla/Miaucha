@@ -150,6 +150,8 @@ describe("SplashView", () => {
     const onFinish = jest.fn();
     await render(<SplashView onFinish={onFinish} />);
     expect(screen.getByText("Miaucha")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    expect(screen.queryByText("🐾")).toBeNull();
     expect(screen.getByText("Conectando pets aos seus lares")).toBeOnTheScreen();
     await act(() => jest.advanceTimersByTime(2500));
     expect(onFinish).not.toHaveBeenCalled();
