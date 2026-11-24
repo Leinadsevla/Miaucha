@@ -65,6 +65,19 @@ describe("ExpoPushSender (API HTTP do Expo Push)", () => {
     expect(result).toEqual({ invalidTokens: ["ExponentPushToken[token2]"] });
   });
 
+  it("outros erros do ticket (ex.: falta a chave do FCM) vão para o log com o motivo", async () => {
+    const { fetch } = fakeFetch(() => ({
+      data: [
+        { status: "error", message: "Unable to retrieve the FCM server key", details: { error: "InvalidCredentials" } },
+        { status: "error", message: "not registered", details: { error: "DeviceNotRegistered" } },
+      ],
+    }));
+    const log = jest.fn();
+    await new ExpoPushSender({ fetch, log }).send([message(1), message(2)]);
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls[0][0]).toBe("Expo Push recusou 1 mensagem: InvalidCredentials (Unable to retrieve the FCM server key)");
+  });
+
   it("erro HTTP num lote não impede os outros", async () => {
     let call = 0;
     const fetch = jest.fn(async (_url: string, init: { body: string }) => {
