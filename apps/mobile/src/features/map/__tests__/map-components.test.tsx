@@ -77,6 +77,14 @@ describe("OccurrenceCard (MP-04)", () => {
     expect(screen.getByLabelText("Cão avistado ainda não tem foto")).toBeOnTheScreen();
   });
 
+  it("altura padrão: sem região mostra o aviso no lugar, e as linhas de texto não quebram", async () => {
+    await setup({ approxAddress: null });
+    expect(screen.getByText("Região não informada")).toBeOnTheScreen();
+    for (const id of ["occurrence-card-subtitle", "occurrence-card-address"]) {
+      expect(screen.getByTestId(id).props.numberOfLines).toBe(1);
+    }
+  });
+
   it("'Ver detalhes' abre a ocorrência; 'Como chegar' usa o ponto público (MP-06); X fecha", async () => {
     const { onOpen, onDirections, onClose } = await setup();
     await fireEvent.press(screen.getByRole("button", { name: "Ver detalhes" }));

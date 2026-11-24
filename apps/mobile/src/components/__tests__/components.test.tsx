@@ -95,6 +95,15 @@ describe("PetCard (MP-04)", () => {
     expect(screen.getByText("Sem nome")).toBeOnTheScreen();
   });
 
+  it("altura padrão: sem raça nem região, as linhas continuam lá (espécie e aviso) e cada uma ocupa uma linha só", async () => {
+    await render(<PetCard occurrence={{ ...occurrence, breed: null, approxAddress: null }} now={now} onPress={() => {}} />);
+    expect(screen.getByText("Cão")).toBeOnTheScreen();
+    expect(screen.getByText("Região não informada")).toBeOnTheScreen();
+    for (const id of ["pet-card-name", "pet-card-breed", "pet-card-address"]) {
+      expect(screen.getByTestId(id).props.numberOfLines).toBe(1);
+    }
+  });
+
   it("toque chama onPress", async () => {
     const onPress = jest.fn();
     await render(<PetCard occurrence={occurrence} now={now} onPress={onPress} />);

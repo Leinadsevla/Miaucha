@@ -2,7 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Clock, MapPin, Navigation, X } from "lucide-react-native";
 import { colors, speciesLabel, formatTimeAgo, type LatLng, type PublicOccurrence } from "@miaucha/shared";
-import { SpeciesIcon, StatusBadge } from "@/components";
+import { MISSING_REGION, SpeciesIcon, StatusBadge } from "@/components";
 import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 
 type Props = {
@@ -37,19 +37,19 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
           </Text>
           <StatusBadge type={o.type} />
         </View>
-        <Text className="font-sans text-xs text-muted-foreground">{subtitle}</Text>
+        <Text testID="occurrence-card-subtitle" numberOfLines={1} className="font-sans text-xs text-muted-foreground">
+          {subtitle}
+        </Text>
         <View className="flex-row items-center gap-1">
           <Clock size={11} color={colors.accent} />
           <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(o.createdAt), now)}</Text>
         </View>
-        {o.approxAddress ? (
-          <View className="flex-row items-center gap-1">
-            <MapPin size={11} color={colors.primary} />
-            <Text numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
-              {o.approxAddress}
-            </Text>
-          </View>
-        ) : null}
+        <View className="flex-row items-center gap-1">
+          <MapPin size={11} color={colors.primary} />
+          <Text testID="occurrence-card-address" numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
+            {o.approxAddress ?? MISSING_REGION}
+          </Text>
+        </View>
 
         <View className="mt-1 flex-row gap-2">
           <Pressable

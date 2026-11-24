@@ -61,6 +61,16 @@ describe("AlertsScreen (aba Alertas)", () => {
     expect(screen.getAllByText("Novo")).toHaveLength(1);
   });
 
+  it("altura padrão: sem raça, cor e região, as linhas continuam lá com a espécie e o aviso", async () => {
+    const { props } = setup(async () => [item("1", {}, { breed: null, color: null, approxAddress: null })]);
+    await render(<AlertsScreen {...props} />);
+    expect(await screen.findByText("Cão")).toBeOnTheScreen();
+    expect(screen.getByText("Região não informada")).toBeOnTheScreen();
+    for (const id of ["alert-card-details", "alert-card-address"]) {
+      expect(screen.getByTestId(id).props.numberOfLines).toBe(1);
+    }
+  });
+
   it("tocar abre o detalhe da ocorrência (AL-08) e marca como visto", async () => {
     const { props, client } = setup();
     await render(<AlertsScreen {...props} />);

@@ -1,11 +1,17 @@
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { AlertTriangle, Clock, Eye, HandHeart, MapPin } from "lucide-react-native";
-import { colors, formatDistance, formatTimeAgo, occurrenceStyle, type PublicOccurrence } from "@miaucha/shared";
+import { colors, formatDistance, formatTimeAgo, occurrenceStyle, speciesLabel, type PublicOccurrence } from "@miaucha/shared";
 import { SpeciesIcon } from "./SpeciesIcon";
 import { cn } from "@/lib/cn";
 
 const ICONS = { lost: AlertTriangle, seen: Eye, found: HandHeart } as const;
+
+/**
+ * Texto no lugar da região quando a ocorrência não tem endereço. Os cards mostram sempre as mesmas
+ * linhas (cada uma com uma linha só) para terem a mesma altura lado a lado.
+ */
+export const MISSING_REGION = "Região não informada";
 
 type Props = {
   occurrence: PublicOccurrence;
@@ -44,22 +50,22 @@ export function PetCard({ occurrence: o, distanceMeters = o.distanceMeters, now 
       </View>
       <View className="p-3">
         <View className="flex-row items-center justify-between">
-          <Text numberOfLines={1} className="flex-1 font-nunito-bold text-sm text-foreground">
+          <Text testID="pet-card-name" numberOfLines={1} className="flex-1 font-nunito-bold text-sm text-foreground">
             {name}
           </Text>
           {distanceMeters !== undefined ? (
             <Text className="font-sans text-xs text-muted-foreground">{formatDistance(distanceMeters)}</Text>
           ) : null}
         </View>
-        {o.breed ? <Text className="mt-0.5 font-sans text-xs text-muted-foreground">{o.breed}</Text> : null}
-        {o.approxAddress ? (
-          <View className="mt-2 flex-row items-center gap-1">
-            <MapPin size={11} color={colors.primary} />
-            <Text numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
-              {o.approxAddress}
-            </Text>
-          </View>
-        ) : null}
+        <Text testID="pet-card-breed" numberOfLines={1} className="mt-0.5 font-sans text-xs text-muted-foreground">
+          {o.breed ?? speciesLabel(o.species)}
+        </Text>
+        <View className="mt-2 flex-row items-center gap-1">
+          <MapPin size={11} color={colors.primary} />
+          <Text testID="pet-card-address" numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
+            {o.approxAddress ?? MISSING_REGION}
+          </Text>
+        </View>
         <View className="mt-1 flex-row items-center gap-1">
           <Clock size={11} color={colors.accent} />
           <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(o.createdAt), now)}</Text>

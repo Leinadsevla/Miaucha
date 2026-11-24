@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { Bell, BellRing, Clock, MapPin } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, speciesLabel, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
-import { PrimaryButton, SpeciesIcon, StatusBadge } from "@/components";
+import { MISSING_REGION, PrimaryButton, SpeciesIcon, StatusBadge } from "@/components";
 import type { AlertsClient } from "./alertsClient";
 
 export type DistanceFilter = "all" | "under1" | "1to3" | "3to5";
@@ -169,7 +169,7 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
 function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; now?: Date; onPress: () => void }) {
   const o = a.occurrence;
   const title = alertTitle(a);
-  const details = [o.breed, o.color].filter(Boolean).join(" · ");
+  const details = [o.breed, o.color].filter(Boolean).join(" · ") || speciesLabel(o.species);
   return (
     <Pressable
       accessibilityRole="button"
@@ -191,7 +191,9 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
           </Text>
           <StatusBadge type={o.type} />
         </View>
-        {details ? <Text className="font-sans text-xs text-muted-foreground">{details}</Text> : null}
+        <Text testID="alert-card-details" numberOfLines={1} className="font-sans text-xs text-muted-foreground">
+          {details}
+        </Text>
         <View className="mt-2 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
             <MapPin size={11} color={colors.primary} />
@@ -207,11 +209,9 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
             </View>
           )}
         </View>
-        {o.approxAddress ? (
-          <Text numberOfLines={1} className="mt-1 font-sans text-xs text-muted-foreground">
-            {o.approxAddress}
-          </Text>
-        ) : null}
+        <Text testID="alert-card-address" numberOfLines={1} className="mt-1 font-sans text-xs text-muted-foreground">
+          {o.approxAddress ?? MISSING_REGION}
+        </Text>
       </View>
     </Pressable>
   );
