@@ -12,6 +12,8 @@ services:
     # A API roda com @swc-node/register porque o @miaucha/shared é publicado como TypeScript.
     startCommand: cd apps/api && node -r @swc-node/register src/main.ts
     healthCheckPath: /health
+    # Deploy só pelo GitHub Actions (deploy.yml), depois dos testes; o push direto não sobe nada.
+    autoDeployTrigger: "off"
     envVars:
       - key: NODE_VERSION
         value: "24"

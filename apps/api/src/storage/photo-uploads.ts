@@ -14,6 +14,9 @@ const PENDING_UPLOAD_WINDOW_MINUTES = 10;
 const EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Chave que a URL de upload assinada aponta; a foto só vai para a chave final depois de conferida. */
+const pendingKey = (objectKey: string) => `pending/${objectKey}`;
+
 /**
  * Onde ficam as fotos de um tipo de registro (pet, ocorrência). Os nomes de tabela e coluna são
  * constantes do código, nunca vêm do cliente.
@@ -71,7 +74,7 @@ export class PhotoUploads {
       ]);
     });
 
-    const uploadUrl = await this.storage.presignUpload(objectKey, contentType, UPLOAD_URL_TTL_SECONDS);
+    const uploadUrl = await this.storage.presignUpload(pendingKey(objectKey), contentType, UPLOAD_URL_TTL_SECONDS);
     return { photoId, uploadUrl, expiresInSeconds: UPLOAD_URL_TTL_SECONDS };
   }
 
@@ -88,10 +91,16 @@ export class PhotoUploads {
     const photo = rows[0];
     if (!photo) throw this.spec.notFound();
     if (!photo.uploaded) {
+      const pending = pendingKey(photo.object_key);
+      if (!(await this.storage.stat(pending))) throw new BadRequestException("A foto ainda não foi enviada");
+      // A URL de PUT continua valendo até expirar: a conferência é feita na cópia, numa chave que ninguém
+      // mais consegue sobrescrever. Um novo PUT só troca o arquivo pendente, que nunca é servido.
+      await this.storage.copy(pending, photo.object_key);
+      await this.storage.delete(pending);
       const stored = await this.storage.stat(photo.object_key);
-      if (!stored) throw new BadRequestException("A foto ainda não foi enviada");
-      const problem =
-        stored.size > MAX_PHOTO_BYTES
+      const problem = !stored
+        ? "A foto ainda não foi enviada"
+        : stored.size > MAX_PHOTO_BYTES
           ? "A foto passa de 10 MB"
           : stored.contentType !== photo.content_type
             ? "Envie uma foto JPG, PNG ou WebP"

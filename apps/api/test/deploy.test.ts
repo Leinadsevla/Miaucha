@@ -15,7 +15,16 @@ describe("GET /health (verificação do Render)", () => {
 
   it("responde 200 sem login quando o banco está acessível", async () => {
     const res = await ctx.http.get("/health").expect(200);
-    expect(res.body).toEqual({ status: "ok", mail: "log" });
+    expect(res.body).toEqual({ status: "ok", mail: "log", commit: null });
+  });
+
+  it("diz o commit que está rodando, para o CI/CD saber quando o deploy novo subiu", async () => {
+    const deployed = await createTestApp({ gitCommit: "4f2a9c1" });
+    try {
+      expect((await deployed.http.get("/health").expect(200)).body.commit).toBe("4f2a9c1");
+    } finally {
+      await closeTestApp(deployed);
+    }
   });
 
   it("diz qual provedor de e-mail está ativo (sem expor nenhum valor)", async () => {
@@ -23,7 +32,7 @@ describe("GET /health (verificação do Render)", () => {
     const withGmail = await createTestApp({ gmail });
     try {
       const res = await withGmail.http.get("/health").expect(200);
-      expect(res.body).toEqual({ status: "ok", mail: "gmail" });
+      expect(res.body).toEqual({ status: "ok", mail: "gmail", commit: null });
       expect(JSON.stringify(res.body)).not.toContain("segredo");
     } finally {
       await closeTestApp(withGmail);

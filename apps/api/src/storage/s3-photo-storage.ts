@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { StorageConfig } from "../config";
 import type { PhotoStorage, StoredObject } from "./photo-storage";
@@ -44,6 +44,10 @@ export class S3PhotoStorage implements PhotoStorage {
   async readHead(key: string, bytes: number): Promise<Uint8Array> {
     const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: `bytes=0-${bytes - 1}` }));
     return res.Body ? await res.Body.transformToByteArray() : new Uint8Array();
+  }
+
+  async copy(fromKey: string, toKey: string): Promise<void> {
+    await this.client.send(new CopyObjectCommand({ Bucket: this.bucket, Key: toKey, CopySource: `${this.bucket}/${fromKey}` }));
   }
 
   async delete(key: string): Promise<void> {

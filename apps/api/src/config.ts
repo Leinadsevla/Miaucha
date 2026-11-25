@@ -29,6 +29,8 @@ export type AppConfig = {
   storage: StorageConfig;
   /** Access token do Expo Push (opcional; só se o projeto exigir "enhanced security" no painel do Expo). */
   expoAccessToken?: string;
+  /** Commit em produção (o Render preenche RENDER_GIT_COMMIT): o `/health` mostra, e o CI/CD espera por ele. */
+  gitCommit?: string;
   /** Quantos proxies ficam na frente da API (Render: 1). Com 0, o `X-Forwarded-For` é ignorado. */
   trustProxy: number;
   /** E-mail pelo Resend; sem `RESEND_API_KEY`, os códigos só aparecem no log (desenvolvimento). */
@@ -112,6 +114,7 @@ export function loadConfig(env: Env): AppConfig {
       secretAccessKey: required(env, "STORAGE_SECRET_ACCESS_KEY"),
     },
     expoAccessToken: env.EXPO_ACCESS_TOKEN || undefined,
+    gitCommit: env.RENDER_GIT_COMMIT || undefined,
     trustProxy: int(env, "TRUST_PROXY", 0),
     // Sem domínio verificado, o remetente de teste do Resend só entrega para o e-mail do dono da conta.
     gmail: gmailConfig(env),

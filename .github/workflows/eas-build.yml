@@ -1,5 +1,5 @@
-# Build nativo na nuvem do Expo. Roda ao criar uma tag v* (ex.: v1.1.0) ou pelo botão "Run workflow".
-# Use quando mudar algo nativo (pacote com código nativo, app.json, ícone); o resto chega pelo EAS Update.
+# Build nativo na nuvem do Expo. Tag v* gera o build de produção; "Run workflow" escolhe o perfil.
+# Use quando mudar algo nativo (pacote com código nativo, app.json, ícone); o resto chega pelo deploy.yml.
 name: EAS Build
 
 on:
@@ -36,6 +36,6 @@ jobs:
       - name: Build Android
         working-directory: apps/mobile
         env:
-          PROFILE: ${{ inputs.profile || 'preview' }}
+          PROFILE: ${{ inputs.profile || 'production' }}
         # --no-wait: o build continua na fila do Expo; o link aparece no log e em expo.dev.
         run: eas build --platform android --profile "$PROFILE" --non-interactive --no-wait

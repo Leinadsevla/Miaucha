@@ -143,6 +143,21 @@ describe("fotos do pet (upload por URL assinada)", () => {
     await t.confirm(pet.id, req.body.photoId).expect(404);
   });
 
+  it("enviar de novo pela mesma URL depois de confirmar não troca a foto já conferida", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    await t.confirm(pet.id, req.body.photoId).expect(200);
+
+    await put(req.body.uploadUrl, Buffer.from("File not found"));
+    await t.confirm(pet.id, req.body.photoId).expect(200);
+
+    const [listed] = await t.myPets();
+    const download = await fetch(listed.photos[0].url);
+    expect(Buffer.from(await download.arrayBuffer())).toEqual(jpeg);
+  });
+
   it("no máximo 5 fotos por pet", async () => {
     const t = await tutor();
     const pet = await t.createPet();
