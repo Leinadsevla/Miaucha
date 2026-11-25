@@ -1,6 +1,7 @@
 import { Test } from "@nestjs/testing";
 import { AppModule } from "../src/app.module";
 import { ConsoleMailer } from "../src/mail/mailer";
+import { GmailApiMailer } from "../src/mail/gmail-mailer";
 import { ResendMailer } from "../src/mail/resend-mailer";
 import { MAILER } from "../src/tokens";
 import { PASSWORD, closeTestApp, createTestApp, testConfig, uniqueEmail, type TestContext } from "./helpers";
@@ -14,7 +15,19 @@ describe("GET /health (verificação do Render)", () => {
 
   it("responde 200 sem login quando o banco está acessível", async () => {
     const res = await ctx.http.get("/health").expect(200);
-    expect(res.body).toEqual({ status: "ok" });
+    expect(res.body).toEqual({ status: "ok", mail: "log" });
+  });
+
+  it("diz qual provedor de e-mail está ativo (sem expor nenhum valor)", async () => {
+    const gmail = { clientId: "c", clientSecret: "segredo", refreshToken: "r", sender: "p@gmail.com" };
+    const withGmail = await createTestApp({ gmail });
+    try {
+      const res = await withGmail.http.get("/health").expect(200);
+      expect(res.body).toEqual({ status: "ok", mail: "gmail" });
+      expect(JSON.stringify(res.body)).not.toContain("segredo");
+    } finally {
+      await closeTestApp(withGmail);
+    }
   });
 });
 
@@ -55,6 +68,17 @@ describe("e-mail: Resend quando configurado", () => {
     const without = await Test.createTestingModule({ imports: [AppModule.forRoot(testConfig())] }).compile();
     expect(without.get(MAILER)).toBeInstanceOf(ConsoleMailer);
     await without.close();
+  });
+});
+
+describe("e-mail: Gmail quando configurado", () => {
+  it("com as variáveis do Gmail usa a API do Gmail, mesmo se o Resend também estiver configurado", async () => {
+    const gmail = { clientId: "c", clientSecret: "s", refreshToken: "r", sender: "projeto.miaucha@gmail.com" };
+    const ref = await Test.createTestingModule({
+      imports: [AppModule.forRoot(testConfig({ gmail, resend: { apiKey: "re_x", from: "f" } }))],
+    }).compile();
+    expect(ref.get(MAILER)).toBeInstanceOf(GmailApiMailer);
+    await ref.close();
   });
 });
 
