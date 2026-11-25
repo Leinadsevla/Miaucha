@@ -81,7 +81,7 @@ function AuthGate() {
 /** Alertas (S5) só com sessão e consentimento: região aproximada, push e toque na notificação (AL-08). */
 function AlertsLayer({ clients, children }: { clients: AppClients; children: ReactNode }) {
   const { state } = useAuth();
-  const [deps] = useState(() => createAlertsRuntimeDeps(clients.occurrences));
+  const [deps] = useState(() => createAlertsRuntimeDeps(clients.occurrences, clients.alerts));
   return (
     <AlertsProvider
       client={clients.alerts}

@@ -265,6 +265,8 @@ export class AlertsService {
                 round(st_distance(s.public_location, l.public_location))::int as distance_meters
            from occurrences s join occurrences l on l.id = s.sighting_of
           where s.id = $1 and l.status = 'open'
+            -- Quem o tutor bloqueou no chat também não chega a ele por aqui.
+            and not exists (select 1 from chat_blocks b where b.blocker_id = l.author_id and b.blocked_id = s.author_id)
        ),
        inserted as (
          insert into alerts (user_id, occurrence_id, distance_meters)

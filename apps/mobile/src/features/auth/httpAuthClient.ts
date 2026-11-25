@@ -55,6 +55,7 @@ export function createHttpAuthClient({ baseUrl, storage, fetch, google = googleU
       const latest = await storage.load();
       if (latest) await storage.save({ ...latest, user: { ...latest.user, hasConsent: true } });
     },
+    onSessionExpired: (listener) => api.onExpired(listener),
     async logout() {
       const saved = await storage.load();
       if (saved) await api.request("POST", "/auth/logout", { refreshToken: saved.refreshToken }).catch(() => undefined);

@@ -1,4 +1,4 @@
-import type { ChatConversation, ChatMessage } from "@miaucha/shared";
+import type { ChatConversation, ChatMessage, ChatMessagesPage } from "@miaucha/shared";
 import type { ChatEvents } from "./chatRealtime";
 
 /** Junta mensagens (páginas antigas, novas do socket, reenvios) sem repetir; mais novas primeiro. */
@@ -6,6 +6,29 @@ export function mergeMessages(current: ChatMessage[], incoming: ChatMessage[]): 
   const byId = new Map(current.map((m) => [m.id, m]));
   for (const m of incoming) byId.set(m.id, m);
   return [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export type CatchUp = { messages: ChatMessage[]; reset: false } | { messages: ChatMessage[]; reset: true; nextCursor: string | null };
+
+/**
+ * Depois de reconectar: busca páginas para trás até encostar numa mensagem que já estava na tela, para não
+ * abrir um buraco quando chegou mais de uma página. Se passar de `maxPages`, a lista recomeça do zero
+ * (`reset`), com o cursor da última página buscada.
+ */
+export async function catchUpMessages(
+  known: ReadonlySet<string>,
+  fetchPage: (before?: string) => Promise<ChatMessagesPage>,
+  maxPages = 5,
+): Promise<CatchUp> {
+  const collected: ChatMessage[] = [];
+  let cursor: string | undefined;
+  for (let i = 0; i < maxPages; i++) {
+    const page = await fetchPage(cursor);
+    collected.push(...page.messages);
+    if (!page.nextCursor || page.messages.some((m) => known.has(m.id))) return { messages: collected, reset: false };
+    cursor = page.nextCursor;
+  }
+  return { messages: collected, reset: true, nextCursor: cursor ?? null };
 }
 
 /** A outra pessoa leu até `readAt`: as minhas enviadas até lá ficam "lida" (CH-09). */

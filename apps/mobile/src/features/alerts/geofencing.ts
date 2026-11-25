@@ -3,8 +3,10 @@ import {
   GEOFENCE_RECALC_METERS,
   pickGeofenceRegions,
   shouldRecalculateGeofences,
+  type AlertPreferences,
   type GeofencePlatform,
   type LatLng,
+  type OccurrenceType,
 } from "@miaucha/shared";
 
 /**
@@ -67,4 +69,25 @@ export function planGeofences({
 export function geofenceNotification(regionId: string, alreadyNotified: string[]) {
   if (regionId === RECALC_REGION_ID || alreadyNotified.includes(regionId)) return null;
   return { title: "Você está perto de um pet perdido", body: "Toque para ver a ocorrência e ajudar.", data: { occurrenceId: regionId } };
+}
+
+type NearbyOccurrence = { id: string; type: OccurrenceType; isMine: boolean; publicLocation: LatLng };
+
+/**
+ * Ocorrências que viram regiões monitoradas: só pets perdidos de outras pessoas, no raio das preferências.
+ * Com os alertas desligados, nenhuma (a notificação local sairia mesmo assim).
+ */
+export async function nearbyGeofenceCandidates<T extends NearbyOccurrence>({
+  here,
+  nearby,
+  getPreferences,
+}: {
+  here: LatLng;
+  nearby: (query: LatLng & { radiusKm: number }) => Promise<T[]>;
+  getPreferences: () => Promise<AlertPreferences>;
+}): Promise<T[]> {
+  const prefs = await getPreferences();
+  if (!prefs.enabled) return [];
+  const list = await nearby({ ...here, radiusKm: prefs.radiusKm });
+  return list.filter((o) => o.type === "lost" && !o.isMine);
 }

@@ -207,7 +207,7 @@ describe("ConversationScreen", () => {
     const { client, realtime } = await setup();
     client.messages.mockClear();
     await act(async () => realtime.connected());
-    expect(client.messages).toHaveBeenCalledWith("c1");
+    expect(client.messages).toHaveBeenCalledWith("c1", undefined);
   });
 
   it("erro ao abrir a conversa", async () => {
