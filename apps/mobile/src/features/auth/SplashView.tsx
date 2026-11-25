@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { Text, View } from "react-native";
-import { Image } from "expo-image";
-
-const LOGO = require("../../../assets/logo-symbol.png");
+import { AppLogo } from "@/components";
 
 export const SPLASH_DURATION_MS = 2600;
 
@@ -16,7 +14,7 @@ export function SplashView({ onFinish, version = "1.0.0" }: { onFinish: () => vo
     <View className="flex-1 items-center justify-center bg-primary">
       <View className="items-center gap-5">
         <View className="h-24 w-24 items-center justify-center rounded-3xl bg-white shadow-xl">
-          <Image accessibilityLabel="Logo do Miaucha" source={LOGO} contentFit="contain" style={{ width: 72, height: 72 }} />
+          <AppLogo size={72} />
         </View>
         <View className="items-center">
           <Text className="font-nunito-black text-4xl text-white">Miaucha</Text>

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Bell, MessageCircle, PawPrint, Plus } from "lucide-react-native";
+import { Bell, MessageCircle, Plus } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@miaucha/shared";
-import { PrimaryButton } from "@/components";
+import { AppLogo, PrimaryButton } from "@/components";
 
 export const ONBOARDING_SLIDES = [
   {
     title: "Bem-vindo ao Miaucha",
     body: "Aqui a vizinhança se ajuda a reencontrar pets perdidos. Cada aviso conta.",
-    Icon: PawPrint,
+    Icon: null,
   },
   {
     title: "Registre uma ocorrência",
@@ -45,7 +45,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
 
       <View className="flex-1 items-center justify-center gap-6">
         <View className="h-28 w-28 items-center justify-center rounded-[36px] bg-white">
-          <slide.Icon size={52} color={colors.primary} />
+          {slide.Icon ? <slide.Icon size={52} color={colors.primary} /> : <AppLogo size={80} />}
         </View>
         <Text accessibilityRole="header" className="text-center font-nunito-black text-2xl text-white">
           {slide.title}

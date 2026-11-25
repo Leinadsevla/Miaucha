@@ -18,6 +18,7 @@ App mobile (TCC) para reencontrar pets perdidos: ocorrências no mapa, alertas d
 - **Privacidade é requisito, não detalhe:** a API pública nunca devolve e-mail, telefone ou coordenada exata. Ocorrências expõem só `publicLocation` (deslocada ~150 m, MP-07) e `authorPseudonym` (CH-02). Localização do usuário só como geohash ~1 km (AL-06).
 - **RLS em toda tabela:** o banco remoto é Supabase, que expõe o schema `public` pela Data API. Toda migração que cria tabela precisa de `alter table <t> enable row level security;` (o teste `row-level-security.test.ts` falha se faltar).
 - **Cores:** sempre pelos tokens (`colors` do shared / classes `bg-primary`, `text-lost`...). Cor do marcador = tipo da ocorrência; ícone = espécie (MP-01). Se mudar uma cor, mude em `packages/shared/src/theme.ts` e em `apps/mobile/tailwind.config.js` (um teste compara os dois).
+- **Logo:** sempre o componente `AppLogo` (`components/AppLogo.tsx`, símbolo em `assets/logo-symbol.png`), nunca emoji ou ícone de pata no lugar da marca. Ícones e splash nativos saem de `assets/logo-original.png` pelo `apps/mobile/scripts/gerar-icones.py` e só mudam num build novo.
 - **Fontes:** classes `font-sans`, `font-nunito-semibold`, `font-nunito-bold`, `font-nunito-black`. Não use `font-bold` para trocar a fonte.
 - **Git:** uma branch por tarefa, PR revisado por outra pessoa antes do merge. Mensagens de commit em português.
 - Textos da interface em português do Brasil.

@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { Bell, BellRing, Clock, MapPin } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, speciesLabel, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
-import { PrimaryButton, SpeciesIcon, StatusBadge } from "@/components";
+import { AppLogo, PrimaryButton, SpeciesIcon, StatusBadge } from "@/components";
 import type { AlertsClient } from "./alertsClient";
 
 export type DistanceFilter = "all" | "under1" | "1to3" | "3to5";
@@ -151,7 +151,7 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
           </View>
         ) : state.alerts.length === 0 ? (
           <View className="items-center gap-2 rounded-3xl border border-border bg-card p-5">
-            <Text className="text-4xl">🐾</Text>
+            <AppLogo size={56} />
             <Text className="text-center font-sans text-sm text-muted-foreground">
               Nenhum alerta por enquanto. Quando um pet sumir dentro do seu raio, ele aparece aqui.
             </Text>

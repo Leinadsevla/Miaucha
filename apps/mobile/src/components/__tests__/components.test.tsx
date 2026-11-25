@@ -5,6 +5,8 @@ import { PrimaryButton } from "../PrimaryButton";
 import { TextField } from "../TextField";
 import { PetCard } from "../PetCard";
 import { BottomNav } from "../BottomNav";
+import { AppLogo } from "../AppLogo";
+import { ComingSoon } from "../ComingSoon";
 
 describe("StatusBadge (MP-01)", () => {
   it.each([
@@ -156,5 +158,19 @@ describe("tipo da ocorrência bem visível", () => {
     await render(<PetCard occurrence={{ ...base, type: "seen" }} onPress={() => {}} />);
     expect(screen.getByTestId("pet-card-band")).toHaveStyle({ backgroundColor: colors.seen });
     expect(screen.getByText("Avistado")).toHaveStyle({ color: colors.foreground });
+  });
+});
+
+describe("AppLogo", () => {
+  it("símbolo por padrão, no tamanho pedido, com nome acessível", async () => {
+    await render(<AppLogo size={40} />);
+    const logo = screen.getByLabelText("Logo do Miaucha");
+    expect(logo).toHaveStyle({ width: 40, height: 40 });
+  });
+
+  it("ComingSoon usa a logo no lugar da pata", async () => {
+    await render(<ComingSoon title="X" sprint="S9" description="d" />);
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    expect(screen.queryByText("🐾")).toBeNull();
   });
 });

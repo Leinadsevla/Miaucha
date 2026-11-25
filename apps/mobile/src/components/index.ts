@@ -8,3 +8,4 @@ export * from "./TextField";
 export * from "./ComingSoon";
 export * from "./KeyboardScreen";
 export * from "./ScreenHeader";
+export * from "./AppLogo";
