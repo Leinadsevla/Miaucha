@@ -5,8 +5,14 @@ import { validateLogin, validateSignUp, type LoginInput, type SignUpInput } from
 import { PrimaryButton, TextField } from "@/components";
 import { cn } from "@/lib/cn";
 
+/**
+ * Sombra da aba selecionada pelo `style`, não por `shadow-sm` condicional: no NativeWind 4 isso
+ * adiciona variáveis CSS depois da primeira renderização e quebra no Expo Router (ver nativewind-rules.test.ts).
+ */
+const SELECTED_TAB_SHADOW = { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 };
+
 type Tab = "login" | "register";
-type Errors = Partial<Record<keyof SignUpInput, string>>;
+type Errors = Partial<Record<keyof SignUpInput | "confirmPassword", string>>;
 
 type Props = {
   onLogin: (input: LoginInput) => void;
@@ -22,6 +28,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
 
   function switchTab(next: Tab) {
@@ -38,7 +45,8 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
       if (Object.keys(found).length === 0) onLogin(input);
     } else {
       const input = { name: name.trim(), email: trimmedEmail, password };
-      const found = validateSignUp(input);
+      const found: Errors = validateSignUp(input);
+      if (!found.password && confirmPassword !== password) found.confirmPassword = "As senhas não conferem";
       setErrors(found);
       if (Object.keys(found).length === 0) onSignUp(input);
     }
@@ -57,7 +65,8 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
               accessibilityLabel={label}
               accessibilityState={{ selected }}
               onPress={() => switchTab(t)}
-              className={cn("flex-1 items-center rounded-xl py-2", selected && "bg-white shadow-sm")}
+              className={cn("flex-1 items-center rounded-xl py-2", selected && "bg-white")}
+              style={selected ? SELECTED_TAB_SHADOW : undefined}
             >
               <Text className={cn("font-nunito-bold text-sm", selected ? "text-primary" : "text-muted-foreground")}>
                 {label}
@@ -97,6 +106,17 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
           autoComplete={tab === "login" ? "current-password" : "new-password"}
           error={errors.password}
         />
+        {tab === "register" ? (
+          <TextField
+            label="Confirmar senha"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoComplete="new-password"
+            error={errors.confirmPassword}
+          />
+        ) : null}
         {tab === "login" && onForgotPassword ? (
           <Pressable accessibilityRole="button" onPress={onForgotPassword} className="self-end">
             <Text className="font-nunito-semibold text-xs text-primary">Esqueci minha senha</Text>

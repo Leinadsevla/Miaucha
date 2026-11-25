@@ -127,6 +127,23 @@ describe("createHttpAuthClient", () => {
     });
   });
 
+  describe("esqueci a senha", () => {
+    it("requestPasswordReset pede o código sem criar sessão", async () => {
+      const { api, storage, client } = setup({ "POST /auth/forgot-password": () => ({ status: 204 }) });
+      await client.requestPasswordReset("ana@exemplo.com");
+      expect(api.calls[0].body).toEqual({ email: "ana@exemplo.com" });
+      expect(storage.current).toBeNull();
+    });
+
+    it("resetPassword troca a senha e salva a sessão nova", async () => {
+      const { api, storage, client } = setup({ "POST /auth/reset-password": () => sessionReply() });
+      const user = await client.resetPassword("ana@exemplo.com", "123456", "novaSenha1");
+      expect(api.calls[0].body).toEqual({ email: "ana@exemplo.com", code: "123456", password: "novaSenha1" });
+      expect(user.id).toBe("u1");
+      expect(storage.current?.refreshToken).toBe("refresh-1");
+    });
+  });
+
   describe("loginWithGoogle", () => {
     it("troca o ID token do Google por uma sessão", async () => {
       const api = fakeApi({ "POST /auth/google": () => sessionReply() });

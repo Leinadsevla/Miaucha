@@ -26,12 +26,27 @@ export const fonts = {
 export const OCCURRENCE_TYPES = ["lost", "seen", "found"] as const;
 export type OccurrenceType = (typeof OCCURRENCE_TYPES)[number];
 
-const OCCURRENCE_STYLES: Record<OccurrenceType, { color: string; label: string }> = {
-  lost: { color: colors.lost, label: "Perdido" },
-  seen: { color: colors.seen, label: "Avistado" },
-  found: { color: colors.found, label: "Encontrado" },
+/** `textOn`: cor do texto sobre a cor sólida do tipo (branco não é legível no amarelo nem no verde). */
+const OCCURRENCE_STYLES: Record<OccurrenceType, { color: string; label: string; textOn: string }> = {
+  lost: { color: colors.lost, label: "Perdido", textOn: colors.white },
+  seen: { color: colors.seen, label: "Avistado", textOn: colors.foreground },
+  found: { color: colors.found, label: "Encontrado", textOn: colors.foreground },
 };
 
 export function occurrenceStyle(type: OccurrenceType) {
   return OCCURRENCE_STYLES[type];
+}
+
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Contraste entre duas cores `#RRGGBB` (fórmula do WCAG, de 1 a 21). */
+export function contrastRatio(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
 }

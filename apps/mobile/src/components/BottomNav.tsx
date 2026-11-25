@@ -2,7 +2,6 @@ import { Pressable, Text, View } from "react-native";
 import { Bell, Home, Map, MessageCircle, User, type LucideIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@miaucha/shared";
-import { cn } from "@/lib/cn";
 
 export type TabName = "index" | "map" | "alerts" | "chat" | "profile";
 
@@ -34,7 +33,7 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
             onPress={() => onNavigate(name)}
             className="flex-1 items-center gap-0.5 rounded-xl py-1"
           >
-            <View className={cn(selected && "scale-110")}>
+            <View style={{ transform: [{ scale: selected ? 1.1 : 1 }] }}>
               <Icon size={20} color={tint} />
             </View>
             <Text className="font-nunito-semibold text-[10px]" style={{ color: tint }}>

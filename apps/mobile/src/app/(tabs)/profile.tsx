@@ -1,27 +1,71 @@
-import { Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PrimaryButton } from "@/components";
+import { useCallback, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import type { MyPet, PublicOccurrence } from "@miaucha/shared";
+import { useAlerts } from "@/features/alerts";
 import { useAuth } from "@/features/auth";
+import { useOccurrencesClient } from "@/features/occurrences";
+import { usePetsClient } from "@/features/pets";
+import { ProfileView, useProfileClient, type MyProfile } from "@/features/profile";
+
+const message = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
 export default function ProfileTab() {
   const { state, logout } = useAuth();
-  const insets = useSafeAreaInsets();
-  const name = state.status === "signedIn" ? state.user.name : "";
+  const petsClient = usePetsClient();
+  const occurrencesClient = useOccurrencesClient();
+  const profileClient = useProfileClient();
+  const alerts = useAlerts();
+  const [profile, setProfile] = useState<MyProfile | null>(null);
+  const [pets, setPets] = useState<MyPet[] | null>(null);
+  const [petsError, setPetsError] = useState<string>();
+  const [occurrences, setOccurrences] = useState<PublicOccurrence[] | null>(null);
+  const [occurrencesError, setOccurrencesError] = useState<string>();
+
+  // Recarrega ao voltar do cadastro de pet ou de uma ocorrência.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setPetsError(undefined);
+      setOccurrencesError(undefined);
+      petsClient.listMine().then(
+        (list) => active && setPets(list),
+        (e: unknown) => active && setPetsError(message(e, "Não foi possível carregar seus pets")),
+      );
+      occurrencesClient.listMine().then(
+        (list) => active && setOccurrences(list),
+        (e: unknown) => active && setOccurrencesError(message(e, "Não foi possível carregar suas ocorrências")),
+      );
+      profileClient.me().then(
+        (p) => active && setProfile(p),
+        () => {}, // os contadores ficam com traço
+      );
+      return () => {
+        active = false;
+      };
+    }, [petsClient, occurrencesClient, profileClient]),
+  );
+
+  async function signOut() {
+    // O aparelho deixa de receber push desta conta (melhor esforço: sair nunca falha por isso).
+    if (alerts.pushToken) await alerts.client.removePushToken(alerts.pushToken).catch(() => {});
+    await logout();
+  }
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="items-center gap-3 bg-primary px-5 pb-8" style={{ paddingTop: insets.top + 24 }}>
-        <View className="h-20 w-20 items-center justify-center rounded-3xl bg-white/20">
-          <Text className="font-nunito-black text-3xl text-white">{name.charAt(0).toUpperCase()}</Text>
-        </View>
-        <Text className="font-nunito-black text-lg text-white">{name}</Text>
-      </View>
-      <View className="gap-3 p-5">
-        <Text className="text-center font-sans text-sm text-muted-foreground">
-          Meus pets, histórico e configurações chegam nas próximas sprints.
-        </Text>
-        <PrimaryButton title="Sair da conta" variant="outline" onPress={logout} />
-      </View>
-    </View>
+    <ProfileView
+      name={state.status === "signedIn" ? state.user.name : ""}
+      profile={profile}
+      pets={pets}
+      petsError={petsError}
+      occurrences={occurrences}
+      occurrencesError={occurrencesError}
+      onAddPet={() => router.push("/pets/new")}
+      onOpenPet={(id) => router.push(`/pets/${id}`)}
+      onOpenOccurrence={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
+      onOpenAlertPreferences={() => router.push("/alert-preferences")}
+      onOpenPrivacy={() => router.push("/privacy")}
+      onOpenHelp={() => router.push("/help")}
+      onLogout={() => void signOut()}
+    />
   );
 }
