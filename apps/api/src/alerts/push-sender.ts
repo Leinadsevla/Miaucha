@@ -22,7 +22,7 @@ type FetchLike = (
   init: { method: string; headers: Record<string, string>; body: string },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
-type Ticket = { status?: string; details?: { error?: string } };
+type Ticket = { status?: string; message?: string; details?: { error?: string } };
 
 /**
  * Expo Push pela API HTTP. Só lê os tickets imediatos (DeviceNotRegistered); os recibos
@@ -60,11 +60,23 @@ export class ExpoPushSender implements PushSender {
           continue;
         }
         const body = (await response.json()) as { data?: Ticket[] };
+        // Outros erros (ex.: InvalidCredentials, sem a chave do FCM no EAS) não apagam o token, mas vão
+        // para o log: sem isso o push falha calado e o alerta só aparece na lista do app.
+        const refused = new Map<string, { count: number; message: string }>();
         (body.data ?? []).forEach((ticket, index) => {
-          if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered" && batch[index]) {
-            invalidTokens.push(batch[index].to);
+          if (ticket.status !== "error") return;
+          const code = ticket.details?.error ?? "erro";
+          if (code === "DeviceNotRegistered") {
+            if (batch[index]) invalidTokens.push(batch[index].to);
+            return;
           }
+          const group = refused.get(code) ?? { count: 0, message: ticket.message ?? "" };
+          group.count += 1;
+          refused.set(code, group);
         });
+        for (const [code, { count, message }] of refused) {
+          this.log(`Expo Push recusou ${count} ${count === 1 ? "mensagem" : "mensagens"}: ${code}${message ? ` (${message})` : ""}`);
+        }
       } catch (error) {
         this.log("Falha ao falar com o Expo Push", error);
       }

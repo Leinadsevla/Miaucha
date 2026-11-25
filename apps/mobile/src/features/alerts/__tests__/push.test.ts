@@ -79,13 +79,17 @@ describe("registerForPush", () => {
     expect(notifications.calls).not.toContain("requestPermissions");
   });
 
-  it("erro do módulo ou da API vira status de erro (nunca lança)", async () => {
+  it("erro do módulo ou da API vira status de erro com a etapa e o motivo (nunca lança)", async () => {
     const notifications = fakeNotifications({
       getExpoPushTokenAsync: async () => {
         throw new Error("Fetching the token failed");
       },
     });
-    expect(await registerForPush({ env: devBuild, notifications, register: async () => {} })).toEqual({ kind: "error" });
+    expect(await registerForPush({ env: devBuild, notifications, register: async () => {} })).toEqual({
+      kind: "error",
+      step: "token",
+      detail: "Fetching the token failed",
+    });
     const ok = fakeNotifications();
     expect(
       await registerForPush({
@@ -95,7 +99,7 @@ describe("registerForPush", () => {
           throw new Error("sem rede");
         },
       }),
-    ).toEqual({ kind: "error" });
+    ).toEqual({ kind: "error", step: "register", detail: "sem rede" });
   });
 });
 
@@ -105,7 +109,12 @@ describe("pushStatusMessage", () => {
     expect(pushStatusMessage({ kind: "unavailable", reason: "expo-go-android" })).toMatch(/Expo Go.*development build/);
     expect(pushStatusMessage({ kind: "unavailable", reason: "no-project" })).toMatch(/EAS/);
     expect(pushStatusMessage({ kind: "denied" })).toMatch(/configurações/);
-    expect(pushStatusMessage({ kind: "error" })).toMatch(/Não foi possível/);
+    expect(pushStatusMessage({ kind: "error", step: "token", detail: "Default FirebaseApp is not initialized" })).toBe(
+      "O aparelho não gerou o token de notificação (Default FirebaseApp is not initialized). Os alertas continuam aparecendo na aba Alertas.",
+    );
+    expect(pushStatusMessage({ kind: "error", step: "register", detail: "sem rede" })).toBe(
+      "Não foi possível salvar este aparelho para receber notificações (sem rede). Tentamos de novo quando você voltar ao app.",
+    );
     expect(pushStatusMessage({ kind: "unavailable", reason: "web" })).toMatch(/aparece na aba Alertas/);
   });
 });

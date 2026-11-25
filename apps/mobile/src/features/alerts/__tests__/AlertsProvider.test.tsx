@@ -94,6 +94,24 @@ describe("AlertsProvider", () => {
     expect(s.deps.getLocation).toHaveBeenCalledTimes(2);
   });
 
+  it("push que falhou (ex.: API acordando) tenta de novo ao voltar para o primeiro plano", async () => {
+    const s = setup();
+    s.registerPushToken.mockRejectedValueOnce(new Error("tempo esgotado"));
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    expect(await screen.findByText(/Não foi possível salvar este aparelho/)).toBeOnTheScreen();
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(await screen.findByText("Notificações ativas neste aparelho.")).toBeOnTheScreen();
+    expect(s.registerPushToken).toHaveBeenCalledTimes(2);
+  });
+
+  it("push já registrado não registra de novo ao voltar para o primeiro plano", async () => {
+    const s = setup();
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    await screen.findByText("Notificações ativas neste aparelho.");
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(s.registerPushToken).toHaveBeenCalledTimes(1);
+  });
+
   it("AL-08: tocar na notificação abre a ocorrência e marca o alerta como visto", async () => {
     const s = setup();
     await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);

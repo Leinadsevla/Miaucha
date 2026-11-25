@@ -15,7 +15,10 @@ export type PushStatus =
   | { kind: "registered"; token: string }
   | { kind: "unavailable"; reason: Exclude<PushAvailability, "ok"> }
   | { kind: "denied" }
-  | { kind: "error" };
+  /** `step`: onde falhou (gerar o token no aparelho ou salvar na API); `detail`: a mensagem do erro. */
+  | { kind: "error"; step: "token" | "register"; detail: string };
+
+const errorDetail = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 type Permission = { granted: boolean; canAskAgain: boolean };
 
@@ -50,6 +53,7 @@ export async function registerForPush({
 }): Promise<PushStatus> {
   const availability = pushAvailability(env);
   if (availability !== "ok") return { kind: "unavailable", reason: availability };
+  let token: string;
   try {
     if (env.os === "android") {
       await notifications.setNotificationChannelAsync(ALERT_CHANNEL_ID, { name: "Alertas de pets por perto", importance: ANDROID_IMPORTANCE_HIGH });
@@ -57,12 +61,16 @@ export async function registerForPush({
     let permission = await notifications.getPermissionsAsync();
     if (!permission.granted && permission.canAskAgain) permission = await notifications.requestPermissionsAsync();
     if (!permission.granted) return { kind: "denied" };
-    const { data: token } = await notifications.getExpoPushTokenAsync({ projectId: env.projectId! });
-    await register(token);
-    return { kind: "registered", token };
-  } catch {
-    return { kind: "error" };
+    ({ data: token } = await notifications.getExpoPushTokenAsync({ projectId: env.projectId! }));
+  } catch (error) {
+    return { kind: "error", step: "token", detail: errorDetail(error) };
   }
+  try {
+    await register(token);
+  } catch (error) {
+    return { kind: "error", step: "register", detail: errorDetail(error) };
+  }
+  return { kind: "registered", token };
 }
 
 export function pushStatusMessage(status: PushStatus): string {
@@ -72,7 +80,9 @@ export function pushStatusMessage(status: PushStatus): string {
     case "denied":
       return "As notificações estão bloqueadas. Libere nas configurações do aparelho para receber alertas na hora.";
     case "error":
-      return "Não foi possível ativar as notificações agora. Os alertas continuam aparecendo na aba Alertas.";
+      return status.step === "token"
+        ? `O aparelho não gerou o token de notificação (${status.detail}). Os alertas continuam aparecendo na aba Alertas.`
+        : `Não foi possível salvar este aparelho para receber notificações (${status.detail}). Tentamos de novo quando você voltar ao app.`;
     case "unavailable":
       switch (status.reason) {
         case "expo-go-android":
