@@ -47,7 +47,7 @@ cd apps/mobile && npx eas-cli build -p android --profile preview      # APK para
 - `jest-expo` 58 exige Jest 30.
 - Jest usa o build CJS do Lucide via `moduleNameMapper` (o ESM `.mjs` não é transformado). Não coloque `lucide-react-native` no `transformIgnorePatterns`: deixa os testes muito lentos.
 - pnpm 12 usa links isolados (o `.npmrc` com `node-linker` é ignorado). Por isso `react-native-css-interop` é dependência direta do app; sem ele o Metro não acha `react-native-css-interop/jsx-runtime`.
-- Pelo mesmo motivo, `babel-preset-expo` é dependência direta do app. Sem ele o `expo start` funciona, mas o bundle de release (build `preview`/`production` no EAS e o `eas update`) falha com "Cannot find module 'babel-preset-expo'" (o `importExportStatic` do Metro). Para validar sem aparelho: `CI=1 npx expo export --experimental-bundle --platform=android --clear`.
+- Pelo mesmo motivo, `babel-preset-expo` e `@babel/plugin-transform-react-jsx` (pedido pelo babel do NativeWind) são dependências diretas do app. O `npx expo` esconde a falta deles (o atalho do pnpm põe a pasta interna no `NODE_PATH`), mas o build de release no EAS (Gradle, `createBundleReleaseJsAndAssets`) e o `eas update` chamam o `node` direto e falham com "Cannot find module". Para validar como o EAS: `env -u NODE_PATH CI=1 node node_modules/expo/bin/cli export --experimental-bundle --platform=android --clear` em `apps/mobile`.
 - `eas update` precisa de `--environment` no modo não interativo e de `--platform android` (o app não tem `react-native-web`; o export "all" falha no web).
 - `pnpm-workspace.yaml` tem `minimumReleaseAgeExclude` para pacotes do Expo publicados há pouco; o pnpm adiciona isso sozinho.
 - No Expo Router 58, o `tabBar` recebe `navigateToTab(routeKey)` e não `navigation`.
