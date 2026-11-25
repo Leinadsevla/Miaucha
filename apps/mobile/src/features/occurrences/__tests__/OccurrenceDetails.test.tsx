@@ -20,8 +20,8 @@ const thor: PublicOccurrence = {
   createdAt: "2026-11-20T09:00:00Z",
 };
 
-async function setup(data: Partial<PublicOccurrence> = {}, extra: { resolving?: boolean } = {}) {
-  const handlers = { onBack: jest.fn(), onDirections: jest.fn(), onResolve: jest.fn() };
+async function setup(data: Partial<PublicOccurrence> = {}, extra: { resolving?: boolean; chatLoading?: boolean; chatError?: string } = {}) {
+  const handlers = { onBack: jest.fn(), onDirections: jest.fn(), onResolve: jest.fn(), onChat: jest.fn() };
   await render(<OccurrenceDetails occurrence={{ ...thor, ...data }} now={now} {...handlers} {...extra} />);
   return handlers;
 }
@@ -55,10 +55,23 @@ describe("OccurrenceDetails", () => {
     expect(onDirections).toHaveBeenCalledWith({ lat: -23.562, lng: -46.657 });
   });
 
-  it("'Conversar' fica desabilitado até a fase do chat", async () => {
-    await setup();
+  it("'Conversar' abre o chat com quem registrou, pelo pseudônimo (CH-01)", async () => {
+    const { onChat } = await setup();
+    expect(screen.getByText("Converse com Tutor Laranja 42 sem expor seu contato")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Conversar" }));
+    expect(onChat).toHaveBeenCalled();
+  });
+
+  it("'Conversar' fica desabilitado para o próprio autor", async () => {
+    const { onChat } = await setup({ isMine: true });
     expect(screen.getByRole("button", { name: "Conversar" })).toBeDisabled();
-    expect(screen.getByText("Chat em breve")).toBeOnTheScreen();
+    expect(screen.getByText("Esta ocorrência é sua: as conversas aparecem na aba Chat")).toBeOnTheScreen();
+    expect(onChat).not.toHaveBeenCalled();
+  });
+
+  it("mostra o erro ao abrir o chat", async () => {
+    await setup({}, { chatError: "Esta ocorrência não está mais aberta" });
+    expect(screen.getByText("Esta ocorrência não está mais aberta")).toBeOnTheScreen();
   });
 
   it("o autor pode marcar como resolvido", async () => {

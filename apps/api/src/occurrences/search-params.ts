@@ -1,10 +1,10 @@
-import { MAX_SEARCH_RADIUS_KM, OCCURRENCE_TYPES, isValidLatLng, type OccurrenceType, type Species } from "@miaucha/shared";
+import { MAX_SEARCH_RADIUS_KM, OCCURRENCE_TYPES, isSpeciesFilter, isValidLatLng, type OccurrenceType, type SpeciesFilter } from "@miaucha/shared";
 
 export type SearchArea =
   | { kind: "radius"; lat: number; lng: number; radiusMeters: number }
   | { kind: "bbox"; minLng: number; minLat: number; maxLng: number; maxLat: number };
 
-export type SearchFilters = { type?: OccurrenceType; species?: Species; sinceDays?: number };
+export type SearchFilters = { type?: OccurrenceType; species?: SpeciesFilter; sinceDays?: number };
 
 export type OccurrenceSearch = { area: SearchArea; filters: SearchFilters };
 
@@ -31,7 +31,7 @@ function parseFilters(query: Record<string, unknown>): SearchFilters | { error: 
   }
   const species = param(query, "species");
   if (species !== undefined) {
-    if (species !== "dog" && species !== "cat") return { error: "Espécie inválida" };
+    if (!isSpeciesFilter(species)) return { error: "Espécie inválida" };
     filters.species = species;
   }
   const sinceDays = param(query, "sinceDays");

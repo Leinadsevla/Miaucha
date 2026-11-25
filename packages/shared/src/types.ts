@@ -1,6 +1,7 @@
+import type { Species } from "./species";
 import type { OccurrenceType } from "./theme";
 
-export type Species = "dog" | "cat";
+export type { Species } from "./species";
 
 export type OccurrenceStatus = "open" | "resolved";
 

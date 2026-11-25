@@ -1,14 +1,21 @@
-import { distanceMeters, publicPoint, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
+import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceType, type PublicOccurrence, type Species, type SpeciesFilter } from "@miaucha/shared";
 import type { ApiSession } from "@/features/auth/apiSession";
+import { bboxParam, type BBox } from "@/features/map/region";
 import { uploadPhotoVia, type Uploader } from "@/features/pets/petsClient";
 import { checkPhoto, type PickedPhoto } from "@/features/pets/photos";
 
 export type NearbyQuery = { lat: number; lng: number; radiusKm: number };
+/** Filtros aceitos pelas buscas da API (MP-05). */
+export type SearchFilters = { type?: OccurrenceType; species?: SpeciesFilter; sinceDays?: number };
+/** Busca pela área visível do mapa (MP-02). */
+export type AreaQuery = SearchFilters & { bbox: BBox };
 export type OccurrencePhoto = { id: string; url: string };
 
 export type OccurrencesClient = {
   /** Ocorrências abertas perto de um ponto, com `distanceMeters` (MP-02). */
   nearby(query: NearbyQuery): Promise<PublicOccurrence[]>;
+  /** Ocorrências abertas dentro de uma área do mapa, sem `distanceMeters` (MP-02). */
+  inArea(query: AreaQuery): Promise<PublicOccurrence[]>;
   get(id: string): Promise<PublicOccurrence>;
   listMine(): Promise<PublicOccurrence[]>;
   create(input: OccurrenceInput): Promise<PublicOccurrence>;
@@ -20,6 +27,13 @@ export function createHttpOccurrencesClient({ session, upload }: { session: ApiS
   return {
     nearby: ({ lat, lng, radiusKm }) =>
       session.authed<PublicOccurrence[]>("GET", `/occurrences?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`),
+    inArea: ({ bbox, type, species, sinceDays }) => {
+      const params = [`bbox=${bboxParam(bbox)}`];
+      if (type) params.push(`type=${type}`);
+      if (species) params.push(`species=${species}`);
+      if (sinceDays !== undefined) params.push(`sinceDays=${sinceDays}`);
+      return session.authed<PublicOccurrence[]>("GET", `/occurrences?${params.join("&")}`);
+    },
     get: (id) => session.authed<PublicOccurrence>("GET", `/occurrences/${encodeURIComponent(id)}`),
     listMine: () => session.authed<PublicOccurrence[]>("GET", "/me/occurrences"),
     create: (input) => session.authed<PublicOccurrence>("POST", "/occurrences", input),
@@ -60,6 +74,11 @@ function sampleOccurrences(lat: number, lng: number): PublicOccurrence[] {
 export function createMockOccurrencesClient({ seed = true }: { seed?: boolean } = {}): OccurrencesClient {
   const items: PublicOccurrence[] = [];
   let seeded = !seed;
+  const seedAround = (lat: number, lng: number) => {
+    if (seeded) return;
+    items.push(...sampleOccurrences(lat, lng));
+    seeded = true;
+  };
   const find = (id: string) => {
     const found = items.find((o) => o.id === id);
     if (!found) throw new Error("Ocorrência não encontrada");
@@ -67,14 +86,20 @@ export function createMockOccurrencesClient({ seed = true }: { seed?: boolean } 
   };
   return {
     async nearby({ lat, lng, radiusKm }) {
-      if (!seeded) {
-        items.push(...sampleOccurrences(lat, lng));
-        seeded = true;
-      }
+      seedAround(lat, lng);
       return items
         .filter((o) => o.status === "open")
         .map((o) => ({ ...o, distanceMeters: Math.round(distanceMeters({ lat, lng }, o.publicLocation)) }))
         .filter((o) => o.distanceMeters <= radiusKm * 1000)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+    async inArea({ bbox, type, species, sinceDays }) {
+      seedAround((bbox.minLat + bbox.maxLat) / 2, (bbox.minLng + bbox.maxLng) / 2);
+      return items
+        .filter((o) => o.status === "open")
+        .filter(({ publicLocation: p }) => p.lng >= bbox.minLng && p.lng <= bbox.maxLng && p.lat >= bbox.minLat && p.lat <= bbox.maxLat)
+        .filter((o) => (!type || o.type === type) && (!species || o.species === species))
+        .filter((o) => sinceDays === undefined || Date.now() - new Date(o.createdAt).getTime() <= sinceDays * DAY)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
     get: async (id) => find(id),

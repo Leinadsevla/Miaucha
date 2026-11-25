@@ -61,6 +61,24 @@ describe("HomeScreen (aba Início)", () => {
     expect(screen.getByRole("button", { name: "30 km" })).toBeSelected();
   });
 
+  it("'Ver no mapa' abre o mapa", async () => {
+    const { props } = setup();
+    const onOpenMap = jest.fn();
+    await render(<HomeScreen {...props} onOpenMap={onOpenMap} />);
+    await screen.findByText("Pet 1");
+    await fireEvent.press(screen.getByRole("button", { name: "Ver no mapa" }));
+    expect(onOpenMap).toHaveBeenCalled();
+  });
+
+  it("mostra as ocorrências em grade de duas colunas (não numa lista horizontal)", async () => {
+    const { props } = setup();
+    await render(<HomeScreen {...props} />);
+    await screen.findByText("Pet 1");
+    const grid = screen.getByTestId("nearby-grid");
+    expect(grid).toHaveStyle({ flexDirection: "row", flexWrap: "wrap" });
+    expect(screen.getAllByRole("button", { name: /, (Perdido|Avistado|Encontrado)$/ })).toHaveLength(3);
+  });
+
   it("a faixa conta só os perdidos", async () => {
     const { props } = setup();
     await render(<HomeScreen {...props} />);
@@ -95,7 +113,7 @@ describe("HomeScreen (aba Início)", () => {
     await render(<HomeScreen {...props} />);
     await fireEvent.press(await screen.findByRole("button", { name: "Pet 3, Perdido" }));
     expect(props.onOpen).toHaveBeenCalledWith("3");
-    await fireEvent.press(screen.getByRole("button", { name: "Registrar pet perdido" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Registrar ocorrência" }));
     expect(props.onRegister).toHaveBeenCalled();
   });
 

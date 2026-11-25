@@ -7,13 +7,15 @@ import {
   validateOccurrence,
   type OccurrenceInput,
   type PublicOccurrence,
+  isSpecies,
   type Species,
 } from "@miaucha/shared";
 import type { Pool } from "pg";
+import type { AlertQueue } from "../alerts/alert-queue";
 import { transaction } from "../db/transaction";
 import type { PhotoStorage } from "../storage/photo-storage";
 import { PhotoUploads, UUID_RE } from "../storage/photo-uploads";
-import { PG_POOL, PHOTO_STORAGE } from "../tokens";
+import { ALERT_QUEUE, PG_POOL, PHOTO_STORAGE } from "../tokens";
 import type { OccurrenceSearch } from "./search-params";
 
 type OccurrenceRow = {
@@ -54,6 +56,7 @@ export class OccurrencesService {
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
     @Inject(PHOTO_STORAGE) storage: PhotoStorage,
+    @Inject(ALERT_QUEUE) private readonly alertQueue: AlertQueue,
   ) {
     this.photos = new PhotoUploads(pool, storage, {
       photosTable: "occurrence_photos",
@@ -108,6 +111,8 @@ export class OccurrencesService {
       }
       return rows[0].id;
     });
+    // AL-01: o disparo dos alertas roda depois, sem segurar a resposta.
+    this.alertQueue.occurrenceCreated(id);
     return this.findPublic(authorId, id);
   }
 
@@ -122,7 +127,7 @@ export class OccurrencesService {
     if (!pet) throw petNotFound();
     return {
       ...input,
-      species: input.species === "dog" || input.species === "cat" ? input.species : pet.species,
+      species: isSpecies(input.species) ? input.species : pet.species,
       petName: input.petName.trim() || pet.name,
       breed: input.breed.trim() || (pet.breed ?? ""),
       color: input.color.trim() || (pet.color ?? ""),
@@ -164,7 +169,8 @@ export class OccurrencesService {
       );
     }
     if (filters.type) where.push(`o.type = ${p(filters.type)}`);
-    if (filters.species) where.push(`o.species = ${p(filters.species)}`);
+    if (filters.species === "others") where.push(`o.species not in ('dog', 'cat')`);
+    else if (filters.species) where.push(`o.species = ${p(filters.species)}`);
     if (filters.sinceDays) where.push(`o.created_at > now() - make_interval(days => ${p(filters.sinceDays)})`);
 
     const { rows } = await this.pool.query<OccurrenceRow>(

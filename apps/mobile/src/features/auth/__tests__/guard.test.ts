@@ -44,4 +44,9 @@ describe("redirectTarget", () => {
     expect(redirectTarget("/forgot-password", "/")).toBe("/");
     expect(redirectTarget("/forgot-password", "/splash")).toBe("/splash");
   });
+
+  it("tutorial de boas-vindas: aberto para quem está no app; quem saiu vai para o login", () => {
+    expect(redirectTarget("/welcome", "/")).toBeNull();
+    expect(redirectTarget("/welcome", "/login")).toBe("/login");
+  });
 });
