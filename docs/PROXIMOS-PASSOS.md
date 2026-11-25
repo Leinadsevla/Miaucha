@@ -310,3 +310,9 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 ## Para começar uma sessão nova com o Claude
 
 > Leia `CLAUDE.md` e `docs/PROXIMOS-PASSOS.md`. Vamos fazer o passo N em TDD, numa branch nova.
+
+### "Vi este pet" (`feat/vi-este-pet`)
+
+- [x] Botão "Vi este pet" no detalhe de um pet perdido (aberto, de outra pessoa): abre o registro já como avistado, com espécie, nome, raça e cor do pet.
+- [x] API: `POST /occurrences` aceita `sightingOf` (só para `seen`, apontando para um `lost` aberto de outra pessoa; migração `009_sightings.sql`). O disparo avisa o tutor em qualquer distância e mesmo no horário de silêncio, com o push "Alguém viu o Thor!"; o alerta genérico de proximidade não repete para ele.
+- [ ] Testar no aparelho com duas contas.

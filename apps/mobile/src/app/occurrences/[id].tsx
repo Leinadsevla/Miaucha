@@ -76,6 +76,7 @@ export default function OccurrenceDetailsRoute() {
         resolving={resolving}
         resolveError={resolveError}
         onChat={() => void openChat()}
+        onReportSighting={() => router.push({ pathname: "/occurrences/new", params: { sightingOf: occurrence.id } })}
         chatLoading={chatLoading}
         chatError={chatError}
       />

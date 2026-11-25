@@ -17,7 +17,7 @@ import type { Pool } from "pg";
 import type { PhotoStorage } from "../storage/photo-storage";
 import { UUID_RE } from "../storage/photo-uploads";
 import { PG_POOL, PHOTO_STORAGE, PUSH_SENDER } from "../tokens";
-import { buildAlertPush } from "./alert-params";
+import { buildAlertPush, buildSightingPush } from "./alert-params";
 import type { PushSender } from "./push-sender";
 
 /** Localização mais antiga que isto não recebe alertas (o usuário pode ter se mudado). */
@@ -175,6 +175,8 @@ export class AlertsService {
     );
     const occurrence = occ[0];
     if (!occurrence) return;
+    // Primeiro o tutor do pet avistado: o alerta dele é o específico, e o `unique` impede o genérico depois.
+    await this.notifyOwnerOfSighting(occurrenceId);
 
     const cells = geohashWithNeighbors(encodeGeohash(occurrence.lat, occurrence.lng, 4));
     const { rows: created } = await this.pool.query<{
@@ -242,6 +244,60 @@ export class AlertsService {
     const { invalidTokens } = await this.push.send(messages);
     const pushedAlerts = [...new Set(tokens.filter((t) => !invalidTokens.includes(t.token)).map((t) => byUser.get(t.user_id)!.id))];
     await this.pool.query("update alerts set pushed = true where id = any($1::uuid[])", [pushedAlerts]);
+    if (invalidTokens.length > 0) await this.pool.query("delete from push_tokens where token = any($1::text[])", [invalidTokens]);
+  }
+
+  /**
+   * "Vi este pet": o tutor do pet perdido recebe o alerta em qualquer distância e mesmo no horário de
+   * silêncio (é o aviso que ele está esperando). A distância é entre os dois pontos públicos.
+   */
+  private async notifyOwnerOfSighting(sightingId: string): Promise<void> {
+    const { rows } = await this.pool.query<{
+      alert_id: string;
+      owner_id: string;
+      pet_name: string | null;
+      species: Species;
+      approx_address: string | null;
+      distance_meters: number;
+    }>(
+      `with s as (
+         select s.id, s.approx_address, l.author_id as owner_id, l.pet_name, l.species,
+                round(st_distance(s.public_location, l.public_location))::int as distance_meters
+           from occurrences s join occurrences l on l.id = s.sighting_of
+          where s.id = $1 and l.status = 'open'
+       ),
+       inserted as (
+         insert into alerts (user_id, occurrence_id, distance_meters)
+         select owner_id, id, distance_meters from s
+         on conflict (user_id, occurrence_id) do nothing
+         returning id
+       )
+       select i.id as alert_id, s.owner_id, s.pet_name, s.species, s.approx_address, s.distance_meters
+         from inserted i cross join s`,
+      [sightingId],
+    );
+    const sighting = rows[0];
+    if (!sighting) return;
+    const { rows: tokens } = await this.pool.query<{ token: string }>("select token from push_tokens where user_id = $1", [sighting.owner_id]);
+    if (tokens.length === 0) return;
+    const { invalidTokens } = await this.push.send(
+      tokens.map(({ token }) =>
+        buildSightingPush(
+          {
+            occurrenceId: sightingId,
+            alertId: sighting.alert_id,
+            petName: sighting.pet_name,
+            species: sighting.species,
+            approxAddress: sighting.approx_address,
+            distanceMeters: sighting.distance_meters,
+          },
+          token,
+        ),
+      ),
+    );
+    if (tokens.some((t) => !invalidTokens.includes(t.token))) {
+      await this.pool.query("update alerts set pushed = true where id = $1", [sighting.alert_id]);
+    }
     if (invalidTokens.length > 0) await this.pool.query("delete from push_tokens where token = any($1::text[])", [invalidTokens]);
   }
 }

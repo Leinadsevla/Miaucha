@@ -37,6 +37,8 @@ export type OccurrenceFormProps = {
   initial?: Partial<Values>;
   /** Registro a partir de um pet do usuário: a API completa os dados e reaproveita as fotos dele. */
   fromPet?: SelectedPet;
+  /** "Vi este pet": o tipo fica fixo em avistado e a API avisa o tutor do pet perdido. */
+  sightingOf?: { id: string; petName: string };
   /** Pets do usuário, para escolher em "Perdi meu pet". */
   myPets?: MyPet[];
   /** Procura um endereço digitado e devolve o ponto (ou null se não achou). */
@@ -76,6 +78,7 @@ export function OccurrenceForm({
   onPickPhotos,
   initial,
   fromPet,
+  sightingOf,
   myPets = [],
   onGeocode,
   loading,
@@ -160,6 +163,7 @@ export function OccurrenceForm({
       description: values.description.trim(),
       ...coords,
       ...(selectedPet ? { petId: selectedPet.id } : {}),
+      ...(sightingOf ? { sightingOf: sightingOf.id } : {}),
     };
     const found = validateOccurrence(input);
     setErrors(found);
@@ -169,32 +173,41 @@ export function OccurrenceForm({
 
   return (
     <View className="gap-4">
-      <Card>
-        <SectionLabel>O que aconteceu?</SectionLabel>
-        <View className="gap-2">
-          {TYPES.map(({ value, label, icon: Icon }) => {
-            const selected = values.type === value;
-            const { color } = occurrenceStyle(value);
-            return (
-              <Pressable
-                key={value}
-                accessibilityRole="button"
-                accessibilityLabel={label}
-                accessibilityState={{ selected }}
-                onPress={() => chooseType(value)}
-                className="flex-row items-center gap-3 rounded-2xl border-2 px-4 py-3"
-                style={{ borderColor: selected ? color : colors.border, backgroundColor: selected ? `${color}14` : colors.card }}
-              >
-                <Icon size={18} color={selected ? color : colors.mutedForeground} />
-                <Text className="font-nunito-bold text-sm" style={{ color: selected ? color : colors.mutedForeground }}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
+      {sightingOf ? (
+        <View className="flex-row items-start gap-2 rounded-2xl bg-primary-soft p-3">
+          <Eye size={16} color={colors.primary} />
+          <Text className="flex-1 font-nunito-semibold text-xs text-foreground">
+            {`Você viu ${sightingOf.petName}. O tutor recebe um aviso na hora, com a região aproximada de onde você está.`}
+          </Text>
         </View>
-        {errors.type ? <Text className="mt-1 font-nunito-semibold text-xs text-lost">{errors.type}</Text> : null}
-      </Card>
+      ) : (
+        <Card>
+          <SectionLabel>O que aconteceu?</SectionLabel>
+          <View className="gap-2">
+            {TYPES.map(({ value, label, icon: Icon }) => {
+              const selected = values.type === value;
+              const { color } = occurrenceStyle(value);
+              return (
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected }}
+                  onPress={() => chooseType(value)}
+                  className="flex-row items-center gap-3 rounded-2xl border-2 px-4 py-3"
+                  style={{ borderColor: selected ? color : colors.border, backgroundColor: selected ? `${color}14` : colors.card }}
+                >
+                  <Icon size={18} color={selected ? color : colors.mutedForeground} />
+                  <Text className="font-nunito-bold text-sm" style={{ color: selected ? color : colors.mutedForeground }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {errors.type ? <Text className="mt-1 font-nunito-semibold text-xs text-lost">{errors.type}</Text> : null}
+        </Card>
+      )}
 
       {values.type === "lost" && myPets.length > 0 ? (
         <Card>

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
-import { CheckCircle2, ChevronLeft, Clock, MapPin, MessageCircle, Navigation, Palette, PawPrint, UserRound } from "lucide-react-native";
+import { CheckCircle2, ChevronLeft, Clock, Eye, MapPin, MessageCircle, Navigation, Palette, PawPrint, UserRound } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, speciesLabel, formatTimeAgo, occurrenceStyle, type LatLng, type PublicOccurrence } from "@miaucha/shared";
 import { Card, PrimaryButton, SectionLabel, SpeciesIcon, StatusBadge } from "@/components";
@@ -20,6 +20,8 @@ type Props = {
   resolveError?: string;
   /** Abre (ou reabre) a conversa com quem registrou (CH-01). */
   onChat: () => void;
+  /** "Vi este pet": registrar um avistamento ligado a este pet perdido (o tutor é avisado). */
+  onReportSighting?: () => void;
   chatLoading?: boolean;
   chatError?: string;
   now?: Date;
@@ -50,6 +52,7 @@ export function OccurrenceDetails({
   resolving,
   resolveError,
   onChat,
+  onReportSighting,
   chatLoading,
   chatError,
   now = new Date(),
@@ -161,6 +164,15 @@ export function OccurrenceDetails({
               icon={<Navigation size={16} color={colors.foreground} />}
             />
           </Card>
+
+          {o.type === "lost" && !o.isMine && !resolved && onReportSighting ? (
+            <PrimaryButton
+              title="Vi este pet"
+              variant="primary"
+              onPress={onReportSighting}
+              icon={<Eye size={16} color={colors.white} />}
+            />
+          ) : null}
 
           {o.isMine && !resolved ? (
             <>

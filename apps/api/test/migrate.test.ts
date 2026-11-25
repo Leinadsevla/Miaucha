@@ -31,6 +31,7 @@ describe("runMigrations", () => {
       "006_chat.sql",
       "007_alerts.sql",
       "008_more_species.sql",
+      "009_sightings.sql",
     ]);
   });
 
