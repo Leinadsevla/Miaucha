@@ -104,6 +104,24 @@ describe("AlertsProvider", () => {
     expect(s.registerPushToken).toHaveBeenCalledTimes(2);
   });
 
+  it("push negado não pergunta de novo ao voltar; se liberou nas configurações, registra", async () => {
+    const s = setup();
+    let granted = false;
+    s.notifications.getPermissionsAsync = async () => ({ granted, canAskAgain: true });
+    const request = jest.fn(async () => ({ granted: false, canAskAgain: true }));
+    s.notifications.requestPermissionsAsync = request;
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    expect(await screen.findByText(/As notificações estão bloqueadas/)).toBeOnTheScreen();
+
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(request).toHaveBeenCalledTimes(1);
+
+    granted = true;
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(await screen.findByText("Notificações ativas neste aparelho.")).toBeOnTheScreen();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it("push já registrado não registra de novo ao voltar para o primeiro plano", async () => {
     const s = setup();
     await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);

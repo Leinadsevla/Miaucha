@@ -16,18 +16,22 @@ const FILTERS: { key: DistanceFilter; label: string }[] = [
   { key: "3to5", label: "3–5 km" },
 ];
 
+/** Avistamento do meu pet aparece em qualquer filtro: a distância dele é de onde o pet sumiu, não de mim. */
 export function filterAlerts(alerts: AlertItem[], filter: DistanceFilter): AlertItem[] {
   const km = (a: AlertItem) => a.distanceMeters / 1000;
-  switch (filter) {
-    case "all":
-      return alerts;
-    case "under1":
-      return alerts.filter((a) => km(a) < 1);
-    case "1to3":
-      return alerts.filter((a) => km(a) >= 1 && km(a) < 3);
-    case "3to5":
-      return alerts.filter((a) => km(a) >= 3);
-  }
+  const within = (a: AlertItem): boolean => {
+    switch (filter) {
+      case "all":
+        return true;
+      case "under1":
+        return km(a) < 1;
+      case "1to3":
+        return km(a) >= 1 && km(a) < 3;
+      case "3to5":
+        return km(a) >= 3;
+    }
+  };
+  return alerts.filter((a) => a.sighting || within(a));
 }
 
 export const alertTitle = (a: AlertItem) => a.occurrence.petName ?? `${speciesLabel(a.occurrence.species)} sem nome`;
@@ -170,10 +174,11 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
   const o = a.occurrence;
   const title = alertTitle(a);
   const details = [o.breed, o.color].filter(Boolean).join(" · ") || speciesLabel(o.species);
+  const distance = `~${formatApproxDistance(a.distanceMeters)}${a.sighting ? " de onde sumiu" : ""}`;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title}, ${formatApproxDistance(a.distanceMeters)}${a.seenAt ? "" : ", novo"}`}
+      accessibilityLabel={`${title}, ${distance.slice(1)}${a.seenAt ? "" : ", novo"}`}
       onPress={onPress}
       className="flex-row gap-3 rounded-3xl border border-border bg-card p-4 active:opacity-90"
     >
@@ -197,7 +202,7 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
         <View className="mt-2 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
             <MapPin size={11} color={colors.primary} />
-            <Text className="font-nunito-bold text-xs text-primary">~{formatApproxDistance(a.distanceMeters)}</Text>
+            <Text className="font-nunito-bold text-xs text-primary">{distance}</Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Clock size={11} color={colors.mutedForeground} />

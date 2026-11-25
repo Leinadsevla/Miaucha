@@ -336,6 +336,7 @@ describe("GET /me/alerts e POST /me/alerts/:id/seen", () => {
       id: expect.any(String),
       occurrenceId: first.id,
       distanceMeters: expect.any(Number),
+      sighting: false,
       createdAt: expect.any(String),
       seenAt: null,
       occurrence: {
@@ -399,6 +400,7 @@ describe("\"Vi este pet\": avistamento ligado a um pet perdido", () => {
 
     const alerts = await owner.alerts();
     expect(alerts.map((a) => a.occurrenceId)).toEqual([res.body.id]);
+    expect(alerts[0].sighting).toBe(true);
     expect(pushesTo(owner.pushToken)).toEqual([
       {
         to: owner.pushToken,
@@ -430,6 +432,7 @@ describe("\"Vi este pet\": avistamento ligado a um pet perdido", () => {
     const owner = await tutor();
     const witness = await tutor();
     const home = uniqueSpot();
+    await owner.at(home); // perto: nem o alerta genérico de proximidade pode chegar
     await owner.registerPush();
     const lost = await owner.create(home);
     await queue.onIdle();
@@ -443,6 +446,22 @@ describe("\"Vi este pet\": avistamento ligado a um pet perdido", () => {
     await queue.onIdle();
 
     expect(await owner.alerts()).toEqual([]);
+    expect(pushesTo(owner.pushToken)).toEqual([]);
+  });
+
+  it("tutor com alertas desligados vê o avistamento na lista, mas sem push", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.registerPush();
+    await owner.prefs({ enabled: false, radiusKm: 3, quietHours: null }).expect(200);
+    const lost = await owner.create(home);
+    await queue.onIdle();
+
+    const res = await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+
+    expect((await owner.alerts()).map((a) => a.occurrenceId)).toEqual([res.body.id]);
     expect(pushesTo(owner.pushToken)).toEqual([]);
   });
 

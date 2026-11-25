@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, type MyPet, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
-import { KeyboardScreen } from "@/components";
+import { KeyboardScreen, PrimaryButton } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
@@ -25,6 +25,8 @@ export default function NewOccurrence() {
   const [pet, setPet] = useState<MyPet | null | undefined>(petId ? undefined : null);
   // undefined = carregando o pet perdido; null = registro normal.
   const [lost, setLost] = useState<PublicOccurrence | null | undefined>(sightingOf ? undefined : null);
+  // "Vi este pet" sem conseguir carregar o pet perdido: não cai no registro comum (o tutor não seria avisado).
+  const [lostError, setLostError] = useState(false);
   const [myPets, setMyPets] = useState<MyPet[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -46,10 +48,14 @@ export default function NewOccurrence() {
     petsClient.get(petId).then(setPet, () => setPet(null));
   }, [petId, petsClient]);
 
-  useEffect(() => {
+  const loadLost = useCallback(() => {
     if (!sightingOf) return;
-    client.get(sightingOf).then(setLost, () => setLost(null));
+    setLost(undefined);
+    setLostError(false);
+    client.get(sightingOf).then(setLost, () => setLostError(true));
   }, [sightingOf, client]);
+
+  useEffect(loadLost, [loadLost]);
 
   async function save(input: OccurrenceInput, photos: PickedPhoto[]) {
     setBusy(true);
@@ -86,7 +92,14 @@ export default function NewOccurrence() {
           <Text className="font-sans text-xs text-muted-foreground">Avise quem está perto</Text>
         </View>
       </View>
-      {pet === undefined || lost === undefined ? (
+      {lostError ? (
+        <View className="gap-3 p-5">
+          <Text className="text-center font-sans text-sm text-muted-foreground">
+            Não foi possível carregar o pet perdido. Verifique sua conexão.
+          </Text>
+          <PrimaryButton title="Tentar de novo" variant="outline" onPress={loadLost} />
+        </View>
+      ) : pet === undefined || lost === undefined ? (
         <Text className="p-5 text-center font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : (
         <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>

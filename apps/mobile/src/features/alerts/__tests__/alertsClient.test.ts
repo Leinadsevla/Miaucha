@@ -30,6 +30,7 @@ const alert: AlertItem = {
   id: "a1",
   occurrenceId: "o1",
   distanceMeters: 800,
+  sighting: false,
   createdAt: "2026-11-20T12:00:00Z",
   seenAt: null,
   occurrence: {

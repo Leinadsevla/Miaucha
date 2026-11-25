@@ -1,8 +1,12 @@
 import { createHmac } from "node:crypto";
 import { encodeGeohash, publicPoint, type LatLng } from "@miaucha/shared";
 
-/** Área (geohash de 6 letras, ~1 km) em que o deslocamento de quem envia fica fixo. */
-const AREA_PRECISION = 6;
+/**
+ * Área (geohash de 7 letras, ~150 m) em que o deslocamento de quem envia fica fixo. Pequena o bastante para
+ * saber um ponto real (ex.: "estou na padaria") não revelar outros lugares da pessoa; grande o bastante para
+ * o GPS oscilando em casa cair quase sempre na mesma área e não dar vários sorteios para tirar a média.
+ */
+const AREA_PRECISION = 7;
 
 /**
  * Localização enviada no chat (CH-05): o ponto real deslocado como em MP-07, mas com o deslocamento fixo para

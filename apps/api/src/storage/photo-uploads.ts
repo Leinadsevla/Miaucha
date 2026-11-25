@@ -82,21 +82,24 @@ export class PhotoUploads {
   async confirmUpload(ownerId: string, parentId: string, photoId: string): Promise<{ id: string; url: string }> {
     const { photosTable, parentTable, parentColumn } = this.spec;
     if (!UUID_RE.test(parentId) || !UUID_RE.test(photoId)) throw this.spec.notFound();
-    const { rows } = await this.pool.query<{ object_key: string; content_type: string; uploaded: boolean }>(
-      `select ph.object_key, ph.content_type, ph.uploaded_at is not null as uploaded
-         from ${photosTable} ph join ${parentTable} p on p.id = ph.${parentColumn}
-        where ph.id = $1 and p.id = $2 and ${this.ownedBy("p.", "$3")}`,
-      [photoId, parentId, ownerId],
-    );
-    const photo = rows[0];
-    if (!photo) throw this.spec.notFound();
-    if (!photo.uploaded) {
+    // `for update`: dois confirms da mesma foto não conferem ao mesmo tempo. Sem isso, o segundo poderia copiar
+    // um pendente trocado depois da conferência do primeiro por cima da foto já aprovada.
+    const result = await transaction(this.pool, async (client) => {
+      const { rows } = await client.query<{ object_key: string; content_type: string; uploaded: boolean }>(
+        `select ph.object_key, ph.content_type, ph.uploaded_at is not null as uploaded
+           from ${photosTable} ph join ${parentTable} p on p.id = ph.${parentColumn}
+          where ph.id = $1 and p.id = $2 and ${this.ownedBy("p.", "$3")}
+          for update of ph`,
+        [photoId, parentId, ownerId],
+      );
+      const photo = rows[0];
+      if (!photo) return { notFound: true as const };
+      if (photo.uploaded) return { objectKey: photo.object_key };
       const pending = pendingKey(photo.object_key);
-      if (!(await this.storage.stat(pending))) throw new BadRequestException("A foto ainda não foi enviada");
       // A URL de PUT continua valendo até expirar: a conferência é feita na cópia, numa chave que ninguém
       // mais consegue sobrescrever. Um novo PUT só troca o arquivo pendente, que nunca é servido.
-      await this.storage.copy(pending, photo.object_key);
-      await this.storage.delete(pending);
+      // Sem o pendente, vale a cópia que já estiver lá (confirm repetido depois de uma falha no meio).
+      if (await this.storage.stat(pending)) await this.storage.copy(pending, photo.object_key);
       const stored = await this.storage.stat(photo.object_key);
       const problem = !stored
         ? "A foto ainda não foi enviada"
@@ -109,13 +112,20 @@ export class PhotoUploads {
               ? "O arquivo enviado não é uma imagem válida"
               : null;
       if (problem) {
-        await this.storage.delete(photo.object_key);
-        await this.pool.query(`delete from ${photosTable} where id = $1`, [photoId]);
-        throw new BadRequestException(problem);
+        if (stored) {
+          await this.storage.delete(photo.object_key);
+          await this.storage.delete(pending);
+          await client.query(`delete from ${photosTable} where id = $1`, [photoId]);
+        }
+        return { problem };
       }
-      await this.pool.query(`update ${photosTable} set uploaded_at = now() where id = $1`, [photoId]);
-    }
-    return { id: photoId, url: await this.signedUrl(photo.object_key) };
+      await client.query(`update ${photosTable} set uploaded_at = now() where id = $1`, [photoId]);
+      await this.storage.delete(pending);
+      return { objectKey: photo.object_key };
+    });
+    if ("notFound" in result) throw this.spec.notFound();
+    if ("problem" in result) throw new BadRequestException(result.problem);
+    return { id: photoId, url: await this.signedUrl(result.objectKey) };
   }
 
   /** Condição SQL "o registro pertence a `param`" (colunas vêm do código, nunca do cliente). */

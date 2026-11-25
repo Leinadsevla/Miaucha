@@ -108,8 +108,10 @@ export class AlertsService {
       status: "open" | "resolved";
       occurrence_created_at: Date;
       cover_key: string | null;
+      sighting: boolean;
     }>(
       `select a.id, a.occurrence_id, a.distance_meters, a.created_at, a.seen_at,
+              exists (select 1 from occurrences l where l.id = o.sighting_of and l.author_id = a.user_id) as sighting,
               o.type, o.species, o.pet_name, o.breed, o.color, o.approx_address, o.status, o.created_at as occurrence_created_at,
               (select ph.object_key from occurrence_photos ph
                 where ph.occurrence_id = o.id and ph.uploaded_at is not null order by ph.uploaded_at, ph.id limit 1) as cover_key
@@ -124,6 +126,7 @@ export class AlertsService {
         id: r.id,
         occurrenceId: r.occurrence_id,
         distanceMeters: r.distance_meters,
+        sighting: r.sighting,
         createdAt: r.created_at.toISOString(),
         seenAt: r.seen_at?.toISOString() ?? null,
         occurrence: {
@@ -197,6 +200,8 @@ export class AlertsService {
             and l.updated_at > now() - make_interval(days => $3)
             and l.user_id <> o.author_id
             and coalesce(p.enabled, true)
+            -- Quem bloqueou o autor no chat não recebe alertas das ocorrências dele.
+            and not exists (select 1 from chat_blocks b where b.blocker_id = l.user_id and b.blocked_id = o.author_id)
             and st_dwithin(st_geomfromgeohash(l.geohash)::geography, o.public_location, coalesce(p.radius_km, $4) * 1000)
        ),
        inserted as (
@@ -249,7 +254,8 @@ export class AlertsService {
 
   /**
    * "Vi este pet": o tutor do pet perdido recebe o alerta em qualquer distância e mesmo no horário de
-   * silêncio (é o aviso que ele está esperando). A distância é entre os dois pontos públicos.
+   * silêncio (é o aviso que ele está esperando). Com os alertas desligados, só na lista, sem push. A distância
+   * é entre os dois pontos públicos.
    */
   private async notifyOwnerOfSighting(sightingId: string): Promise<void> {
     const { rows } = await this.pool.query<{
@@ -259,9 +265,11 @@ export class AlertsService {
       species: Species;
       approx_address: string | null;
       distance_meters: number;
+      push_enabled: boolean;
     }>(
       `with s as (
          select s.id, s.approx_address, l.author_id as owner_id, l.pet_name, l.species,
+                coalesce((select p.enabled from alert_preferences p where p.user_id = l.author_id), true) as push_enabled,
                 round(st_distance(s.public_location, l.public_location))::int as distance_meters
            from occurrences s join occurrences l on l.id = s.sighting_of
           where s.id = $1 and l.status = 'open'
@@ -274,12 +282,13 @@ export class AlertsService {
          on conflict (user_id, occurrence_id) do nothing
          returning id
        )
-       select i.id as alert_id, s.owner_id, s.pet_name, s.species, s.approx_address, s.distance_meters
+       select i.id as alert_id, s.owner_id, s.pet_name, s.species, s.approx_address, s.distance_meters, s.push_enabled
          from inserted i cross join s`,
       [sightingId],
     );
     const sighting = rows[0];
-    if (!sighting) return;
+    // Alertas desligados: o avistamento fica na lista do tutor, mas sem push.
+    if (!sighting || !sighting.push_enabled) return;
     const { rows: tokens } = await this.pool.query<{ token: string }>("select token from push_tokens where user_id = $1", [sighting.owner_id]);
     if (tokens.length === 0) return;
     const { invalidTokens } = await this.push.send(

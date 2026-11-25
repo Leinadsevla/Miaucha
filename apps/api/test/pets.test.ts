@@ -158,6 +158,28 @@ describe("fotos do pet (upload por URL assinada)", () => {
     expect(Buffer.from(await download.arrayBuffer())).toEqual(jpeg);
   });
 
+  it("confirmar de novo depois de uma falha no meio (cópia feita, pendente já apagado) → 200", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    const pending = new URL(req.body.uploadUrl).pathname.split("/").slice(2).join("/");
+    await storage.copy(pending, pending.replace(/^pending\//, ""));
+    await storage.delete(pending);
+
+    await t.confirm(pet.id, req.body.photoId).expect(200);
+    expect((await t.myPets())[0].photos).toEqual([{ id: req.body.photoId, url: expect.any(String) }]);
+  });
+
+  it("dois confirms ao mesmo tempo → os dois 200", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    const [a, b] = await Promise.all([t.confirm(pet.id, req.body.photoId), t.confirm(pet.id, req.body.photoId)]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+  });
+
   it("no máximo 5 fotos por pet", async () => {
     const t = await tutor();
     const pet = await t.createPet();

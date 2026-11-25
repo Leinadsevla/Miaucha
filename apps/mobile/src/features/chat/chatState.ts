@@ -22,13 +22,25 @@ export async function catchUpMessages(
 ): Promise<CatchUp> {
   const collected: ChatMessage[] = [];
   let cursor: string | undefined;
-  for (let i = 0; i < maxPages; i++) {
+  // Nada na tela (primeira carga pendente ou falhou): a página mais nova basta, não há buraco a fechar.
+  const pages = known.size === 0 ? 1 : maxPages;
+  for (let i = 0; i < pages; i++) {
     const page = await fetchPage(cursor);
     collected.push(...page.messages);
-    if (!page.nextCursor || page.messages.some((m) => known.has(m.id))) return { messages: collected, reset: false };
+    if (!page.nextCursor || known.size === 0 || page.messages.some((m) => known.has(m.id))) return { messages: collected, reset: false };
     cursor = page.nextCursor;
   }
   return { messages: collected, reset: true, nextCursor: cursor ?? null };
+}
+
+/**
+ * Aplica o resultado do `catchUpMessages`. No reset, some o que é mais antigo que a última página buscada
+ * (ficou um buraco antes dela), mas fica o que chegou pelo socket ou foi enviado enquanto as páginas carregavam.
+ */
+export function applyCatchUp(current: ChatMessage[], result: CatchUp): ChatMessage[] {
+  if (!result.reset) return mergeMessages(current, result.messages);
+  const oldest = result.messages.reduce<string | null>((min, m) => (min === null || m.createdAt < min ? m.createdAt : min), null);
+  return mergeMessages(oldest === null ? [] : current.filter((m) => m.createdAt >= oldest), result.messages);
 }
 
 /** A outra pessoa leu até `readAt`: as minhas enviadas até lá ficam "lida" (CH-09). */

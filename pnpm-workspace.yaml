@@ -1,6 +1,13 @@
 packages:
   - "apps/*"
   - "packages/*"
+# O Babel procura plugins e presets a partir de apps/mobile. Com os links isolados do pnpm, os que vêm
+# de dentro de outros pacotes (nativewind, babel-preset-expo) só eram achados pelo NODE_PATH do atalho
+# `npx expo`; o EAS Build e o `eas update` chamam o node direto e falhavam. Expor o Babel na raiz resolve.
+publicHoistPattern:
+  - "@babel/*"
+  - "*babel-plugin*"
+  - "*babel-preset*"
 allowBuilds:
   '@parcel/watcher': false
   '@swc/core': false

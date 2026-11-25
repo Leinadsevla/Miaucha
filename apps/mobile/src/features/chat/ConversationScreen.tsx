@@ -9,7 +9,7 @@ import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { PickedPhoto } from "@/features/pets/photos";
 import type { ChatClient } from "./chatClient";
 import type { ChatRealtime } from "./chatRealtime";
-import { applyRead, catchUpMessages, mergeMessages } from "./chatState";
+import { applyCatchUp, applyRead, catchUpMessages, mergeMessages } from "./chatState";
 import { ConversationOptions } from "./ConversationOptions";
 import { MessageBubble } from "./MessageBubble";
 
@@ -91,12 +91,8 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
         const known = new Set(messagesRef.current.map((m) => m.id));
         catchUpMessages(known, (before) => client.messages(conversationId, before)).then((result) => {
           if (!active.current) return;
-          if (result.reset) {
-            setMessages(result.messages);
-            setNextCursor(result.nextCursor);
-          } else {
-            setMessages((current) => mergeMessages(current, result.messages));
-          }
+          setMessages((current) => applyCatchUp(current, result));
+          if (result.reset) setNextCursor(result.nextCursor);
         }, () => undefined);
       }),
     ];

@@ -9,6 +9,7 @@ const item = (id: string, data: Partial<AlertItem> = {}, occurrence: Partial<Ale
   id,
   occurrenceId: `occ-${id}`,
   distanceMeters: 800,
+  sighting: false,
   createdAt: "2026-11-20T11:00:00Z",
   seenAt: null,
   ...data,
@@ -41,6 +42,22 @@ describe("filterAlerts", () => {
     ["3to5", ["d"]],
   ] as const)("%s → %p", (filter, ids) => {
     expect(filterAlerts(alerts, filter).map((a) => a.id)).toEqual(ids);
+  });
+});
+
+describe("alerta de avistamento do meu pet", () => {
+  const sighting = item("s", { distanceMeters: 12_000, sighting: true }, { type: "seen" });
+
+  it("aparece em qualquer filtro (a distância é de onde o pet sumiu, não de mim)", () => {
+    for (const filter of ["all", "under1", "1to3", "3to5"] as const) {
+      expect(filterAlerts([sighting], filter).map((a) => a.id)).toEqual(["s"]);
+    }
+  });
+
+  it("o card diz que a distância é de onde sumiu", async () => {
+    const { props } = setup(async () => [sighting]);
+    await render(<AlertsScreen {...props} />);
+    expect(await screen.findByText("~12 km de onde sumiu")).toBeOnTheScreen();
   });
 });
 

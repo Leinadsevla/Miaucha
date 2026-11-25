@@ -1,5 +1,5 @@
 import type { ChatConversation, ChatMessage } from "@miaucha/shared";
-import { applyIncoming, applyRead, catchUpMessages, formatMessageTime, lastMessagePreview, mergeMessages, upsertConversation } from "../chatState";
+import { applyCatchUp, applyIncoming, applyRead, catchUpMessages, formatMessageTime, lastMessagePreview, mergeMessages, upsertConversation } from "../chatState";
 
 const msg = (id: string, createdAt: string, data: Partial<ChatMessage> = {}): ChatMessage => ({
   id,
@@ -127,5 +127,28 @@ describe("catchUpMessages (depois de reconectar)", () => {
   it("sem encostar no que já tinha dentro do limite de páginas → recomeça a lista do zero, com o cursor da última", async () => {
     const result = await catchUpMessages(new Set(["nao-existe"]), fetchPage, 2);
     expect(result).toEqual({ messages: all.slice(0, 60), reset: true, nextCursor: "m40" });
+  });
+});
+
+describe("catchUpMessages sem nada na tela", () => {
+  it("busca uma página só e não recomeça a lista", async () => {
+    const fetchPage = jest.fn(async () => ({ messages: [msg("a", "2026-11-20T10:00:00Z")], nextCursor: "a" }));
+    expect(await catchUpMessages(new Set(), fetchPage)).toEqual({ messages: [msg("a", "2026-11-20T10:00:00Z")], reset: false });
+    expect(fetchPage).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("applyCatchUp", () => {
+  const old = msg("old", "2026-11-20T09:00:00Z");
+  const p1 = msg("p1", "2026-11-20T10:00:00Z");
+  const p2 = msg("p2", "2026-11-20T10:05:00Z");
+  const live = msg("live", "2026-11-20T10:10:00Z");
+
+  it("sem reset junta com o que já estava", () => {
+    expect(applyCatchUp([old], { messages: [p2, p1], reset: false }).map((m) => m.id)).toEqual(["p2", "p1", "old"]);
+  });
+
+  it("com reset descarta o que é mais antigo que o buraco, mas mantém o que chegou pelo socket durante a busca", () => {
+    expect(applyCatchUp([live, old], { messages: [p2, p1], reset: true, nextCursor: "p1" }).map((m) => m.id)).toEqual(["live", "p2", "p1"]);
   });
 });

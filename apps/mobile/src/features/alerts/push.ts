@@ -46,10 +46,13 @@ export async function registerForPush({
   env,
   notifications,
   register,
+  ask = true,
 }: {
   env: PushEnvironment;
   notifications: NotificationsApi;
   register: (token: string) => Promise<void>;
+  /** false: só confere a permissão (nas novas tentativas, para não abrir o diálogo toda vez que o app volta). */
+  ask?: boolean;
 }): Promise<PushStatus> {
   const availability = pushAvailability(env);
   if (availability !== "ok") return { kind: "unavailable", reason: availability };
@@ -59,7 +62,7 @@ export async function registerForPush({
       await notifications.setNotificationChannelAsync(ALERT_CHANNEL_ID, { name: "Alertas de pets por perto", importance: ANDROID_IMPORTANCE_HIGH });
     }
     let permission = await notifications.getPermissionsAsync();
-    if (!permission.granted && permission.canAskAgain) permission = await notifications.requestPermissionsAsync();
+    if (!permission.granted && permission.canAskAgain && ask) permission = await notifications.requestPermissionsAsync();
     if (!permission.granted) return { kind: "denied" };
     ({ data: token } = await notifications.getExpoPushTokenAsync({ projectId: env.projectId! }));
   } catch (error) {

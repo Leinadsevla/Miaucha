@@ -1,4 +1,7 @@
 import {
+  ALERT_GEOHASH_PRECISION,
+  decodeGeohash,
+  encodeGeohash,
   GEOFENCE_LIMITS,
   GEOFENCE_RECALC_METERS,
   pickGeofenceRegions,
@@ -39,21 +42,15 @@ export function planGeofences({
   here,
   lastCenter,
   os,
+  previousIds,
 }: {
   occurrences: { id: string; publicLocation: LatLng }[];
   here: LatLng;
   lastCenter: LatLng | null;
   os: GeofencePlatform;
+  /** Ocorrências monitoradas hoje: se mudarem (ex.: alertas desligados), recalcula mesmo parado. */
+  previousIds?: string[];
 }): { recalculate: false } | { recalculate: true; regions: NativeRegion[] } {
-  if (!shouldRecalculateGeofences(lastCenter, here)) return { recalculate: false };
-  const recalc: NativeRegion = {
-    identifier: RECALC_REGION_ID,
-    latitude: here.lat,
-    longitude: here.lng,
-    radius: GEOFENCE_RECALC_METERS,
-    notifyOnEnter: false,
-    notifyOnExit: true,
-  };
   const nearest = pickGeofenceRegions(occurrences, here, os, { reserve: 1 }).map((r) => ({
     identifier: r.id,
     latitude: r.latitude,
@@ -62,6 +59,18 @@ export function planGeofences({
     notifyOnEnter: true,
     notifyOnExit: false,
   }));
+  const sameIds =
+    previousIds === undefined ||
+    (previousIds.length === nearest.length && nearest.every((r) => previousIds.includes(r.identifier)));
+  if (!shouldRecalculateGeofences(lastCenter, here) && sameIds) return { recalculate: false };
+  const recalc: NativeRegion = {
+    identifier: RECALC_REGION_ID,
+    latitude: here.lat,
+    longitude: here.lng,
+    radius: GEOFENCE_RECALC_METERS,
+    notifyOnEnter: false,
+    notifyOnExit: true,
+  };
   return { recalculate: true, regions: [recalc, ...nearest].slice(0, GEOFENCE_LIMITS[os]) };
 }
 
@@ -88,6 +97,8 @@ export async function nearbyGeofenceCandidates<T extends NearbyOccurrence>({
 }): Promise<T[]> {
   const prefs = await getPreferences();
   if (!prefs.enabled) return [];
-  const list = await nearby({ ...here, radiusKm: prefs.radiusKm });
+  // AL-06: a posição exata não sai do aparelho; a API só recebe o centro do geohash de ~1 km.
+  const cell = decodeGeohash(encodeGeohash(here.lat, here.lng, ALERT_GEOHASH_PRECISION)).center;
+  const list = await nearby({ ...cell, radiusKm: prefs.radiusKm });
   return list.filter((o) => o.type === "lost" && !o.isMine);
 }

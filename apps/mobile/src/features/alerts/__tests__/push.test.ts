@@ -79,6 +79,12 @@ describe("registerForPush", () => {
     expect(notifications.calls).not.toContain("requestPermissions");
   });
 
+  it("ask: false só confere a permissão, sem abrir o diálogo", async () => {
+    const notifications = fakeNotifications({ getPermissionsAsync: async () => ({ granted: false, canAskAgain: true }) });
+    expect(await registerForPush({ env: devBuild, notifications, register: async () => {}, ask: false })).toEqual({ kind: "denied" });
+    expect(notifications.calls).not.toContain("requestPermissions");
+  });
+
   it("erro do módulo ou da API vira status de erro com a etapa e o motivo (nunca lança)", async () => {
     const notifications = fakeNotifications({
       getExpoPushTokenAsync: async () => {
