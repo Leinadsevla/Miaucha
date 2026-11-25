@@ -91,12 +91,14 @@ describe("PUT /me/location (AL-06)", () => {
     const p = uniqueSpot();
     await t.at(p);
 
-    // Só as ocorrências têm colunas geográficas; nada ligado ao usuário guarda ponto.
+    // Só as ocorrências e o "minha localização" do chat têm colunas geográficas; nada da S5 guarda ponto do usuário.
+    // O ponto do chat é enviado pela própria pessoa (CH-05) e gravado já deslocado (`publicPoint`): ver chat.test.ts.
     const { rows: geoColumns } = await ctx.pool.query<{ table_name: string; column_name: string }>(
       `select table_name, column_name from information_schema.columns
         where table_schema = 'public' and udt_name in ('geography', 'geometry') order by 1, 2`,
     );
     expect(geoColumns).toEqual([
+      { table_name: "chat_messages", column_name: "location" },
       { table_name: "occurrences", column_name: "location" },
       { table_name: "occurrences", column_name: "public_location" },
     ]);

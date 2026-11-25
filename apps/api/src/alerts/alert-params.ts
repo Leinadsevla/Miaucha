@@ -7,6 +7,7 @@ import {
   type AlertPreferences,
   type AlertPreferencesErrors,
   type OccurrenceType,
+  speciesLabel,
   type Species,
 } from "@miaucha/shared";
 import type { PushMessage } from "./push-sender";
@@ -45,7 +46,6 @@ const TITLES: Record<OccurrenceType, string> = {
   found: "Pet encontrado perto de você",
 };
 
-const SPECIES = { dog: "cão", cat: "gato" } as const;
 
 export type AlertPushInput = {
   occurrenceId: string;
@@ -58,7 +58,7 @@ export type AlertPushInput = {
 };
 
 export function buildAlertPush(alert: AlertPushInput, token: string): PushMessage {
-  const species = SPECIES[alert.species];
+  const species = speciesLabel(alert.species).toLowerCase();
   const who = alert.petName ? `${alert.petName} (${species})` : `${species.charAt(0).toUpperCase()}${species.slice(1)} sem nome`;
   const parts = [who, `a ${formatApproxDistance(alert.distanceMeters)}`];
   if (alert.approxAddress) parts.push(alert.approxAddress);

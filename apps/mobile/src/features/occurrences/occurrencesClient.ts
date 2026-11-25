@@ -1,4 +1,4 @@
-import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceType, type PublicOccurrence, type Species } from "@miaucha/shared";
+import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceType, type PublicOccurrence, type Species, type SpeciesFilter } from "@miaucha/shared";
 import type { ApiSession } from "@/features/auth/apiSession";
 import { bboxParam, type BBox } from "@/features/map/region";
 import { uploadPhotoVia, type Uploader } from "@/features/pets/petsClient";
@@ -6,7 +6,7 @@ import { checkPhoto, type PickedPhoto } from "@/features/pets/photos";
 
 export type NearbyQuery = { lat: number; lng: number; radiusKm: number };
 /** Filtros aceitos pelas buscas da API (MP-05). */
-export type SearchFilters = { type?: OccurrenceType; species?: Species; sinceDays?: number };
+export type SearchFilters = { type?: OccurrenceType; species?: SpeciesFilter; sinceDays?: number };
 /** Busca pela área visível do mapa (MP-02). */
 export type AreaQuery = SearchFilters & { bbox: BBox };
 export type OccurrencePhoto = { id: string; url: string };

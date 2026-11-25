@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 
 export const HELP_TOPICS = [
-  ["Perdi meu pet. O que faço?", "Toque em \"Registrar pet perdido\" na aba Início, ou abra o pet em Meus Pets e use \"Registrar como perdido\". Quem estiver por perto recebe um alerta."],
+  ["Perdi meu pet. O que faço?", "Toque em \"Registrar ocorrência\" na aba Início, ou abra o pet em Meus Pets e use \"Registrar como perdido\". Quem estiver por perto recebe um alerta."],
   ["Como funcionam os alertas?", "Quando alguém registra um pet perdido, avistado ou encontrado dentro do raio que você escolheu (1, 3 ou 5 km), ele aparece na aba Alertas e, se as notificações estiverem ligadas, você recebe um aviso. Ajuste o raio e o horário de silêncio em Perfil → Notificações."],
   ["Minha localização fica visível?", "Não. Para os alertas guardamos só a sua região aproximada (cerca de 1 km), nunca o ponto exato nem o seu trajeto. O ponto de uma ocorrência no mapa é deslocado cerca de 150 m."],
   ["Quem vê meu nome?", "Os outros usuários veem só o seu nome público (pseudônimo), mostrado no topo do Perfil. E-mail e telefone nunca aparecem."],

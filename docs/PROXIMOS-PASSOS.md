@@ -1,6 +1,6 @@
 # Próximos passos
 
-Atualizado em 20/11/2026. Passo 2 na branch `feat/api-auth` e passo 3 (parte sem Google) na `feat/mobile-auth-http`, criada a partir dela; as duas aguardam PR, nesta ordem. A S2 (ocorrências) está na `feat/ocorrencias`, criada a partir da `feat/pets` (ver a seção "S2 · Ocorrências"). A S5 (alertas) e a aba Perfil completa estão na `feat/alertas`, criada a partir da `feat/ocorrencias` (ver "S5 · Alertas de proximidade").
+Atualizado em 22/11/2026. Os passos 2 a 4 e as sprints S2 a S5 estão em branches empilhadas, cada uma com PR aberto e criada a partir da anterior: `feat/api-auth` → `feat/mobile-auth-http` → `chore/supabase-db` → `feat/pets` → `feat/ajustes-conta-pets` → `feat/ocorrencias` → `feat/mapa` → `feat/alertas` → `feat/chat`. Mergear nessa ordem.
 
 ## Onde estamos
 
@@ -11,14 +11,14 @@ Sprint 1 (Fundação), parte do app pronta:
 | Monorepo (`apps/mobile`, `apps/api`, `packages/shared`) | Pronto |
 | Design system (tokens, Nunito, componentes base) | Pronto |
 | Telas de splash, login/cadastro, código de e-mail, consentimento, política | Prontas, com login **falso** (`createMockAuthClient`) |
-| Abas (Início, Mapa, Alertas, Chat, Perfil) | Início (S2), Mapa (S3), Alertas (S5) e Perfil prontos; Chat na S4 |
+| Abas (Início, Mapa, Alertas, Chat, Perfil) | Todas prontas: Início (S2), Mapa (S3), Chat (S4), Alertas (S5) e Perfil |
 | Docker Compose (PostGIS + Redis) | Falta |
 | CI no GitHub Actions | Falta |
 | Login real (API + Google) | E-mail e senha prontos de ponta a ponta; Google falta no app (precisa dos client IDs e do development build) |
 | Cadastro de pet com fotos (NF-05) | Pronto no código (`feat/pets`); falta criar o bucket e as chaves no Supabase |
 | Development build do Expo (EAS) | Falta |
 
-Testes: 741 passando (114 no shared, 425 no app, 202 na API), na `feat/alertas` (que já inclui o mapa). Os de integração da API precisam do Docker rodando. Ainda não houve teste num aparelho real.
+Testes: 941 passando (198 no shared, 496 no app, 247 na API), na `feat/ajustes-teste-2`. Os de integração da API precisam do Docker rodando.
 
 ## Ordem sugerida
 
@@ -45,7 +45,8 @@ Feito. Resumo do que ficou decidido e do que falta:
 - **Reenvio de código:** um por minuto por e-mail (429). E-mail desconhecido ou já verificado responde 204 sem enviar nada.
 - **Google:** liga à conta com o mesmo e-mail. Se esse cadastro ainda não estava verificado, a senha e o nome dele são descartados (evita sequestro de conta por pré-cadastro).
 - **Pendências:**
-  - [ ] Provedor de e-mail real: hoje o `ConsoleMailer` só escreve o código no log. Basta implementar a interface `Mailer` (`apps/api/src/mail/mailer.ts`).
+  - [x] Provedor de e-mail: `GmailApiMailer` (API do Gmail por HTTPS, conta Gmail do projeto, sem domínio) quando as variáveis `GMAIL_*` existem; senão `ResendMailer` com `RESEND_API_KEY`; senão o `ConsoleMailer` escreve o código no log.
+- [ ] Criar o projeto no Google Cloud, gerar as credenciais e o refresh token (`pnpm gmail:authorize`) e configurar no Render. Ver `docs/DEPLOY-RENDER.md`.
   - [ ] Em produção atrás de proxy (Railway/Render), configurar `trust proxy` no Express para o rate limit enxergar o IP real.
   - [ ] Rate limit em memória: com mais de uma instância da API, trocar o storage do throttler por Redis.
 
@@ -170,6 +171,54 @@ Pendências:
 - [ ] Fotos no modo offline: as URLs são assinadas e expiram em 1 h; sem internet, o card mostra a foto só se o `expo-image` já a tiver em cache.
 - [ ] Teste de carga do MP-02 com k6 (continua pendente da S2).
 
+## S4 · Chat interno (`feat/chat`)
+
+Feito em TDD, a partir da `feat/ocorrencias`. API testada contra PostGIS, storage S3 e Redis reais (Testcontainers) e com `socket.io-client`; app com RNTL.
+
+**Regras puras (`packages/shared/src/chat.ts`):** `maskContactInfo` (CH-06: telefones brasileiros em vários formatos, e-mails, inclusive "arroba ... ponto com", links com e sem `http`, `www.`, `wa.me` e domínios simples; não mascara horários, valores com `R$`, datas, CEP nem microchip), `validateChatText` (até 2000 caracteres), `chatPushPreview`, motivos de denúncia e os tipos `ChatConversation`/`ChatMessage`.
+
+**API:** migração `006_chat.sql` (`conversations`, `chat_messages`, `chat_photos`, `chat_blocks`, `chat_reports`, todas com RLS). A conversa guarda o autor da ocorrência e quem puxou conversa; o par + ocorrência é único (iniciar é idempotente). Mensagens ordenadas por `seq` (identity) para o cursor ser estável. O texto já entra mascarado e a localização já entra aproximada: nem o telefone digitado nem o ponto exato chegam ao banco.
+
+| Rota | Resposta |
+| --- | --- |
+| `POST /conversations` `{ occurrenceId }` | 200 + `ChatConversation`. 400 para o próprio autor; 409 se a ocorrência foi resolvida ou expirou (a conversa que já existia continua); 403 com bloqueio entre os dois |
+| `GET /conversations` | As do usuário, da atividade mais recente para a mais antiga, com última mensagem e não lidas |
+| `GET /conversations/:id` | Uma conversa (404 para quem não participa, em todas as rotas abaixo) |
+| `GET /conversations/:id/messages?before=<id>&limit=` | `{ messages, nextCursor }`, mais novas primeiro, 30 por página |
+| `POST /conversations/:id/messages` | `{ text }`, `{ photoId }` (foto já confirmada, uma mensagem por foto) ou `{ location: { lat, lng } }` → 201 + `ChatMessage`. 403 com bloqueio |
+| `POST /conversations/:id/read` | 204; marca como lidas as recebidas |
+| `POST /conversations/:id/photos` e `.../photos/:photoId/confirm` | Mesmo fluxo e validações das fotos de pet (`PhotoUploads`, agora aceitando mais de uma coluna de dono) |
+| `POST`/`DELETE /conversations/:id/contact-consent` | Aceitar/desistir de trocar contato (CH-07). `contact.otherEmail` só vem quando os dois aceitaram e não há bloqueio (decidido no SQL) |
+| `POST`/`DELETE /conversations/:id/block` | Bloqueio vale para o par: nenhum dos dois envia, e não se abre conversa nova entre eles |
+| `POST /conversations/:id/report` `{ reason, details? }` | 204; grava em `chat_reports` com status `pending` |
+
+`ChatConversation` traz `otherPseudonym`, `iAmAuthor`, dados públicos do pet, `lastMessage`, `unreadCount`, `blockedByMe`, `canSend` e `contact { mine, theirs, otherEmail }`. `ChatMessage` traz `mine` (calculado para quem recebe), nunca o id de quem enviou.
+
+**Socket.IO (CH-03):** namespace `/chat`, handshake com `auth: { token: <access token> }` (recusado com `connect_error` "unauthorized"); a conexão cai quando o token expira e o app reconecta com o token renovado. O app só recebe eventos; tudo o que ele envia vai por HTTP (uma validação, um rate limit e o refresh do `ApiSession`). Eventos, enviados para a sala de cada participante já na visão dele:
+
+- `message:new` `{ conversationId, message }` (também para os outros aparelhos de quem enviou, com `mine: true`)
+- `message:read` `{ conversationId, readAt }` (para quem enviou)
+- `conversation:updated` `{ conversation }` (contato e bloqueio)
+
+**Redis:** só é preciso com mais de uma instância da API. Com `REDIS_URL`, o `main.ts` liga o `@socket.io/redis-adapter` (`chat/redis-io-adapter.ts`): eventos e o `fetchSockets` (usado para saber se o destinatário está online) passam a valer entre instâncias. Testado com duas instâncias em `chat-redis.test.ts`.
+
+**Push (CH-04):** quando o destinatário não tem socket conectado, o `ChatService` chama `PushSender.send({ userId, title: pseudônimo, body: trecho mascarado, data: { conversationId } })`. Hoje a implementação é o `LogPushSender` (só registra no log, sem o texto).
+
+**Rate limit (NF-04):** mensagens têm limite próprio por usuário (`CHAT_THROTTLE_LIMIT`, padrão 30 por minuto); abrir conversa, fotos e denúncia usam o limite geral por IP.
+
+**App:** `ChatClient` (HTTP e memória), `createChatRealtime` (adaptador do `socket.io-client`, só websocket, injetável; renova a sessão quando o token é recusado e reconecta quando o servidor derruba ou a rede falha no primeiro handshake), aba Chat (`ChatListScreen`: pseudônimo, pet, última mensagem, hora, não lidas, atualizada pelo socket) e tela `chat/[id]` (`ConversationScreen`: aviso fixo contra golpes, mensagens com "Lida", texto, foto da galeria, localização aproximada com "Abrir no mapa", carregar mais antigas, menu com compartilhar contato, bloquear e denunciar). O botão "Conversar" do detalhe da ocorrência abre a conversa (desabilitado para o autor). O socket conecta só com a sessão aberta (`SessionChatProvider`). Sem `EXPO_PUBLIC_API_URL`, chat em memória e nada em tempo real.
+
+Pendências:
+
+- [x] **Push real (CH-04):** `ExpoChatPushSender` envia pelo Expo Push para os tokens registrados pela S5 e apaga os inválidos; tocar na notificação abre `chat/<conversationId>`. Receber de fato exige o development build (no Expo Go Android não chega).
+- [ ] Telefone opcional no perfil (CH-07 fala em "e-mail ou telefone"); hoje só o e-mail é revelado.
+- [ ] Tela ou rotina de moderação para `chat_reports` (hoje só a fila no banco).
+- [ ] O mascaramento não pega número por extenso ("nove oito sete...") nem perfil de rede social ("@fulano").
+- [ ] Fotos do chat nunca enviadas deixam linhas em `chat_photos` (mesma limpeza pendente das fotos de pet).
+- [ ] Indicador de "digitando" e de online não existem.
+- [ ] Rodar `pnpm dev` na API para aplicar a migração `006_chat.sql` no Supabase.
+- [ ] Testar com dois aparelhos (Expo Go) e medir o tempo de entrega (CH-03 E2E); teste de carga do chat com k6.
+
 ## S5 · Alertas de proximidade (`feat/alertas`)
 
 Feito em TDD (API contra PostGIS real via Testcontainers; app com RNTL). Branch criada a partir da `feat/ocorrencias`. Migração `007_alerts.sql` (a 006 fica para o chat).
@@ -232,6 +281,20 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 - [x] Raio da aba Início escolhido pelo usuário: 1, 3, 5, 10, 20 ou 30 km (API aceita até 30).
 - [x] "Perdi meu pet" lista os pets cadastrados para escolher; os dados e as fotos do pet entram no alerta.
 - [x] Local da ocorrência: "Minha localização" ou "Outro endereço", procurado com o geocodificador do aparelho (`expo-location`), com ajuste fino arrastando o pino no mapa (`PinPicker`).
+
+### Ajustes do segundo teste no Expo Go (`feat/ajustes-teste-2`)
+
+- [x] "Como chegar" quebrava ao escolher Maps/Waze: o `Linking.openURL` era passado solto e perdia o `this`. Agora `createDeviceDirections` chama pelo objeto e, se não abrir, avisa em vez de quebrar.
+- [x] Aba Início em grade de duas colunas.
+- [x] Tipo da ocorrência em destaque: faixa colorida no topo do card e etiqueta sólida em todo o app, com cor de texto legível por tipo (`textOn` + `contrastRatio` no shared; branco não lê no amarelo nem no verde).
+- [x] "Marcar no mapa": terceira opção de local, com mapa maior em que se toca na rua; funciona sem permissão de localização.
+- [x] Busca de endereço restrita a 50 km de quem procura, com a cidade dele acrescentada ao texto quando não foi digitada.
+
+### Terceira rodada de pedidos (`feat/ajustes-teste-2`)
+
+- [x] Botão da aba Início: "Registrar ocorrência".
+- [x] Outras espécies: em "Outros", pássaro, coelho, roedor, réptil e outro animal (`SPECIES`/`speciesLabel` no shared, migração `008_more_species.sql`, filtro "Outros" no mapa e `species=others` na API).
+- [x] Tutorial de boas-vindas em 4 passos, mostrado uma vez depois do primeiro acesso (guardado no `expo-secure-store`) e revisto em Ajuda → "Ver o tutorial de novo".
 
 ## Decisões em aberto
 

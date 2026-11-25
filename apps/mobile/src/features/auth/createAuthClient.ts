@@ -1,4 +1,7 @@
 import { createHttpAlertsClient, createMockAlertsClient, type AlertsClient } from "@/features/alerts/alertsClient";
+import { createHttpChatClient, createMockChatClient, type ChatClient } from "@/features/chat/chatClient";
+import { createChatRealtime, createLocalChatRealtime, type ChatRealtime } from "@/features/chat/chatRealtime";
+import { socketIoFactory } from "@/features/chat/socketFactory";
 import { createHttpOccurrencesClient, createMockOccurrencesClient, type OccurrencesClient } from "@/features/occurrences/occurrencesClient";
 import { createFileUploader } from "@/features/pets/fileUploader";
 import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/features/pets/petsClient";
@@ -15,7 +18,15 @@ export function chooseAuthClient({ apiUrl, isDev }: { apiUrl: string | undefined
   throw new Error("EXPO_PUBLIC_API_URL não definida: um build de produção não pode usar o login falso");
 }
 
-export type AppClients = { auth: AuthClient; pets: PetsClient; occurrences: OccurrencesClient; alerts: AlertsClient; profile: ProfileClient };
+export type AppClients = {
+  auth: AuthClient;
+  pets: PetsClient;
+  occurrences: OccurrencesClient;
+  alerts: AlertsClient;
+  profile: ProfileClient;
+  chat: ChatClient;
+  chatRealtime: ChatRealtime;
+};
 
 /**
  * Clientes da API do app. Todos usam a mesma sessão, para existir um único refresh por vez.
@@ -33,6 +44,8 @@ export function createClients(): AppClients {
       occurrences,
       alerts: createMockAlertsClient(),
       profile: createMockProfileClient({ pets, occurrences }),
+      chat: createMockChatClient(),
+      chatRealtime: createLocalChatRealtime(),
     };
   }
   const storage = createSecureSessionStorage();
@@ -44,5 +57,7 @@ export function createClients(): AppClients {
     occurrences: createHttpOccurrencesClient({ session, upload }),
     alerts: createHttpAlertsClient({ session }),
     profile: createHttpProfileClient({ session }),
+    chat: createHttpChatClient({ session, upload }),
+    chatRealtime: createChatRealtime({ url: apiUrl!, session, connect: socketIoFactory }),
   };
 }

@@ -85,11 +85,13 @@ export function pushStatusMessage(status: PushStatus): string {
   }
 }
 
-export type NotificationTarget = { occurrenceId: string; alertId?: string };
+/** Para onde o toque na notificação leva: a ocorrência de um alerta (AL-08) ou a conversa de uma mensagem (CH-04). */
+export type NotificationTarget = { occurrenceId: string; alertId?: string } | { conversationId: string };
 
-/** AL-08: o `data` do push traz o `occurrenceId` (e o `alertId`, para marcar como visto). */
+/** AL-08: o `data` do push traz o `occurrenceId` (e o `alertId`, para marcar como visto); CH-04 traz o `conversationId`. */
 export function notificationTarget(data: unknown): NotificationTarget | null {
-  const d = data as { occurrenceId?: unknown; alertId?: unknown } | null | undefined;
+  const d = data as { occurrenceId?: unknown; alertId?: unknown; conversationId?: unknown } | null | undefined;
+  if (typeof d?.conversationId === "string" && d.conversationId) return { conversationId: d.conversationId };
   if (typeof d?.occurrenceId !== "string" || !d.occurrenceId) return null;
   return typeof d.alertId === "string" && d.alertId ? { occurrenceId: d.occurrenceId, alertId: d.alertId } : { occurrenceId: d.occurrenceId };
 }

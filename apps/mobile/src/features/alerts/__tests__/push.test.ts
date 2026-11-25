@@ -116,6 +116,11 @@ describe("notificationTarget (AL-08)", () => {
     expect(notificationTarget({ occurrenceId: "o1" })).toEqual({ occurrenceId: "o1" });
   });
 
+  it("mensagem nova do chat (CH-04): tira o id da conversa", () => {
+    expect(notificationTarget({ conversationId: "c1" })).toEqual({ conversationId: "c1" });
+    expect(notificationTarget({ conversationId: "" })).toBeNull();
+  });
+
   it("ignora notificação sem ocorrência ou com tipos errados", () => {
     expect(notificationTarget(undefined)).toBeNull();
     expect(notificationTarget({})).toBeNull();

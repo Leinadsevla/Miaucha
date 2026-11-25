@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ScreenHeader } from "@/components";
+import { PrimaryButton, ScreenHeader } from "@/components";
 import { HelpContent } from "@/features/profile";
 
 export default function Help() {
@@ -11,6 +11,9 @@ export default function Help() {
       <ScreenHeader title="Ajuda" subtitle="Perguntas frequentes" onBack={() => router.back()} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
         <HelpContent />
+        <View className="mt-4">
+          <PrimaryButton title="Ver o tutorial de novo" variant="outline" onPress={() => router.push("/welcome")} />
+        </View>
       </ScrollView>
     </View>
   );

@@ -14,7 +14,9 @@ import {
 import { AlertsProvider } from "@/features/alerts";
 import { createAlertsRuntimeDeps } from "@/features/alerts/runtime";
 import { AuthProvider, createClients, redirectTarget, routeFor, useAuth, type AppClients } from "@/features/auth";
+import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
+import { onboardingStore, shouldShowOnboarding } from "@/features/onboarding";
 import { PetsClientProvider } from "@/features/pets";
 import { ProfileClientProvider } from "@/features/profile";
 
@@ -38,9 +40,11 @@ export default function RootLayout() {
           <OccurrencesClientProvider client={clients.occurrences}>
             <ProfileClientProvider client={clients.profile}>
               <AlertsLayer clients={clients}>
-                <StatusBar style="light" />
-                <AuthGate />
-                <Stack screenOptions={{ headerShown: false }} />
+                <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
+                  <StatusBar style="light" />
+                  <AuthGate />
+                  <Stack screenOptions={{ headerShown: false }} />
+                </SessionChatProvider>
               </AlertsLayer>
             </ProfileClientProvider>
           </OccurrencesClientProvider>
@@ -54,11 +58,22 @@ export default function RootLayout() {
 function AuthGate() {
   const { state } = useAuth();
   const pathname = usePathname();
+  // Tutorial de boas-vindas: null enquanto lê do aparelho; mostrado uma vez ao chegar no app.
+  const [seenOnboarding, setSeenOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const to = redirectTarget(pathname, routeFor(state));
+    void onboardingStore.hasSeen().then(setSeenOnboarding);
+  }, []);
+
+  useEffect(() => {
+    const target = routeFor(state);
+    const to = redirectTarget(pathname, target);
     if (to) router.replace(to);
-  }, [state, pathname]);
+    else if (shouldShowOnboarding(pathname, target, seenOnboarding)) {
+      setSeenOnboarding(true);
+      router.push("/welcome");
+    }
+  }, [state, pathname, seenOnboarding]);
 
   return null;
 }
@@ -73,6 +88,7 @@ function AlertsLayer({ clients, children }: { clients: AppClients; children: Rea
       active={state.status === "signedIn" && state.user.hasConsent}
       deps={deps}
       onOpenOccurrence={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
+      onOpenConversation={(id) => router.push({ pathname: "/chat/[id]", params: { id } })}
     >
       {children}
     </AlertsProvider>

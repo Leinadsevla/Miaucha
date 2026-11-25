@@ -24,10 +24,32 @@ export function directionsOptions({ lat, lng }: LatLng, platform: string) {
 export function openDirections(point: LatLng, { platform, alert, openURL }: Deps) {
   const buttons: AlertButton[] = directionsOptions(point, platform).map(({ label, url }) => ({
     text: label,
-    onPress: () => void openURL(url).catch(() => {}),
+    onPress: () =>
+      void openURL(url).catch(() =>
+        alert("Não foi possível abrir o mapa", "Confira se há um app de mapas ou um navegador instalado.", [{ text: "OK" }]),
+      ),
   }));
   alert("Como chegar", "O destino é a região aproximada do registro, não o ponto exato.", [
     ...buttons,
     { text: "Cancelar", style: "cancel" },
   ]);
+}
+
+type DeviceApis = {
+  Linking: { openURL(url: string): Promise<unknown> };
+  Alert: { alert(title: string, message?: string, buttons?: AlertButton[]): void };
+  Platform: { OS: string };
+};
+
+/**
+ * "Como chegar" com as APIs do aparelho. Chama `Linking.openURL` pelo próprio objeto: passar o método
+ * solto (`openURL: Linking.openURL`) perde o `this` e quebra com "_validateURL of undefined".
+ */
+export function createDeviceDirections({ Linking, Alert, Platform }: DeviceApis) {
+  return (point: LatLng) =>
+    openDirections(point, {
+      platform: Platform.OS,
+      alert: (title, message, buttons) => Alert.alert(title, message, buttons),
+      openURL: (url) => Linking.openURL(url),
+    });
 }

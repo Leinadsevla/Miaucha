@@ -187,7 +187,7 @@ describe("OccurrenceForm: local por endereço", () => {
     await fill();
     await fireEvent.changeText(screen.getByLabelText("Endereço"), "lugar que não existe");
     await fireEvent.press(screen.getByRole("button", { name: "Procurar endereço" }));
-    expect(await screen.findByText("Não encontramos esse endereço. Tente com rua, número e cidade.")).toBeOnTheScreen();
+    expect(await screen.findByText("Não encontramos esse endereço perto de você (até 50 km). Confira rua, número e cidade.")).toBeOnTheScreen();
     await emit();
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -251,5 +251,37 @@ describe("OccurrenceForm: ajustar o ponto no mapa", () => {
     expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.555, longitude: -46.66 });
     await emit();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.555, lng: -46.66, approxAddress: "Rua Augusta, 100" }), []);
+  });
+});
+
+describe("OccurrenceForm: marcar no mapa", () => {
+  jest.setTimeout(15_000);
+  const tap = (latitude: number, longitude: number) =>
+    fireEvent.press(screen.getByTestId("pin-picker-map"), { nativeEvent: { coordinate: { latitude, longitude } } });
+
+  it("tocar na rua marca o ponto que vai no alerta", async () => {
+    const { onSubmit } = await setup();
+    await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
+    await fireEvent.press(screen.getByRole("button", { name: "Marcar no mapa" }));
+    expect(screen.queryByTestId("pin-picker-marker")).toBeNull();
+
+    await emit();
+    expect(screen.getByText("Toque no mapa para marcar o local")).toBeOnTheScreen();
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    await tap(-23.5701, -46.6402);
+    expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.5701, longitude: -46.6402 });
+    await emit();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.5701, lng: -46.6402 }), []);
+  });
+
+  it("funciona sem permissão de localização (abre na região padrão)", async () => {
+    const { onSubmit } = await setup({ location: { status: "denied", canAskAgain: false } });
+    await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
+    await fireEvent.press(screen.getByRole("button", { name: "Marcar no mapa" }));
+    expect(screen.getByTestId("pin-picker-map").props.initialRegion).toMatchObject({ latitude: -23.5505, longitude: -46.6333 });
+    await tap(-23.55, -46.63);
+    await emit();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.55, lng: -46.63 }), []);
   });
 });
