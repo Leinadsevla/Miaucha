@@ -62,3 +62,16 @@ describe("PinPicker (ajuste do pin ao registrar)", () => {
     expect(mapCommands.animateToRegion).toHaveBeenCalledWith(expect.objectContaining({ latitude: -22.9, longitude: -43.2 }), 300);
   });
 });
+
+describe("PinPicker sem ponto ainda (marcar no mapa)", () => {
+  it("abre no centro informado, sem marcador, pedindo para tocar na rua; o toque escolhe o ponto", async () => {
+    const onChange = jest.fn();
+    await render(<PinPicker value={null} center={{ lat: -23.55, lng: -46.63 }} onChange={onChange} />);
+    expect(screen.getByTestId("pin-picker-map").props.initialRegion).toMatchObject({ latitude: -23.55, longitude: -46.63 });
+    expect(screen.queryByTestId("pin-picker-marker")).toBeNull();
+    expect(screen.getByText("Toque na rua onde o pet foi visto para marcar o local.")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId("pin-picker-map"), { nativeEvent: { coordinate: { latitude: -23.551, longitude: -46.631 } } });
+    expect(onChange).toHaveBeenCalledWith({ lat: -23.551, lng: -46.631 });
+  });
+});

@@ -23,8 +23,8 @@ export type PhotoSpec = {
   parentTable: string;
   /** Coluna da tabela de fotos que aponta para o registro. */
   parentColumn: string;
-  /** Coluna do registro com o id do dono. */
-  ownerColumn: string;
+  /** Coluna do registro com o id do dono (ou várias: qualquer uma delas serve, como os dois participantes de uma conversa). */
+  ownerColumn: string | string[];
   /** Prefixo da chave no bucket (ex.: "pets" → pets/<id>/<foto>.jpg). */
   keyPrefix: string;
   maxPhotos: number;
@@ -44,7 +44,7 @@ export class PhotoUploads {
   ) {}
 
   async requestUpload(ownerId: string, parentId: string, contentType: string) {
-    const { photosTable, parentTable, parentColumn, ownerColumn, keyPrefix, maxPhotos } = this.spec;
+    const { photosTable, parentTable, parentColumn, keyPrefix, maxPhotos } = this.spec;
     if (!UUID_RE.test(parentId)) throw this.spec.notFound();
     if (!isAllowedPhotoType(contentType)) throw new BadRequestException("Envie uma foto JPG, PNG ou WebP");
 
@@ -52,7 +52,7 @@ export class PhotoUploads {
     const objectKey = `${keyPrefix}/${parentId}/${photoId}.${EXTENSIONS[contentType]}`;
     await transaction(this.pool, async (client) => {
       // `for update` serializa pedidos simultâneos para o mesmo registro (limite de fotos).
-      const parent = await client.query(`select id from ${parentTable} where id = $1 and ${ownerColumn} = $2 for update`, [
+      const parent = await client.query(`select id from ${parentTable} where id = $1 and ${this.ownedBy("", "$2")} for update`, [
         parentId,
         ownerId,
       ]);
@@ -77,12 +77,12 @@ export class PhotoUploads {
 
   /** Confere no storage o que o aparelho enviou: a URL de PUT não limita o tamanho, então o limite é aplicado aqui. */
   async confirmUpload(ownerId: string, parentId: string, photoId: string): Promise<{ id: string; url: string }> {
-    const { photosTable, parentTable, parentColumn, ownerColumn } = this.spec;
+    const { photosTable, parentTable, parentColumn } = this.spec;
     if (!UUID_RE.test(parentId) || !UUID_RE.test(photoId)) throw this.spec.notFound();
     const { rows } = await this.pool.query<{ object_key: string; content_type: string; uploaded: boolean }>(
       `select ph.object_key, ph.content_type, ph.uploaded_at is not null as uploaded
          from ${photosTable} ph join ${parentTable} p on p.id = ph.${parentColumn}
-        where ph.id = $1 and p.id = $2 and p.${ownerColumn} = $3`,
+        where ph.id = $1 and p.id = $2 and ${this.ownedBy("p.", "$3")}`,
       [photoId, parentId, ownerId],
     );
     const photo = rows[0];
@@ -107,6 +107,12 @@ export class PhotoUploads {
       await this.pool.query(`update ${photosTable} set uploaded_at = now() where id = $1`, [photoId]);
     }
     return { id: photoId, url: await this.signedUrl(photo.object_key) };
+  }
+
+  /** Condição SQL "o registro pertence a `param`" (colunas vêm do código, nunca do cliente). */
+  private ownedBy(alias: string, param: string): string {
+    const columns = Array.isArray(this.spec.ownerColumn) ? this.spec.ownerColumn : [this.spec.ownerColumn];
+    return `(${columns.map((column) => `${alias}${column} = ${param}`).join(" or ")})`;
   }
 
   signedUrl(objectKey: string): Promise<string> {

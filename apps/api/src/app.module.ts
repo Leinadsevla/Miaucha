@@ -2,19 +2,32 @@ import { type DynamicModule, type INestApplication, Inject, Module, type OnAppli
 import { JwtModule } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { Pool } from "pg";
+import { InProcessAlertQueue } from "./alerts/alert-queue";
+import { AlertsController } from "./alerts/alerts.controller";
+import { AlertsService } from "./alerts/alerts.service";
+import { ExpoPushSender, type PushSender } from "./alerts/push-sender";
 import { AccessTokenGuard } from "./auth/access-token.guard";
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
 import { GoogleAuthLibraryVerifier } from "./auth/google-verifier";
+import { ChatController } from "./chat/chat.controller";
+import { ChatGateway } from "./chat/chat.gateway";
+import { ChatService } from "./chat/chat.service";
+import { ChatThrottlerGuard } from "./chat/chat-throttler.guard";
+import { ExpoChatPushSender } from "./chat/expo-chat-push-sender";
+import { CHAT_PUSH_SENDER } from "./chat/push-sender";
 import type { AppConfig } from "./config";
 import { ConsoleMailer } from "./mail/mailer";
+import { GmailApiMailer } from "./mail/gmail-mailer";
+import { ResendMailer } from "./mail/resend-mailer";
+import { HealthController } from "./health.controller";
 import { MeController } from "./me/me.controller";
 import { OccurrencesController } from "./occurrences/occurrences.controller";
 import { OccurrencesService } from "./occurrences/occurrences.service";
 import { PetsController } from "./pets/pets.controller";
 import { PetsService } from "./pets/pets.service";
 import { S3PhotoStorage } from "./storage/s3-photo-storage";
-import { APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL, PHOTO_STORAGE } from "./tokens";
+import { ALERT_QUEUE, APP_CONFIG, GOOGLE_VERIFIER, MAILER, PG_POOL, PHOTO_STORAGE, PUSH_SENDER } from "./tokens";
 
 @Module({})
 export class AppModule implements OnApplicationShutdown {
@@ -30,17 +43,29 @@ export class AppModule implements OnApplicationShutdown {
           errorMessage: "Muitas tentativas. Espere um pouco e tente de novo.",
         }),
       ],
-      controllers: [AuthController, MeController, PetsController, OccurrencesController],
+      controllers: [HealthController, AuthController, MeController, PetsController, OccurrencesController, ChatController, AlertsController],
       providers: [
         AuthService,
         AccessTokenGuard,
         PetsService,
         OccurrencesService,
+        ChatService,
+        ChatGateway,
+        ChatThrottlerGuard,
+        { provide: CHAT_PUSH_SENDER, useFactory: (pool: Pool, expo: PushSender) => new ExpoChatPushSender(pool, expo), inject: [PG_POOL, PUSH_SENDER] },
         { provide: PHOTO_STORAGE, useFactory: () => new S3PhotoStorage(config.storage) },
         { provide: APP_CONFIG, useValue: config },
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },
-        { provide: MAILER, useClass: ConsoleMailer },
+        {
+          provide: MAILER,
+          useFactory: () =>
+            config.gmail ? new GmailApiMailer(config.gmail) : config.resend ? new ResendMailer(config.resend) : new ConsoleMailer(),
+        },
         { provide: GOOGLE_VERIFIER, useFactory: () => new GoogleAuthLibraryVerifier(config.googleClientIds) },
+        AlertsService,
+        InProcessAlertQueue,
+        { provide: ALERT_QUEUE, useExisting: InProcessAlertQueue },
+        { provide: PUSH_SENDER, useFactory: () => new ExpoPushSender({ accessToken: config.expoAccessToken }) },
       ],
     };
   }
@@ -51,7 +76,9 @@ export class AppModule implements OnApplicationShutdown {
 }
 
 /** Configuração comum ao main.ts e aos testes. */
-export function configureApp<T extends INestApplication>(app: T): T {
+export function configureApp<T extends INestApplication>(app: T, config?: Pick<AppConfig, "trustProxy">): T {
   app.enableShutdownHooks();
+  // Atrás de proxy (Render), o IP do cliente vem no X-Forwarded-For; sem isso o rate limit veria só o IP do proxy.
+  if (config?.trustProxy) app.getHttpAdapter().getInstance().set("trust proxy", config.trustProxy);
   return app;
 }

@@ -1,7 +1,7 @@
 import { isValidLatLng } from "./geo";
 import { MAX_PET_PHOTOS } from "./pets";
 import { OCCURRENCE_TYPES, type OccurrenceType } from "./theme";
-import type { Species } from "./types";
+import { SPECIES_MESSAGE, isSpecies, type Species } from "./species";
 
 /** Dados de uma nova ocorrência. `lat`/`lng` são o ponto real: só a API os vê; nunca saem dela (MP-07). */
 export type OccurrenceInput = {
@@ -35,7 +35,7 @@ const LIMITS = { petName: 40, breed: 60, color: 60, approxAddress: 120, descript
 
 export const OCCURRENCE_MESSAGES = {
   type: "Escolha o tipo: perdido, avistado ou encontrado",
-  species: "Escolha cão ou gato",
+  species: SPECIES_MESSAGE,
   petName: "Informe o nome do pet",
   location: "Não foi possível obter o local. Ative a localização e tente de novo.",
 };
@@ -45,7 +45,7 @@ const text = (value: unknown) => (typeof value === "string" ? value.trim() : "")
 export function validateOccurrence(input: OccurrenceInput): OccurrenceErrors {
   const errors: OccurrenceErrors = {};
   if (!(OCCURRENCE_TYPES as readonly string[]).includes(input.type)) errors.type = OCCURRENCE_MESSAGES.type;
-  if (input.species !== "dog" && input.species !== "cat") errors.species = OCCURRENCE_MESSAGES.species;
+  if (!isSpecies(input.species)) errors.species = OCCURRENCE_MESSAGES.species;
   // Quem perdeu sabe o nome; quem avistou ou encontrou normalmente não.
   if (input.type === "lost" && !text(input.petName)) errors.petName = OCCURRENCE_MESSAGES.petName;
   for (const field of Object.keys(LIMITS) as (keyof typeof LIMITS)[]) {

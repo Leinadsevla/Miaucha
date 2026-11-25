@@ -5,3 +5,7 @@ export * from "./types";
 export * from "./pets";
 export * from "./geo";
 export * from "./occurrences";
+export * from "./chat";
+export * from "./geohash";
+export * from "./alerts";
+export * from "./species";

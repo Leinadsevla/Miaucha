@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { AlertTriangle, Cake, ChevronLeft, Palette, PawPrint, Pencil } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet } from "@miaucha/shared";
+import { colors, speciesLabel, type MyPet } from "@miaucha/shared";
 import { Card, PrimaryButton, SpeciesIcon } from "@/components";
 
 const PHOTO_HEIGHT = 288;
@@ -97,7 +97,7 @@ export function PetDetails({
         <Info
           icon={<SpeciesIcon species={pet.species} size={18} color={colors.primary} />}
           label="Espécie"
-          value={pet.species === "dog" ? "Cão" : "Gato"}
+          value={speciesLabel(pet.species)}
         />
         <Info icon={<PawPrint size={18} color={colors.primary} />} label="Raça" value={pet.breed} />
         <Info icon={<Palette size={18} color={colors.primary} />} label="Cor" value={pet.color} />

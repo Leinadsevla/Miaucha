@@ -1,5 +1,5 @@
 import "../../global.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -11,9 +11,14 @@ import {
   Nunito_700Bold,
   Nunito_900Black,
 } from "@expo-google-fonts/nunito";
-import { AuthProvider, createClients, redirectTarget, routeFor, useAuth } from "@/features/auth";
+import { AlertsProvider } from "@/features/alerts";
+import { createAlertsRuntimeDeps } from "@/features/alerts/runtime";
+import { AuthProvider, createClients, redirectTarget, routeFor, useAuth, type AppClients } from "@/features/auth";
+import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
+import { onboardingStore, shouldShowOnboarding } from "@/features/onboarding";
 import { PetsClientProvider } from "@/features/pets";
+import { ProfileClientProvider } from "@/features/profile";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,9 +38,15 @@ export default function RootLayout() {
       <AuthProvider client={clients.auth}>
         <PetsClientProvider client={clients.pets}>
           <OccurrencesClientProvider client={clients.occurrences}>
-            <StatusBar style="light" />
-            <AuthGate />
-            <Stack screenOptions={{ headerShown: false }} />
+            <ProfileClientProvider client={clients.profile}>
+              <AlertsLayer clients={clients}>
+                <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
+                  <StatusBar style="light" />
+                  <AuthGate />
+                  <Stack screenOptions={{ headerShown: false }} />
+                </SessionChatProvider>
+              </AlertsLayer>
+            </ProfileClientProvider>
           </OccurrencesClientProvider>
         </PetsClientProvider>
       </AuthProvider>
@@ -47,11 +58,39 @@ export default function RootLayout() {
 function AuthGate() {
   const { state } = useAuth();
   const pathname = usePathname();
+  // Tutorial de boas-vindas: null enquanto lê do aparelho; mostrado uma vez ao chegar no app.
+  const [seenOnboarding, setSeenOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const to = redirectTarget(pathname, routeFor(state));
+    void onboardingStore.hasSeen().then(setSeenOnboarding);
+  }, []);
+
+  useEffect(() => {
+    const target = routeFor(state);
+    const to = redirectTarget(pathname, target);
     if (to) router.replace(to);
-  }, [state, pathname]);
+    else if (shouldShowOnboarding(pathname, target, seenOnboarding)) {
+      setSeenOnboarding(true);
+      router.push("/welcome");
+    }
+  }, [state, pathname, seenOnboarding]);
 
   return null;
+}
+
+/** Alertas (S5) só com sessão e consentimento: região aproximada, push e toque na notificação (AL-08). */
+function AlertsLayer({ clients, children }: { clients: AppClients; children: ReactNode }) {
+  const { state } = useAuth();
+  const [deps] = useState(() => createAlertsRuntimeDeps(clients.occurrences));
+  return (
+    <AlertsProvider
+      client={clients.alerts}
+      active={state.status === "signedIn" && state.user.hasConsent}
+      deps={deps}
+      onOpenOccurrence={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
+      onOpenConversation={(id) => router.push({ pathname: "/chat/[id]", params: { id } })}
+    >
+      {children}
+    </AlertsProvider>
+  );
 }

@@ -1,0 +1,58 @@
+# Blueprint do Render para a API do Miaucha (Render → New → Blueprint → este repositório).
+# Guia passo a passo: docs/DEPLOY-RENDER.md
+services:
+  - type: web
+    name: miaucha-api
+    runtime: node
+    plan: free
+    # Oregon fica mais perto do Supabase (us-west-2).
+    region: oregon
+    # Instala só a API e o @miaucha/shared (o app Expo fica de fora).
+    buildCommand: npx --yes pnpm@12.18.0 install --frozen-lockfile --filter @miaucha/api...
+    # A API roda com @swc-node/register porque o @miaucha/shared é publicado como TypeScript.
+    startCommand: cd apps/api && node -r @swc-node/register src/main.ts
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # O Render fica na frente da API (1 proxy): o rate limit lê o IP real no X-Forwarded-For.
+      - key: TRUST_PROXY
+        value: "1"
+      # Segredos gerados pelo próprio Render (diferentes dos do .env local).
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CODE_SECRET
+        generateValue: true
+      # Preencher no painel do Render (sync: false = não fica no repositório).
+      - key: DATABASE_URL
+        sync: false
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_REGION
+        sync: false
+      - key: STORAGE_BUCKET
+        value: pet-photos
+      - key: STORAGE_ACCESS_KEY_ID
+        sync: false
+      - key: STORAGE_SECRET_ACCESS_KEY
+        sync: false
+      # E-mail dos códigos pela API do Gmail (recomendado; ver docs/DEPLOY-RENDER.md). As quatro juntas.
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: GMAIL_SENDER
+        sync: false
+      # Alternativa: Resend (só entrega a qualquer pessoa com domínio verificado). Sem Gmail nem Resend, códigos só nos Logs.
+      - key: RESEND_API_KEY
+        sync: false
+      # Remetente: "Miaucha <onboarding@resend.dev>" (teste, só entrega ao dono da conta) ou um endereço do domínio verificado.
+      - key: MAIL_FROM
+        sync: false
+      # Opcionais.
+      - key: GOOGLE_CLIENT_IDS
+        sync: false
+      - key: EXPO_ACCESS_TOKEN
+        sync: false

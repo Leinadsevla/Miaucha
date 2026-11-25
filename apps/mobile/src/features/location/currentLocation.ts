@@ -10,6 +10,8 @@ export type LocationApi = {
   requestForegroundPermissionsAsync(): Promise<{ granted: boolean; canAskAgain: boolean }>;
   getCurrentPositionAsync(options: { accuracy: number }): Promise<Position>;
   getLastKnownPositionAsync(options: { maxAge: number }): Promise<Position | null>;
+  /** Só confere a permissão, sem abrir o diálogo (usado com `ask: false`). */
+  getForegroundPermissionsAsync?(): Promise<{ granted: boolean; canAskAgain: boolean }>;
 };
 
 const LAST_KNOWN_MAX_AGE_MS = 10 * 60 * 1000;
@@ -37,10 +39,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * Nunca lança: a tela decide o que mostrar a partir do status.
  * Precisão "Balanced" (~100 m) basta: o ponto público é deslocado ~150 m de qualquer jeito.
  */
-export function createLocationProvider(api: LocationApi = Location, { timeoutMs = 15_000 } = {}) {
+export function createLocationProvider(api: LocationApi = Location, { timeoutMs = 15_000, ask = true } = {}) {
   return async (): Promise<LocationResult> => {
     try {
-      const permission = await api.requestForegroundPermissionsAsync();
+      // `ask: false`: tarefas que rodam sozinhas (ex.: região dos alertas) nunca abrem o diálogo do sistema.
+      const permission =
+        ask || !api.getForegroundPermissionsAsync
+          ? await api.requestForegroundPermissionsAsync()
+          : await api.getForegroundPermissionsAsync();
       if (!permission.granted) return { status: "denied", canAskAgain: permission.canAskAgain };
     } catch {
       return { status: "denied", canAskAgain: true };
@@ -64,3 +70,6 @@ export type GetLocation = ReturnType<typeof createLocationProvider>;
 
 /** Provedor padrão do app (expo-location de verdade). */
 export const getCurrentLocation = createLocationProvider();
+
+/** Posição só se a permissão já foi dada (não pergunta nada ao usuário). */
+export const getLocationIfAllowed = createLocationProvider(Location, { ask: false });
