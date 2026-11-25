@@ -426,6 +426,26 @@ describe("\"Vi este pet\": avistamento ligado a um pet perdido", () => {
     expect(await owner.alerts()).toHaveLength(1);
   });
 
+  it("tutor que bloqueou quem avistou não recebe o alerta nem o push", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.registerPush();
+    const lost = await owner.create(home);
+    await queue.onIdle();
+    await ctx.pool.query(
+      `insert into chat_blocks (blocker_id, blocked_id)
+       select o.id, w.id from users o, users w where o.email = $1 and w.email = $2`,
+      [owner.email, witness.email],
+    );
+
+    await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+
+    expect(await owner.alerts()).toEqual([]);
+    expect(pushesTo(owner.pushToken)).toEqual([]);
+  });
+
   it("recusa: tipo diferente de avistado, o próprio pet, ocorrência que não é de perdido ou que não existe", async () => {
     const owner = await tutor();
     const witness = await tutor();

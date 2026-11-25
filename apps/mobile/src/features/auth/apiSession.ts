@@ -66,6 +66,13 @@ export function createApiSession({ baseUrl, storage, fetch = globalThis.fetch }:
   }
 
   let refreshing: Promise<StoredSession | null> | undefined;
+  const expiredListeners = new Set<() => void>();
+
+  /** Avisa quando a API recusa o refresh (sessão apagada): o app precisa voltar ao login. */
+  function onExpired(listener: () => void): () => void {
+    expiredListeners.add(listener);
+    return () => void expiredListeners.delete(listener);
+  }
 
   /** Devolve null quando a API recusa (sessão apagada); lança ApiError se não deu para falar com ela. */
   function refreshSession(usedAccessToken?: string): Promise<StoredSession | null> {
@@ -83,6 +90,7 @@ export function createApiSession({ baseUrl, storage, fetch = globalThis.fetch }:
       } catch (error) {
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
           await storage.clear();
+          for (const listener of [...expiredListeners]) listener();
           return null;
         }
         throw error;
@@ -107,5 +115,5 @@ export function createApiSession({ baseUrl, storage, fetch = globalThis.fetch }:
     return request<T>(method, path, body, renewed.accessToken);
   }
 
-  return { request, authed, refreshSession, storage };
+  return { request, authed, refreshSession, onExpired, storage };
 }

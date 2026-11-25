@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useReducer, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { Consent } from "./ConsentForm";
 import type { LoginInput, SignUpInput } from "@miaucha/shared";
 import { authReducer, initialAuthState, type AuthState, type SessionUser } from "./session";
@@ -15,6 +15,8 @@ export type AuthClient = {
   loginWithGoogle(): Promise<SessionUser>;
   saveConsent(consent: Consent): Promise<void>;
   logout(): Promise<void>;
+  /** Avisa quando a sessão salva deixa de valer (refresh recusado pela API). Devolve como parar de ouvir. */
+  onSessionExpired?(listener: () => void): () => void;
 };
 
 type AuthContextValue = {
@@ -55,6 +57,8 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
     }
   }, []);
   const run = useCallback(async (task: () => Promise<void>) => void (await attempt(task)), [attempt]);
+
+  useEffect(() => client.onSessionExpired?.(() => dispatch({ type: "signedOut" })), [client]);
 
   const pendingEmail = state.status === "pendingVerification" ? state.email : "";
 

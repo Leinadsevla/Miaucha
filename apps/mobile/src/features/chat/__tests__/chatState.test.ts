@@ -1,5 +1,5 @@
 import type { ChatConversation, ChatMessage } from "@miaucha/shared";
-import { applyIncoming, applyRead, formatMessageTime, lastMessagePreview, mergeMessages, upsertConversation } from "../chatState";
+import { applyIncoming, applyRead, catchUpMessages, formatMessageTime, lastMessagePreview, mergeMessages, upsertConversation } from "../chatState";
 
 const msg = (id: string, createdAt: string, data: Partial<ChatMessage> = {}): ChatMessage => ({
   id,
@@ -96,5 +96,36 @@ describe("textos", () => {
     expect(lastMessagePreview(msg("m", "x", { text: "Oi", mine: true }))).toBe("Você: Oi");
     expect(lastMessagePreview(msg("m", "x", { kind: "photo", text: null }))).toBe("Foto");
     expect(lastMessagePreview(msg("m", "x", { kind: "location", text: null, mine: true }))).toBe("Você: Localização aproximada");
+  });
+});
+
+describe("catchUpMessages (depois de reconectar)", () => {
+  // 100 mensagens, da mais nova (m99) para a mais antiga (m0), em páginas de 30.
+  const all = Array.from({ length: 100 }, (_, i) => msg(`m${i}`, `2026-11-20T10:${String(i).padStart(2, "0")}:00Z`)).reverse();
+  const fetchPage = jest.fn(async (before?: string) => {
+    const start = before ? all.findIndex((m) => m.id === before) + 1 : 0;
+    const messages = all.slice(start, start + 30);
+    return { messages, nextCursor: start + 30 < all.length ? messages[messages.length - 1].id : null };
+  });
+  beforeEach(() => fetchPage.mockClear());
+
+  it("busca páginas para trás até encostar numa mensagem que já estava na tela", async () => {
+    // Tinha até m40; chegaram m41..m99 (59 mensagens, mais de uma página).
+    const result = await catchUpMessages(new Set(["m40", "m39"]), fetchPage);
+    expect(result.reset).toBe(false);
+    const ids = new Set(result.messages.map((m) => m.id));
+    for (let i = 41; i < 100; i++) expect(ids.has(`m${i}`)).toBe(true);
+    expect(fetchPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("uma página basta quando chegou pouca coisa", async () => {
+    const result = await catchUpMessages(new Set(["m95"]), fetchPage);
+    expect(result.reset).toBe(false);
+    expect(fetchPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem encostar no que já tinha dentro do limite de páginas → recomeça a lista do zero, com o cursor da última", async () => {
+    const result = await catchUpMessages(new Set(["nao-existe"]), fetchPage, 2);
+    expect(result).toEqual({ messages: all.slice(0, 60), reset: true, nextCursor: "m40" });
   });
 });

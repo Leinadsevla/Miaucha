@@ -9,7 +9,7 @@ import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { PickedPhoto } from "@/features/pets/photos";
 import type { ChatClient } from "./chatClient";
 import type { ChatRealtime } from "./chatRealtime";
-import { applyRead, mergeMessages } from "./chatState";
+import { applyRead, catchUpMessages, mergeMessages } from "./chatState";
 import { ConversationOptions } from "./ConversationOptions";
 import { MessageBubble } from "./MessageBubble";
 
@@ -45,6 +45,8 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
   const [showOptions, setShowOptions] = useState(false);
   const [busy, setBusy] = useState(false);
   const active = useRef(true);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const markRead = useCallback(() => {
     client.markRead(conversationId).catch(() => undefined);
@@ -85,7 +87,18 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
         if (c.id === conversationId) setConversation(c);
       }),
       // Depois de cair, busca o que chegou enquanto estava desconectado.
-      realtime.onConnect(() => void client.messages(conversationId).then((page) => setMessages((current) => mergeMessages(current, page.messages)), () => undefined)),
+      realtime.onConnect(() => {
+        const known = new Set(messagesRef.current.map((m) => m.id));
+        catchUpMessages(known, (before) => client.messages(conversationId, before)).then((result) => {
+          if (!active.current) return;
+          if (result.reset) {
+            setMessages(result.messages);
+            setNextCursor(result.nextCursor);
+          } else {
+            setMessages((current) => mergeMessages(current, result.messages));
+          }
+        }, () => undefined);
+      }),
     ];
     return () => offs.forEach((off) => off());
   }, [realtime, client, conversationId, markRead]);

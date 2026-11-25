@@ -235,6 +235,32 @@ describe("createHttpAuthClient", () => {
       expect(storage.current).toBeNull();
     });
 
+    it("refresh recusado avisa quem escuta onSessionExpired (a tela volta ao login)", async () => {
+      const { client } = setup(
+        { "POST /me/consent": () => ({ status: 401 }), "POST /auth/refresh": () => ({ status: 401 }) },
+        stored,
+      );
+      const expired = jest.fn();
+      const stop = client.onSessionExpired!(expired);
+      await expect(client.saveConsent(consent)).rejects.toThrow("Sua sessão expirou. Entre de novo.");
+      expect(expired).toHaveBeenCalledTimes(1);
+
+      stop();
+      await expect(client.saveConsent(consent)).rejects.toThrow();
+      expect(expired).toHaveBeenCalledTimes(1);
+    });
+
+    it("refresh sem rede não derruba a sessão", async () => {
+      const { client } = setup(
+        { "POST /me/consent": () => ({ status: 401 }), "POST /auth/refresh": () => "network-error" },
+        stored,
+      );
+      const expired = jest.fn();
+      client.onSessionExpired!(expired);
+      await expect(client.saveConsent(consent)).rejects.toThrow();
+      expect(expired).not.toHaveBeenCalled();
+    });
+
     it("sem sessão salva → pede para entrar de novo, sem chamar a API", async () => {
       const { client, api } = setup({});
       await expect(client.saveConsent(consent)).rejects.toThrow("Sua sessão expirou. Entre de novo.");

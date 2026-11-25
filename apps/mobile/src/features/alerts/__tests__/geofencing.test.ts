@@ -1,4 +1,4 @@
-import { geofencingAvailability, geofenceNotification, planGeofences } from "../geofencing";
+import { geofencingAvailability, geofenceNotification, nearbyGeofenceCandidates, planGeofences } from "../geofencing";
 
 describe("geofencingAvailability (AL-02, desligado por padrão)", () => {
   it("só liga num development build com a flag EXPO_PUBLIC_GEOFENCING=1", () => {
@@ -52,5 +52,26 @@ describe("geofenceNotification", () => {
     });
     expect(geofenceNotification("o1", ["o1"])).toBeNull();
     expect(geofenceNotification("recalc", [])).toBeNull();
+  });
+});
+
+describe("nearbyGeofenceCandidates (AL-02)", () => {
+  const here = { lat: -23.55, lng: -46.63 };
+  const at = { lat: -23.551, lng: -46.631 };
+  const occ = (id: string, type: "lost" | "seen" | "found", isMine = false) => ({ id, type, isMine, publicLocation: at });
+  const prefs = { enabled: true, radiusKm: 3 as const, quietHours: null };
+
+  it("só pets perdidos de outras pessoas, no raio escolhido nas preferências", async () => {
+    const nearby = jest.fn(async () => [occ("a", "lost"), occ("b", "seen"), occ("c", "found"), occ("meu", "lost", true)]);
+    const list = await nearbyGeofenceCandidates({ here, nearby, getPreferences: async () => prefs });
+    expect(list.map((o) => o.id)).toEqual(["a"]);
+    expect(nearby).toHaveBeenCalledWith({ ...here, radiusKm: 3 });
+  });
+
+  it("alertas desligados → nenhuma região (nem consulta as ocorrências)", async () => {
+    const nearby = jest.fn(async () => [occ("a", "lost")]);
+    const list = await nearbyGeofenceCandidates({ here, nearby, getPreferences: async () => ({ ...prefs, enabled: false }) });
+    expect(list).toEqual([]);
+    expect(nearby).not.toHaveBeenCalled();
   });
 });
