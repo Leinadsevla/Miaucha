@@ -18,6 +18,9 @@ import { ExpoChatPushSender } from "./chat/expo-chat-push-sender";
 import { CHAT_PUSH_SENDER } from "./chat/push-sender";
 import type { AppConfig } from "./config";
 import { ConsoleMailer } from "./mail/mailer";
+import { GmailApiMailer } from "./mail/gmail-mailer";
+import { ResendMailer } from "./mail/resend-mailer";
+import { HealthController } from "./health.controller";
 import { MeController } from "./me/me.controller";
 import { OccurrencesController } from "./occurrences/occurrences.controller";
 import { OccurrencesService } from "./occurrences/occurrences.service";
@@ -40,7 +43,7 @@ export class AppModule implements OnApplicationShutdown {
           errorMessage: "Muitas tentativas. Espere um pouco e tente de novo.",
         }),
       ],
-      controllers: [AuthController, MeController, PetsController, OccurrencesController, ChatController, AlertsController],
+      controllers: [HealthController, AuthController, MeController, PetsController, OccurrencesController, ChatController, AlertsController],
       providers: [
         AuthService,
         AccessTokenGuard,
@@ -53,7 +56,11 @@ export class AppModule implements OnApplicationShutdown {
         { provide: PHOTO_STORAGE, useFactory: () => new S3PhotoStorage(config.storage) },
         { provide: APP_CONFIG, useValue: config },
         { provide: PG_POOL, useFactory: () => new Pool({ connectionString: config.databaseUrl }) },
-        { provide: MAILER, useClass: ConsoleMailer },
+        {
+          provide: MAILER,
+          useFactory: () =>
+            config.gmail ? new GmailApiMailer(config.gmail) : config.resend ? new ResendMailer(config.resend) : new ConsoleMailer(),
+        },
         { provide: GOOGLE_VERIFIER, useFactory: () => new GoogleAuthLibraryVerifier(config.googleClientIds) },
         AlertsService,
         InProcessAlertQueue,
@@ -69,7 +76,9 @@ export class AppModule implements OnApplicationShutdown {
 }
 
 /** Configuração comum ao main.ts e aos testes. */
-export function configureApp<T extends INestApplication>(app: T): T {
+export function configureApp<T extends INestApplication>(app: T, config?: Pick<AppConfig, "trustProxy">): T {
   app.enableShutdownHooks();
+  // Atrás de proxy (Render), o IP do cliente vem no X-Forwarded-For; sem isso o rate limit veria só o IP do proxy.
+  if (config?.trustProxy) app.getHttpAdapter().getInstance().set("trust proxy", config.trustProxy);
   return app;
 }

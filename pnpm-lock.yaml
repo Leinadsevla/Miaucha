@@ -201,6 +201,12 @@ importers:
       '@socket.io/redis-adapter':
         specifier: ^8.3.0
         version: 8.3.0(socket.io-adapter@2.5.8(supports-color@8.1.1))(supports-color@8.1.1)
+      '@swc-node/register':
+        specifier: 1.12.1
+        version: 1.12.1(@swc/core@1.16.22)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@5.9.3)
+      '@swc/core':
+        specifier: 1.16.22
+        version: 1.16.22
       argon2:
         specifier: ^0.45.2
         version: 0.45.2
@@ -226,12 +232,6 @@ importers:
       '@nestjs/testing':
         specifier: ^12.5.1
         version: 12.5.1(@nestjs/common@12.5.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.5.1)(@nestjs/platform-express@12.5.1)
-      '@swc-node/register':
-        specifier: ^1.12.1
-        version: 1.12.1(@swc/core@1.16.22)(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@5.9.3)
-      '@swc/core':
-        specifier: ^1.16.22
-        version: 1.16.22
       '@testcontainers/postgresql':
         specifier: ^12.2.1
         version: 12.2.1(bare-buffer@3.7.2)(supports-color@8.1.1)

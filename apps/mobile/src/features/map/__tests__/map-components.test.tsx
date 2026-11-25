@@ -130,3 +130,15 @@ describe("MapFiltersSheet (MP-05)", () => {
     expect(onApply).not.toHaveBeenCalled();
   });
 });
+
+describe("filtro 'Outros' do mapa", () => {
+  it("existe ao lado de Cães e Gatos e junta as outras espécies", () => {
+    const { SPECIES_OPTIONS, matchesFilters, DEFAULT_MAP_FILTERS } = jest.requireActual("../filters");
+    expect(SPECIES_OPTIONS.map((o: { label: string }) => o.label)).toEqual(["Todos", "Cães", "Gatos", "Outros"]);
+    const occ = (species: string) => ({ species, type: "lost", createdAt: new Date().toISOString() });
+    const others = { ...DEFAULT_MAP_FILTERS, species: "others" };
+    expect(matchesFilters(occ("rabbit"), others, new Date())).toBe(true);
+    expect(matchesFilters(occ("dog"), others, new Date())).toBe(false);
+  });
+});
+

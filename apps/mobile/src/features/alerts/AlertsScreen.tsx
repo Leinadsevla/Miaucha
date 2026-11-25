@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { Image } from "expo-image";
 import { Bell, BellRing, Clock, MapPin } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
+import { colors, speciesLabel, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
 import { PrimaryButton, SpeciesIcon, StatusBadge } from "@/components";
 import type { AlertsClient } from "./alertsClient";
 
@@ -30,8 +30,7 @@ export function filterAlerts(alerts: AlertItem[], filter: DistanceFilter): Alert
   }
 }
 
-const SPECIES_NAME = { dog: "Cão", cat: "Gato" } as const;
-export const alertTitle = (a: AlertItem) => a.occurrence.petName ?? `${SPECIES_NAME[a.occurrence.species]} sem nome`;
+export const alertTitle = (a: AlertItem) => a.occurrence.petName ?? `${speciesLabel(a.occurrence.species)} sem nome`;
 
 type State = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; alerts: AlertItem[] };
 

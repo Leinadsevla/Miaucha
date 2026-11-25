@@ -37,7 +37,7 @@ describe("validateOccurrence", () => {
   it("tipo e espécie precisam ser válidos", () => {
     expect(validateOccurrence({ ...valid, type: "stolen" as never, species: "peixe" as never })).toEqual({
       type: "Escolha o tipo: perdido, avistado ou encontrado",
-      species: "Escolha cão ou gato",
+      species: "Escolha a espécie do animal",
     });
   });
 

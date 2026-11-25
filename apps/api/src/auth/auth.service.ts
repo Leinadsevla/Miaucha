@@ -75,7 +75,15 @@ export class AuthService {
       if (isUniqueViolation(error)) throw new ConflictException("Este e-mail já está cadastrado");
       throw error;
     }
-    await this.sendEmailCode(email);
+    try {
+      await this.sendEmailCode(email);
+    } catch (error) {
+      // Sem o código a pessoa não conseguiria confirmar a conta, e cadastrar de novo daria "já cadastrado":
+      // desfaz o cadastro para ela poder tentar outra vez.
+      await this.pool.query("delete from users where lower(email) = $1 and email_verified_at is null", [email]);
+      await this.pool.query("delete from email_codes where email = $1", [email]);
+      throw error;
+    }
   }
 
   async verifyEmail(rawEmail: string, code: string): Promise<Session> {

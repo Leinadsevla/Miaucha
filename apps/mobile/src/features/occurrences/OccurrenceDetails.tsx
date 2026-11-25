@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-na
 import { Image } from "expo-image";
 import { CheckCircle2, ChevronLeft, Clock, MapPin, MessageCircle, Navigation, Palette, PawPrint, UserRound } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, formatTimeAgo, occurrenceStyle, type LatLng, type PublicOccurrence } from "@miaucha/shared";
+import { colors, speciesLabel, formatTimeAgo, occurrenceStyle, type LatLng, type PublicOccurrence } from "@miaucha/shared";
 import { Card, PrimaryButton, SectionLabel, SpeciesIcon, StatusBadge } from "@/components";
 
 const PHOTO_HEIGHT = 288;
@@ -28,7 +28,7 @@ type Props = {
 /** "Thor" ou, sem nome, "Gato avistado". */
 export function occurrenceTitle(o: Pick<PublicOccurrence, "petName" | "species" | "type">): string {
   if (o.petName) return o.petName;
-  return `${o.species === "dog" ? "Cão" : "Gato"} ${occurrenceStyle(o.type).label.toLowerCase()}`;
+  return `${speciesLabel(o.species)} ${occurrenceStyle(o.type).label.toLowerCase()}`;
 }
 
 function Info({ icon, label, value }: { icon: ReactNode; label: string; value: string | null }) {
@@ -128,7 +128,7 @@ export function OccurrenceDetails({
           </Card>
 
           <View className="flex-row flex-wrap justify-between gap-y-3">
-            <Info icon={<SpeciesIcon species={o.species} size={18} color={colors.primary} />} label="Espécie" value={o.species === "dog" ? "Cão" : "Gato"} />
+            <Info icon={<SpeciesIcon species={o.species} size={18} color={colors.primary} />} label="Espécie" value={speciesLabel(o.species)} />
             <Info icon={<PawPrint size={18} color={colors.primary} />} label="Raça" value={o.breed} />
             <Info icon={<Palette size={18} color={colors.primary} />} label="Cor" value={o.color} />
             <Info icon={<Clock size={18} color={colors.primary} />} label="Registrado" value={timeAgo} />

@@ -4,7 +4,9 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import type { PublicOccurrence } from "@miaucha/shared";
 import { PrimaryButton } from "@/components";
 import { useChat } from "@/features/chat";
-import { OccurrenceDetails, openDirections, useOccurrencesClient } from "@/features/occurrences";
+import { OccurrenceDetails, createDeviceDirections, useOccurrencesClient } from "@/features/occurrences";
+
+const showDirections = createDeviceDirections({ Linking, Alert, Platform });
 
 export default function OccurrenceDetailsRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -69,7 +71,7 @@ export default function OccurrenceDetailsRoute() {
       <OccurrenceDetails
         occurrence={occurrence}
         onBack={() => router.back()}
-        onDirections={(point) => openDirections(point, { platform: Platform.OS, alert: Alert.alert, openURL: Linking.openURL })}
+        onDirections={showDirections}
         onResolve={confirmResolve}
         resolving={resolving}
         resolveError={resolveError}

@@ -2,8 +2,10 @@ import { Alert, Linking, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ConversationScreen, useChat } from "@/features/chat";
 import { getCurrentLocation } from "@/features/location";
-import { openDirections } from "@/features/occurrences";
+import { createDeviceDirections } from "@/features/occurrences";
 import { createPhotoPicker } from "@/features/pets/pickPhotos";
+
+const showDirections = createDeviceDirections({ Linking, Alert, Platform });
 
 const pickPhotos = createPhotoPicker();
 
@@ -18,7 +20,7 @@ export default function ConversationRoute() {
       realtime={realtime}
       onBack={() => router.back()}
       onOpenOccurrence={(occurrenceId) => router.push({ pathname: "/occurrences/[id]", params: { id: occurrenceId } })}
-      onOpenLocation={(point) => openDirections(point, { platform: Platform.OS, alert: Alert.alert, openURL: Linking.openURL })}
+      onOpenLocation={showDirections}
       pickPhoto={async () => (await pickPhotos(1))[0] ?? null}
       getLocation={getCurrentLocation}
       confirm={(title, message, action) =>

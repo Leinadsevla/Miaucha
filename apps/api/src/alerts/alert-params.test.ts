@@ -50,6 +50,12 @@ describe("parsePreferencesBody (AL-04)", () => {
 });
 
 describe("buildAlertPush", () => {
+  it("outras espécies também aparecem pelo nome", () => {
+    const rabbit = { occurrenceId: "o", alertId: "a", type: "seen" as const, species: "rabbit" as const, petName: null, approxAddress: null, distanceMeters: 300 };
+    expect(buildAlertPush(rabbit, "t").body).toBe("Coelho sem nome · a 300 m");
+    expect(buildAlertPush({ ...rabbit, species: "other", petName: "Bob" }, "t").body).toBe("Bob (outro animal) · a 300 m");
+  });
+
   const base = { occurrenceId: "o1", alertId: "a1", species: "dog" as const, petName: "Thor", approxAddress: "Perto da praça", distanceMeters: 820 };
 
   it("título pelo tipo; corpo com nome, distância aproximada e endereço aproximado", () => {

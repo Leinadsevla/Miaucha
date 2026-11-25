@@ -7,6 +7,7 @@ import {
   validateOccurrence,
   type OccurrenceInput,
   type PublicOccurrence,
+  isSpecies,
   type Species,
 } from "@miaucha/shared";
 import type { Pool } from "pg";
@@ -126,7 +127,7 @@ export class OccurrencesService {
     if (!pet) throw petNotFound();
     return {
       ...input,
-      species: input.species === "dog" || input.species === "cat" ? input.species : pet.species,
+      species: isSpecies(input.species) ? input.species : pet.species,
       petName: input.petName.trim() || pet.name,
       breed: input.breed.trim() || (pet.breed ?? ""),
       color: input.color.trim() || (pet.color ?? ""),
@@ -168,7 +169,8 @@ export class OccurrencesService {
       );
     }
     if (filters.type) where.push(`o.type = ${p(filters.type)}`);
-    if (filters.species) where.push(`o.species = ${p(filters.species)}`);
+    if (filters.species === "others") where.push(`o.species not in ('dog', 'cat')`);
+    else if (filters.species) where.push(`o.species = ${p(filters.species)}`);
     if (filters.sinceDays) where.push(`o.created_at > now() - make_interval(days => ${p(filters.sinceDays)})`);
 
     const { rows } = await this.pool.query<OccurrenceRow>(

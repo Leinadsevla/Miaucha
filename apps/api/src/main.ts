@@ -13,7 +13,7 @@ async function bootstrap() {
   await runMigrations(pool);
   await pool.end();
 
-  const app = configureApp(await NestFactory.create(AppModule.forRoot(config)));
+  const app = configureApp(await NestFactory.create(AppModule.forRoot(config)), config);
   // Só com várias instâncias da API (ver redis-io-adapter.ts).
   if (config.redisUrl) await useRedisAdapter(app, config.redisUrl);
   await app.listen(config.port);

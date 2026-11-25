@@ -67,6 +67,8 @@ describe("parseOccurrenceSearch", () => {
   it("filtros inválidos → erro", () => {
     expect(error({ bbox: "0,0,1,1", type: "stolen" })).toBe("Tipo inválido");
     expect(error({ bbox: "0,0,1,1", species: "fish" })).toBe("Espécie inválida");
+    expect(ok({ bbox: "0,0,1,1", species: "rabbit" }).filters).toMatchObject({ species: "rabbit" });
+    expect(ok({ bbox: "0,0,1,1", species: "others" }).filters).toMatchObject({ species: "others" });
     expect(error({ bbox: "0,0,1,1", sinceDays: "0" })).toBe("Período inválido");
     expect(error({ bbox: "0,0,1,1", sinceDays: "2.5" })).toBe("Período inválido");
     expect(error({ bbox: "0,0,1,1", sinceDays: "400" })).toBe("Período inválido");

@@ -1,4 +1,4 @@
-import type { INestApplication } from "@nestjs/common";
+import { ServiceUnavailableException, type INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { Pool } from "pg";
 import request from "supertest";
@@ -12,8 +12,14 @@ import type { PushMessage, PushResult, PushSender } from "../src/alerts/push-sen
 
 export class FakeMailer implements Mailer {
   sent: { to: string; code: string }[] = [];
+  /** Faz o próximo envio falhar como o Resend fora do ar (503). */
+  failNext = false;
 
   async sendEmailCode(to: string, code: string) {
+    if (this.failNext) {
+      this.failNext = false;
+      throw new ServiceUnavailableException("Não foi possível enviar o e-mail com o código. Tente de novo em instantes.");
+    }
     this.sent.push({ to, code });
   }
 
@@ -79,6 +85,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     googleClientIds: ["teste.apps.googleusercontent.com"],
     throttle: { ttlMs: 60_000, limit: 1000 },
     storage: storageConfigFromEnv(),
+    trustProxy: 0,
     ...overrides,
   };
 }
@@ -109,7 +116,7 @@ export async function createTestApp(overrides: Partial<AppConfig> = {}): Promise
     .useValue(push)
     .compile();
 
-  const app = configureApp(moduleRef.createNestApplication());
+  const app = configureApp(moduleRef.createNestApplication(), config);
   await app.init();
   return { app, http: request(app.getHttpServer()), mailer, google, push, pool };
 }

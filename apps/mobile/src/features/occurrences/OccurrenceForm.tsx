@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { AlertTriangle, Eye, HandHeart, MapPin, Navigation, Search, SearchX } from "lucide-react-native";
+import { AlertTriangle, Eye, HandHeart, Map as MapIcon, MapPin, Navigation, Search, SearchX } from "lucide-react-native";
 import { Image } from "expo-image";
 import {
   MAX_OCCURRENCE_PHOTOS,
@@ -18,7 +18,9 @@ import { Card, PrimaryButton, SectionLabel, SpeciesIcon, TextField } from "@/com
 import { cn } from "@/lib/cn";
 import type { LocationResult } from "@/features/location/currentLocation";
 import { PinPicker } from "@/features/map/PinPicker";
+import { DEFAULT_REGION } from "@/features/map/region";
 import { LocationProblem } from "@/features/location/LocationProblem";
+import { NEARBY_GEOCODE_KM } from "@/features/location/geocode";
 import { PhotoPickerField } from "@/features/pets/PhotoPickerField";
 import { SpeciesSelector } from "@/features/pets/SpeciesSelector";
 import type { PickedPhoto } from "@/features/pets/photos";
@@ -44,11 +46,12 @@ export type OccurrenceFormProps = {
 };
 
 type SelectedPet = { id: string; name: string; photoCount: number };
-type LocationMode = "current" | "address";
+type LocationMode = "current" | "address" | "map";
 
 const MESSAGES = {
   searchFirst: "Procure o endereço para marcar o local",
-  notFound: "Não encontramos esse endereço. Tente com rua, número e cidade.",
+  tapMap: "Toque no mapa para marcar o local",
+  notFound: `Não encontramos esse endereço perto de você (até ${NEARBY_GEOCODE_KM} km). Confira rua, número e cidade.`,
   found: "Endereço encontrado. No mapa aparece uma região aproximada (~150 m).",
 };
 
@@ -101,7 +104,10 @@ export function OccurrenceForm({
   const address = values.approxAddress.trim();
   const addressPoint = found && found.query === address ? found.coords : null;
   // Ponto de partida (localização atual ou endereço encontrado) e o ajuste feito arrastando o pino.
-  const basePoint = locationMode === "address" ? addressPoint : location?.status === "ok" ? location.coords : null;
+  const currentPoint = location?.status === "ok" ? location.coords : null;
+  // Em "Marcar no mapa" não há ponto de partida: vale só o toque (o mapa abre na localização ou na região padrão).
+  const basePoint = locationMode === "address" ? addressPoint : locationMode === "map" ? null : currentPoint;
+  const mapCenter = currentPoint ?? { lat: DEFAULT_REGION.latitude, lng: DEFAULT_REGION.longitude };
   const [pin, setPin] = useState<LatLng | null>(null);
   useEffect(() => setPin(null), [locationMode, found, location]);
 
@@ -137,6 +143,10 @@ export function OccurrenceForm({
   function submit() {
     if (locationMode === "address" && !addressPoint) {
       setErrors({ location: MESSAGES.searchFirst });
+      return;
+    }
+    if (locationMode === "map" && !pin) {
+      setErrors({ location: MESSAGES.tapMap });
       return;
     }
     const coords = pin ?? basePoint ?? { lat: Number.NaN, lng: Number.NaN };
@@ -241,12 +251,15 @@ export function OccurrenceForm({
 
       <Card className="gap-3">
         <SectionLabel>{values.type === "lost" ? "Último local visto" : "Onde foi"}</SectionLabel>
-        <View className="flex-row gap-2">
+        <View className="flex-row flex-wrap gap-2">
           <PetChoice label="Minha localização" selected={locationMode === "current"} onPress={() => setLocationMode("current")}>
             <Navigation size={14} color={locationMode === "current" ? colors.primary : colors.mutedForeground} />
           </PetChoice>
           <PetChoice label="Outro endereço" selected={locationMode === "address"} onPress={() => setLocationMode("address")}>
             <MapPin size={14} color={locationMode === "address" ? colors.primary : colors.mutedForeground} />
+          </PetChoice>
+          <PetChoice label="Marcar no mapa" selected={locationMode === "map"} onPress={() => setLocationMode("map")}>
+            <MapIcon size={14} color={locationMode === "map" ? colors.primary : colors.mutedForeground} />
           </PetChoice>
         </View>
         {locationMode === "address" ? (
@@ -273,7 +286,7 @@ export function OccurrenceForm({
               <Text className="font-nunito-semibold text-xs text-lost">{geocodeError}</Text>
             ) : null}
           </>
-        ) : location === null ? (
+        ) : locationMode === "map" ? null : location === null ? (
           <View className="flex-row items-center gap-2">
             <ActivityIndicator color={colors.primary} />
             <Text className="font-sans text-xs text-muted-foreground">Buscando sua localização...</Text>
@@ -288,9 +301,13 @@ export function OccurrenceForm({
         ) : (
           <LocationProblem result={location} purpose="marcar onde o pet foi visto" onRetry={onRetryLocation} onOpenSettings={onOpenSettings} />
         )}
-        {basePoint ? <PinPicker value={pin ?? basePoint} onChange={setPin} /> : null}
+        {locationMode === "map" ? (
+          <PinPicker value={pin} center={mapCenter} onChange={setPin} height={300} />
+        ) : basePoint ? (
+          <PinPicker value={pin ?? basePoint} onChange={setPin} />
+        ) : null}
         {errors.location ? <Text className="font-nunito-semibold text-xs text-lost">{errors.location}</Text> : null}
-        {locationMode === "current" ? (
+        {locationMode !== "address" ? (
           <TextField
             label="Endereço aproximado"
             placeholder="Ex: Av. Paulista, perto do MASP"
