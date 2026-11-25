@@ -45,6 +45,15 @@ describe("S3PhotoStorage", () => {
     expect(res.status).toBe(403);
   });
 
+  it("copy duplica o arquivo em outra chave", async () => {
+    const from = key();
+    const to = key();
+    await upload(from);
+    await storage.copy(from, to);
+    expect(await storage.stat(to)).toEqual({ size: jpeg.length, contentType: "image/jpeg" });
+    expect(Buffer.from(await storage.readHead(to, jpeg.length))).toEqual(jpeg);
+  });
+
   it("stat de arquivo inexistente → null; delete apaga", async () => {
     const k = key();
     expect(await storage.stat(k)).toBeNull();

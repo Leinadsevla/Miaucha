@@ -5,7 +5,8 @@ import { APP_CONFIG, PG_POOL } from "./tokens";
 
 /**
  * Verificação de saúde do Render (healthCheckPath): sem login, confere que o banco responde.
- * `mail` diz qual provedor de e-mail está ativo (nunca um valor de configuração), para diagnosticar o deploy.
+ * `mail` diz qual provedor de e-mail está ativo (nunca um valor de configuração), para diagnosticar o deploy;
+ * `commit` é a versão rodando, para o CI/CD esperar o deploy novo antes de publicar o app.
  */
 @Controller("health")
 export class HealthController {
@@ -18,7 +19,7 @@ export class HealthController {
   async check() {
     try {
       await this.pool.query("select 1");
-      return { status: "ok", mail: mailProvider(this.config) };
+      return { status: "ok", mail: mailProvider(this.config), commit: this.config.gitCommit ?? null };
     } catch {
       throw new ServiceUnavailableException("Banco de dados indisponível");
     }

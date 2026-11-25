@@ -33,6 +33,11 @@ describe("loadConfig", () => {
     });
   });
 
+  it("RENDER_GIT_COMMIT (o Render preenche em cada deploy) vira o commit da versão rodando", () => {
+    expect(loadConfig(required).gitCommit).toBeUndefined();
+    expect(loadConfig({ ...required, RENDER_GIT_COMMIT: "abc123" }).gitCommit).toBe("abc123");
+  });
+
   it("lê o access token opcional do Expo Push", () => {
     expect(loadConfig(required).expoAccessToken).toBeUndefined();
     expect(loadConfig({ ...required, EXPO_ACCESS_TOKEN: "token-do-expo" }).expoAccessToken).toBe("token-do-expo");

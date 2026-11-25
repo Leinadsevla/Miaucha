@@ -9,5 +9,7 @@ export interface PhotoStorage {
   stat(key: string): Promise<StoredObject | null>;
   /** Primeiros `bytes` do arquivo (para conferir a assinatura do formato). */
   readHead(key: string, bytes: number): Promise<Uint8Array>;
+  /** Copia o arquivo para outra chave, dentro do próprio storage. */
+  copy(fromKey: string, toKey: string): Promise<void>;
   delete(key: string): Promise<void>;
 }

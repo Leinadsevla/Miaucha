@@ -1,0 +1,99 @@
+# CI/CD da API (Render) e do app (EAS Update), em dois ambientes do GitHub:
+#
+#   dev   → push na branch s1/fundacao (ou "Run workflow" escolhendo dev)
+#   prod  → tag v* (ex.: git tag v1.2.0 && git push origin v1.2.0) (ou "Run workflow" escolhendo prod)
+#
+# Ordem: testes → deploy da API no Render (espera o /health mostrar este commit) → EAS Update do app.
+# A API sobe antes porque o app novo pode depender de rotas novas.
+#
+# Cada ambiente (Settings → Environments) precisa de:
+#   secret  RENDER_DEPLOY_HOOK_URL  deploy hook do serviço no Render (sem ele, o passo da API é pulado)
+#   var     API_URL                 endereço público da API desse ambiente (ex.: https://miaucha-api.onrender.com)
+#   var     EAS_CHANNEL             canal do EAS Update (dev: preview; prod: production)
+# E no repositório: secret EXPO_TOKEN. Passo a passo em docs/DEPLOY-APP.md.
+name: Deploy
+
+on:
+  push:
+    branches: [s1/fundacao]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+# Um deploy por ambiente de cada vez, sem cancelar o que já começou.
+concurrency:
+  group: deploy-${{ inputs.environment || (startsWith(github.ref, 'refs/tags/') && 'prod' || 'dev') }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  api:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment || (startsWith(github.ref, 'refs/tags/') && 'prod' || 'dev') }}
+    steps:
+      - name: Deploy no Render (deste commit)
+        id: hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_URL não configurado neste ambiente: API não atualizada."
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # ref=<sha>: o Render sobe exatamente este commit (inclusive o de uma tag).
+          curl -fsS -X POST "${HOOK}&ref=${GITHUB_SHA}" > /dev/null
+      - name: Esperar o /health mostrar este commit
+        if: steps.hook.outputs.skipped != 'true'
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          # O build + início no plano grátis leva alguns minutos; o /health devolve o commit em execução.
+          for i in $(seq 1 60); do
+            got=$(curl -fsS --max-time 60 "$API_URL/health" | jq -r '.commit // empty' 2>/dev/null || true)
+            if [ "$got" = "$GITHUB_SHA" ]; then echo "API no ar com $GITHUB_SHA"; exit 0; fi
+            echo "Ainda em ${got:-?}; esperando..."
+            sleep 15
+          done
+          echo "::error::A API não subiu com $GITHUB_SHA em 15 minutos. Veja os Logs do serviço no Render."
+          exit 1
+
+  app:
+    needs: api
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment || (startsWith(github.ref, 'refs/tags/') && 'prod' || 'dev') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: EAS Update
+        working-directory: apps/mobile
+        env:
+          # O eas update não lê o "env" do eas.json: o endereço da API vem da variável do ambiente.
+          EXPO_PUBLIC_API_URL: ${{ vars.API_URL }}
+          CHANNEL: ${{ vars.EAS_CHANNEL }}
+          MESSAGE: ${{ github.event.head_commit.message || github.ref_name }}
+        run: |
+          if [ -z "$EXPO_PUBLIC_API_URL" ] || [ -z "$CHANNEL" ]; then
+            echo "::error::Configure as variáveis API_URL e EAS_CHANNEL no ambiente do GitHub."
+            exit 1
+          fi
+          eas update --channel "$CHANNEL" --message "$MESSAGE" --non-interactive
