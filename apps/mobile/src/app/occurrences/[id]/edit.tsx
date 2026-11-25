@@ -26,7 +26,7 @@ export default function EditOccurrence() {
     void getCurrentLocation().then(setLocation);
   }, []);
 
-  useEffect(locate, [locate]);
+  // Sem buscar a localização ao abrir: o formulário pede (onRetryLocation) só se a pessoa escolher "Minha localização".
 
   useEffect(() => {
     client.get(id).then(setOccurrence, (e: unknown) => setError(e instanceof Error ? e.message : "Não foi possível carregar a ocorrência"));

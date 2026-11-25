@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ConflictException } from "@nestjs/common";
 import { MAX_PHOTO_BYTES, isAllowedPhotoType } from "@miaucha/shared";
 import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
@@ -10,6 +10,11 @@ export const UPLOAD_URL_TTL_SECONDS = 300;
 export const DOWNLOAD_URL_TTL_SECONDS = 3600;
 /** Pedidos de upload ainda não confirmados contam no limite de fotos só durante esta janela. */
 const PENDING_UPLOAD_WINDOW_MINUTES = 10;
+/** Por quanto tempo um confirm reserva a foto enquanto confere o storage. */
+const CONFIRM_CLAIM_SECONDS = 60;
+/** Quanto um segundo confirm da mesma foto espera o primeiro terminar, e de quanto em quanto confere. */
+const CONFIRM_WAIT_MS = 15_000;
+const CONFIRM_POLL_MS = 200;
 
 const EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -78,24 +83,49 @@ export class PhotoUploads {
     return { photoId, uploadUrl, expiresInSeconds: UPLOAD_URL_TTL_SECONDS };
   }
 
-  /** Confere no storage o que o aparelho enviou: a URL de PUT não limita o tamanho, então o limite é aplicado aqui. */
+  /**
+   * Confere no storage o que o aparelho enviou: a URL de PUT não limita o tamanho, então o limite é aplicado aqui.
+   *
+   * Nenhuma conexão do banco fica presa durante as chamadas ao storage (o pool do Supabase é pequeno): a foto é
+   * reservada num UPDATE curto (`confirming_until`), conferida fora do banco e finalizada noutro UPDATE. Um segundo
+   * confirm da mesma foto espera o primeiro; sem isso, ele poderia copiar um pendente trocado depois da conferência
+   * do primeiro por cima da foto já aprovada. Uma reserva vencida (o processo caiu no meio) é retomada.
+   */
   async confirmUpload(ownerId: string, parentId: string, photoId: string): Promise<{ id: string; url: string }> {
     const { photosTable, parentTable, parentColumn } = this.spec;
     if (!UUID_RE.test(parentId) || !UUID_RE.test(photoId)) throw this.spec.notFound();
-    // `for update`: dois confirms da mesma foto não conferem ao mesmo tempo. Sem isso, o segundo poderia copiar
-    // um pendente trocado depois da conferência do primeiro por cima da foto já aprovada.
-    const result = await transaction(this.pool, async (client) => {
-      const { rows } = await client.query<{ object_key: string; content_type: string; uploaded: boolean }>(
-        `select ph.object_key, ph.content_type, ph.uploaded_at is not null as uploaded
+    const deadline = Date.now() + CONFIRM_WAIT_MS;
+    for (;;) {
+      const { rows } = await this.pool.query<{ object_key: string; content_type: string }>(
+        `update ${photosTable} ph set confirming_until = now() + make_interval(secs => $4)
+           from ${parentTable} p
+          where ph.id = $1 and p.id = ph.${parentColumn} and p.id = $2 and ${this.ownedBy("p.", "$3")}
+            and ph.uploaded_at is null and (ph.confirming_until is null or ph.confirming_until < now())
+          returning ph.object_key, ph.content_type`,
+        [photoId, parentId, ownerId, CONFIRM_CLAIM_SECONDS],
+      );
+      if (rows[0]) return this.verifyClaimed(photoId, rows[0]);
+
+      const { rows: state } = await this.pool.query<{ object_key: string; uploaded: boolean }>(
+        `select ph.object_key, ph.uploaded_at is not null as uploaded
            from ${photosTable} ph join ${parentTable} p on p.id = ph.${parentColumn}
-          where ph.id = $1 and p.id = $2 and ${this.ownedBy("p.", "$3")}
-          for update of ph`,
+          where ph.id = $1 and p.id = $2 and ${this.ownedBy("p.", "$3")}`,
         [photoId, parentId, ownerId],
       );
-      const photo = rows[0];
-      if (!photo) return { notFound: true as const };
-      if (photo.uploaded) return { objectKey: photo.object_key };
-      const pending = pendingKey(photo.object_key);
+      if (!state[0]) throw this.spec.notFound();
+      if (state[0].uploaded) return { id: photoId, url: await this.signedUrl(state[0].object_key) };
+      // Outro confirm está conferindo esta foto: espera ele terminar.
+      if (Date.now() > deadline) throw new ConflictException("A foto ainda está sendo conferida. Tente de novo em instantes.");
+      await new Promise((resolve) => setTimeout(resolve, CONFIRM_POLL_MS));
+    }
+  }
+
+  /** Conferência no storage de uma foto já reservada. Em qualquer saída sem sucesso, a reserva é liberada ou a foto apagada. */
+  private async verifyClaimed(photoId: string, photo: { object_key: string; content_type: string }): Promise<{ id: string; url: string }> {
+    const { photosTable } = this.spec;
+    const pending = pendingKey(photo.object_key);
+    let settled = false;
+    try {
       // A URL de PUT continua valendo até expirar: a conferência é feita na cópia, numa chave que ninguém
       // mais consegue sobrescrever. Um novo PUT só troca o arquivo pendente, que nunca é servido.
       // Sem o pendente, vale a cópia que já estiver lá (confirm repetido depois de uma falha no meio).
@@ -115,17 +145,21 @@ export class PhotoUploads {
         if (stored) {
           await this.storage.delete(photo.object_key);
           await this.storage.delete(pending);
-          await client.query(`delete from ${photosTable} where id = $1`, [photoId]);
+          await this.pool.query(`delete from ${photosTable} where id = $1`, [photoId]);
+          settled = true;
         }
-        return { problem };
+        throw new BadRequestException(problem);
       }
-      await client.query(`update ${photosTable} set uploaded_at = now() where id = $1`, [photoId]);
+      await this.pool.query(`update ${photosTable} set uploaded_at = now(), confirming_until = null where id = $1`, [photoId]);
+      settled = true;
       await this.storage.delete(pending);
-      return { objectKey: photo.object_key };
-    });
-    if ("notFound" in result) throw this.spec.notFound();
-    if ("problem" in result) throw new BadRequestException(result.problem);
-    return { id: photoId, url: await this.signedUrl(result.objectKey) };
+      return { id: photoId, url: await this.signedUrl(photo.object_key) };
+    } finally {
+      // Ainda não enviada, ou erro no storage: libera a reserva para o próximo confirm tentar de novo.
+      if (!settled) {
+        await this.pool.query(`update ${photosTable} set confirming_until = null where id = $1 and uploaded_at is null`, [photoId]);
+      }
+    }
   }
 
   /** Condição SQL "o registro pertence a `param`" (colunas vêm do código, nunca do cliente). */

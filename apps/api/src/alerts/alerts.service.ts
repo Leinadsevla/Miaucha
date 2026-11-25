@@ -111,7 +111,7 @@ export class AlertsService {
       sighting: boolean;
     }>(
       `select a.id, a.occurrence_id, a.distance_meters, a.created_at, a.seen_at,
-              exists (select 1 from occurrences l where l.id = o.sighting_of and l.author_id = a.user_id) as sighting,
+              a.sighting,
               o.type, o.species, o.pet_name, o.breed, o.color, o.approx_address, o.status, o.created_at as occurrence_created_at,
               (select ph.object_key from occurrence_photos ph
                 where ph.occurrence_id = o.id and ph.uploaded_at is not null order by ph.uploaded_at, ph.id limit 1) as cover_key
@@ -277,8 +277,8 @@ export class AlertsService {
             and not exists (select 1 from chat_blocks b where b.blocker_id = l.author_id and b.blocked_id = s.author_id)
        ),
        inserted as (
-         insert into alerts (user_id, occurrence_id, distance_meters)
-         select owner_id, id, distance_meters from s
+         insert into alerts (user_id, occurrence_id, distance_meters, sighting)
+         select owner_id, id, distance_meters, true from s
          on conflict (user_id, occurrence_id) do nothing
          returning id
        )

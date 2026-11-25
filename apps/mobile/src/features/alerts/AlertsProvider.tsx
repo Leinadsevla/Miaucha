@@ -138,14 +138,21 @@ export function AlertsProvider({
     // sempre que o app volta para o primeiro plano, até registrar.
     let registered = false;
     let inFlight = false;
-    // Só a primeira tentativa abre o diálogo de permissão; as outras só conferem se foi liberada.
+    // Só a primeira tentativa que chega à permissão abre o diálogo; as outras só conferem se foi liberada.
+    // (Uma falha antes dessa etapa não conta: a pessoa ainda não foi perguntada.)
     let asked = false;
     const register = () => {
       if (registered || inFlight) return;
       inFlight = true;
-      const ask = !asked;
-      asked = true;
-      void registerForPush({ env, notifications, register: (token) => client.registerPushToken(token), ask }).then((s) => {
+      void registerForPush({
+        env,
+        notifications,
+        register: (token) => client.registerPushToken(token),
+        ask: !asked,
+        onPermissionStep: () => {
+          asked = true;
+        },
+      }).then((s) => {
         inFlight = false;
         registered = s.kind === "registered";
         if (!cancelled) setPush(s);

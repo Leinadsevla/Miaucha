@@ -131,6 +131,24 @@ describe("OccurrenceForm (registrar ocorrência)", () => {
     );
   });
 
+  it("edição: só busca a localização do aparelho quando a pessoa escolhe 'Minha localização'", async () => {
+    const onRetryLocation = jest.fn();
+    await render(
+      <OccurrenceForm
+        location={null}
+        onSubmit={jest.fn()}
+        onSave={jest.fn()}
+        onPickPhotos={jest.fn(async () => [])}
+        onRetryLocation={onRetryLocation}
+        initial={{ type: "lost", species: "dog", petName: "Thor" }}
+        editing={{ photos: [] }}
+      />,
+    );
+    expect(onRetryLocation).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByRole("button", { name: "Minha localização" }));
+    expect(onRetryLocation).toHaveBeenCalledTimes(1);
+  });
+
   it("edição: escolher outro local manda o ponto novo", async () => {
     const onSave = jest.fn();
     await setup({ initial: { type: "seen", species: "dog" }, editing: { photos: [] }, onSave });

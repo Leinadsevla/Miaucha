@@ -228,12 +228,16 @@ export class OccurrencesService {
       locationSql = `, location = st_setsrid(st_makepoint($9, $10), 4326)::geography,
                        public_location = st_setsrid(st_makepoint($11, $12), 4326)::geography`;
     }
-    await this.pool.query(
+    // `status = 'open'` de novo aqui: um "resolver" entre a leitura acima e esta gravação não é desfeito.
+    const { rowCount } = await this.pool.query(
       `update occurrences set species = $3, pet_name = $4, breed = $5, color = $6, description = $7, approx_address = $8,
               updated_at = now()${locationSql}
-        where id = $1 and author_id = $2`,
+        where id = $1 and author_id = $2 and status = 'open'`,
       params,
     );
+    if (rowCount === 0) throw new BadRequestException("Ocorrência resolvida não pode mais ser editada");
+    // AL-01: local novo avisa quem está perto dele (o `unique` do banco impede repetir para quem já recebeu).
+    if (input.location) this.alertQueue.occurrenceCreated(id);
     return this.findPublic(authorId, id);
   }
 

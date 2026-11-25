@@ -9,7 +9,7 @@ import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { PickedPhoto } from "@/features/pets/photos";
 import type { ChatClient } from "./chatClient";
 import type { ChatRealtime } from "./chatRealtime";
-import { applyCatchUp, applyRead, catchUpMessages, mergeMessages } from "./chatState";
+import { applyCatchUp, applyRead, catchUpMessages, mergeMessages, newestCreatedAt } from "./chatState";
 import { ConversationOptions } from "./ConversationOptions";
 import { MessageBubble } from "./MessageBubble";
 
@@ -45,8 +45,9 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
   const [showOptions, setShowOptions] = useState(false);
   const [busy, setBusy] = useState(false);
   const active = useRef(true);
-  const messagesRef = useRef(messages);
-  messagesRef.current = messages;
+  // Hora da mensagem mais nova que veio do servidor (carga, socket, recuperação). As enviadas por este aparelho
+  // não contam: depois de uma queda, a recuperação busca até aqui, e não até a última mensagem na tela.
+  const syncedAtRef = useRef<string | null>(null);
 
   const markRead = useCallback(() => {
     client.markRead(conversationId).catch(() => undefined);
@@ -55,6 +56,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
   const loadLatest = useCallback(async () => {
     try {
       const [found, page] = await Promise.all([client.get(conversationId), client.messages(conversationId)]);
+      syncedAtRef.current = newestCreatedAt(syncedAtRef.current, page.messages);
       if (!active.current) return;
       setConversation(found);
       setMessages((current) => mergeMessages(current, page.messages));
@@ -77,6 +79,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
     const offs = [
       realtime.on("message:new", ({ conversationId: id, message: m }) => {
         if (id !== conversationId) return;
+        syncedAtRef.current = newestCreatedAt(syncedAtRef.current, [m]);
         setMessages((current) => mergeMessages(current, [m]));
         if (!m.mine) markRead();
       }),
@@ -88,9 +91,9 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
       }),
       // Depois de cair, busca o que chegou enquanto estava desconectado.
       realtime.onConnect(() => {
-        const known = new Set(messagesRef.current.map((m) => m.id));
-        catchUpMessages(known, (before) => client.messages(conversationId, before)).then((result) => {
+        catchUpMessages(syncedAtRef.current, (before) => client.messages(conversationId, before)).then((result) => {
           if (!active.current) return;
+          syncedAtRef.current = newestCreatedAt(syncedAtRef.current, result.messages);
           setMessages((current) => applyCatchUp(current, result));
           if (result.reset) setNextCursor(result.nextCursor);
         }, () => undefined);

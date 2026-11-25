@@ -122,6 +122,26 @@ describe("AlertsProvider", () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
+  it("se a primeira tentativa falhou antes de chegar à permissão, a próxima ainda pergunta", async () => {
+    const s = setup();
+    let channelFails = true;
+    s.notifications.setNotificationChannelAsync = async () => {
+      if (channelFails) throw new Error("canal indisponível");
+      return null;
+    };
+    s.notifications.getPermissionsAsync = async () => ({ granted: false, canAskAgain: true });
+    const request = jest.fn(async () => ({ granted: true, canAskAgain: true }));
+    s.notifications.requestPermissionsAsync = request;
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    expect(await screen.findByText(/O aparelho não gerou o token/)).toBeOnTheScreen();
+    expect(request).not.toHaveBeenCalled();
+
+    channelFails = false;
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Notificações ativas neste aparelho.")).toBeOnTheScreen();
+  });
+
   it("push já registrado não registra de novo ao voltar para o primeiro plano", async () => {
     const s = setup();
     await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);

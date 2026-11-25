@@ -107,6 +107,14 @@ export function OccurrenceForm({
   const [locationMode, setLocationMode] = useState<LocationMode>(editing ? "keep" : "current");
   const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
   const keptPhotos = (editing?.photos ?? []).filter((p) => !removedPhotoIds.includes(p.id));
+  // Na edição, a localização do aparelho só é buscada quando a pessoa escolhe "Minha localização"
+  // (corrigir um texto não deve abrir o pedido de permissão de localização).
+  const wantsCurrent = locationMode === "current";
+  useEffect(() => {
+    if (editing && wantsCurrent && location === null) onRetryLocation();
+    // Só ao trocar o modo: `location` volta a null enquanto busca e não deve disparar outra busca.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsCurrent]);
   // Ponto do endereço procurado; só vale enquanto o texto do endereço não mudar.
   const [found, setFound] = useState<{ query: string; coords: LatLng } | null>(null);
   const [searching, setSearching] = useState(false);

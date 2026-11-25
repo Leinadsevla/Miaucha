@@ -11,26 +11,34 @@ export function mergeMessages(current: ChatMessage[], incoming: ChatMessage[]): 
 export type CatchUp = { messages: ChatMessage[]; reset: false } | { messages: ChatMessage[]; reset: true; nextCursor: string | null };
 
 /**
- * Depois de reconectar: busca páginas para trás até encostar numa mensagem que já estava na tela, para não
- * abrir um buraco quando chegou mais de uma página. Se passar de `maxPages`, a lista recomeça do zero
- * (`reset`), com o cursor da última página buscada.
+ * Depois de reconectar, busca páginas para trás até alcançar `syncedAt`: a hora da mensagem mais nova que veio
+ * do servidor antes da queda (carga, socket ou recuperação anterior). Não para em mensagens já conhecidas: uma
+ * mensagem própria enviada por HTTP durante a queda é a mais nova e faria parar antes das que chegaram no meio.
+ * Sem alcançar dentro de `maxPages`, devolve `reset` (a lista recomeça da última página buscada).
  */
 export async function catchUpMessages(
-  known: ReadonlySet<string>,
+  syncedAt: string | null,
   fetchPage: (before?: string) => Promise<ChatMessagesPage>,
   maxPages = 5,
 ): Promise<CatchUp> {
   const collected: ChatMessage[] = [];
   let cursor: string | undefined;
-  // Nada na tela (primeira carga pendente ou falhou): a página mais nova basta, não há buraco a fechar.
-  const pages = known.size === 0 ? 1 : maxPages;
+  // Nada sincronizado ainda (primeira carga pendente ou falhou): a página mais nova basta, não há buraco a fechar.
+  const pages = syncedAt === null ? 1 : maxPages;
   for (let i = 0; i < pages; i++) {
     const page = await fetchPage(cursor);
     collected.push(...page.messages);
-    if (!page.nextCursor || known.size === 0 || page.messages.some((m) => known.has(m.id))) return { messages: collected, reset: false };
+    if (!page.nextCursor || syncedAt === null || page.messages.some((m) => m.createdAt <= syncedAt)) {
+      return { messages: collected, reset: false };
+    }
     cursor = page.nextCursor;
   }
   return { messages: collected, reset: true, nextCursor: cursor ?? null };
+}
+
+/** A hora mais nova entre `current` e as mensagens (ISO 8601 compara como texto). */
+export function newestCreatedAt(current: string | null, messages: readonly ChatMessage[]): string | null {
+  return messages.reduce<string | null>((max, m) => (max === null || m.createdAt > max ? m.createdAt : max), current);
 }
 
 /**

@@ -101,7 +101,8 @@ describe("textos", () => {
 
 describe("catchUpMessages (depois de reconectar)", () => {
   // 100 mensagens, da mais nova (m99) para a mais antiga (m0), em páginas de 30.
-  const all = Array.from({ length: 100 }, (_, i) => msg(`m${i}`, `2026-11-20T10:${String(i).padStart(2, "0")}:00Z`)).reverse();
+  const at = (i: number) => `2026-11-20T10:${String(i).padStart(2, "0")}:00Z`;
+  const all = Array.from({ length: 100 }, (_, i) => msg(`m${i}`, at(i))).reverse();
   const fetchPage = jest.fn(async (before?: string) => {
     const start = before ? all.findIndex((m) => m.id === before) + 1 : 0;
     const messages = all.slice(start, start + 30);
@@ -109,23 +110,33 @@ describe("catchUpMessages (depois de reconectar)", () => {
   });
   beforeEach(() => fetchPage.mockClear());
 
-  it("busca páginas para trás até encostar numa mensagem que já estava na tela", async () => {
+  it("busca páginas para trás até alcançar a mensagem mais nova que veio do servidor antes de cair", async () => {
     // Tinha até m40; chegaram m41..m99 (59 mensagens, mais de uma página).
-    const result = await catchUpMessages(new Set(["m40", "m39"]), fetchPage);
+    const result = await catchUpMessages(at(40), fetchPage);
     expect(result.reset).toBe(false);
     const ids = new Set(result.messages.map((m) => m.id));
     for (let i = 41; i < 100; i++) expect(ids.has(`m${i}`)).toBe(true);
     expect(fetchPage).toHaveBeenCalledTimes(2);
   });
 
+  it("mensagem própria enviada (por HTTP) durante a queda não faz parar antes: sem buraco", async () => {
+    // A mensagem própria já está na tela e é a mais nova da primeira página; antes, a busca parava nela.
+    const result = await catchUpMessages(at(40), async (before) => {
+      const page = await fetchPage(before);
+      return before ? page : { ...page, messages: [msg("minha", "2026-11-20T11:00:00Z", { mine: true }), ...page.messages] };
+    });
+    const ids = new Set(result.messages.map((m) => m.id));
+    for (let i = 41; i < 100; i++) expect(ids.has(`m${i}`)).toBe(true);
+  });
+
   it("uma página basta quando chegou pouca coisa", async () => {
-    const result = await catchUpMessages(new Set(["m95"]), fetchPage);
+    const result = await catchUpMessages(at(95), fetchPage);
     expect(result.reset).toBe(false);
     expect(fetchPage).toHaveBeenCalledTimes(1);
   });
 
-  it("sem encostar no que já tinha dentro do limite de páginas → recomeça a lista do zero, com o cursor da última", async () => {
-    const result = await catchUpMessages(new Set(["nao-existe"]), fetchPage, 2);
+  it("sem alcançar o que já tinha dentro do limite de páginas → recomeça a lista do zero, com o cursor da última", async () => {
+    const result = await catchUpMessages("2026-11-20T09:00:00Z", fetchPage, 2);
     expect(result).toEqual({ messages: all.slice(0, 60), reset: true, nextCursor: "m40" });
   });
 });
@@ -133,7 +144,7 @@ describe("catchUpMessages (depois de reconectar)", () => {
 describe("catchUpMessages sem nada na tela", () => {
   it("busca uma página só e não recomeça a lista", async () => {
     const fetchPage = jest.fn(async () => ({ messages: [msg("a", "2026-11-20T10:00:00Z")], nextCursor: "a" }));
-    expect(await catchUpMessages(new Set(), fetchPage)).toEqual({ messages: [msg("a", "2026-11-20T10:00:00Z")], reset: false });
+    expect(await catchUpMessages(null, fetchPage)).toEqual({ messages: [msg("a", "2026-11-20T10:00:00Z")], reset: false });
     expect(fetchPage).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,3 +1,6 @@
+import type { Pool } from "pg";
+import type { PhotoStorage } from "../src/storage/photo-storage";
+import { PG_POOL, PHOTO_STORAGE } from "../src/tokens";
 import { S3PhotoStorage } from "../src/storage/s3-photo-storage";
 import { closeTestApp, createTestApp, expectNoPrivateData, signUpVerified, storageConfigFromEnv, type TestContext } from "./helpers";
 
@@ -169,6 +172,30 @@ describe("fotos do pet (upload por URL assinada)", () => {
 
     await t.confirm(pet.id, req.body.photoId).expect(200);
     expect((await t.myPets())[0].photos).toEqual([{ id: req.body.photoId, url: expect.any(String) }]);
+  });
+
+  it("a conferência no storage não segura conexão do banco (o pool pequeno do Supabase não esgota)", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    const pool = ctx.app.get<Pool>(PG_POOL);
+    const storage = ctx.app.get<PhotoStorage>(PHOTO_STORAGE);
+    const busy: number[] = [];
+    for (const method of ["stat", "copy", "readHead", "delete"] as const) {
+      const original = storage[method].bind(storage) as (...args: unknown[]) => Promise<unknown>;
+      jest.spyOn(storage, method).mockImplementation((async (...args: unknown[]) => {
+        busy.push(pool.totalCount - pool.idleCount);
+        return original(...args);
+      }) as never);
+    }
+    try {
+      await t.confirm(pet.id, req.body.photoId).expect(200);
+    } finally {
+      jest.restoreAllMocks();
+    }
+    expect(busy.length).toBeGreaterThan(0);
+    expect(Math.max(...busy)).toBe(0);
   });
 
   it("dois confirms ao mesmo tempo → os dois 200", async () => {

@@ -449,6 +449,26 @@ describe("\"Vi este pet\": avistamento ligado a um pet perdido", () => {
     expect(pushesTo(owner.pushToken)).toEqual([]);
   });
 
+  it("alerta comum de proximidade não vem marcado como avistamento, mesmo apontando para o pet do tutor", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.at(home);
+    const lost = await owner.create(home);
+    await queue.onIdle();
+    const res = await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+    expect((await owner.alerts()).find((a) => a.occurrenceId === res.body.id)?.sighting).toBe(true);
+
+    // O pet foi reencontrado antes do disparo: o tutor recebe só o alerta comum (distância da casa dele).
+    await ctx.pool.query("delete from alerts where user_id = $1 and occurrence_id = $2", [owner.user.id, res.body.id]);
+    await ctx.pool.query("update occurrences set status = 'resolved' where id = $1", [lost.id]);
+    await ctx.app.get(AlertsService).dispatchForOccurrence(res.body.id);
+    const generic = (await owner.alerts()).find((a) => a.occurrenceId === res.body.id);
+    expect(generic).toBeDefined();
+    expect(generic!.sighting).toBe(false);
+  });
+
   it("tutor com alertas desligados vê o avistamento na lista, mas sem push", async () => {
     const owner = await tutor();
     const witness = await tutor();
