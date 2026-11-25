@@ -4,6 +4,9 @@ const required = {
   DATABASE_URL: "postgres://u:p@localhost:5432/miaucha",
   JWT_SECRET: "jwt-secret-com-pelo-menos-32-caracteres!",
   CODE_SECRET: "code-secret-com-pelo-menos-32-caracteres",
+  STORAGE_ENDPOINT: "https://projeto.storage.supabase.co/storage/v1/s3",
+  STORAGE_ACCESS_KEY_ID: "access-key",
+  STORAGE_SECRET_ACCESS_KEY: "secret-key",
 };
 
 describe("loadConfig", () => {
@@ -18,7 +21,78 @@ describe("loadConfig", () => {
       refreshTokenTtlDays: 30,
       googleClientIds: [],
       throttle: { ttlMs: 60_000, limit: 10 },
+      chatThrottle: { ttlMs: 60_000, limit: 30 },
+      trustProxy: 0,
+      storage: {
+        endpoint: required.STORAGE_ENDPOINT,
+        region: "us-east-1",
+        bucket: "pet-photos",
+        accessKeyId: "access-key",
+        secretAccessKey: "secret-key",
+      },
     });
+  });
+
+  it("lê o access token opcional do Expo Push", () => {
+    expect(loadConfig(required).expoAccessToken).toBeUndefined();
+    expect(loadConfig({ ...required, EXPO_ACCESS_TOKEN: "token-do-expo" }).expoAccessToken).toBe("token-do-expo");
+  });
+
+  it("TRUST_PROXY: número de proxies na frente da API (0 = nenhum, o padrão)", () => {
+    expect(loadConfig(required).trustProxy).toBe(0);
+    expect(loadConfig({ ...required, TRUST_PROXY: "1" }).trustProxy).toBe(1);
+  });
+
+  it("Resend: só com RESEND_API_KEY; remetente padrão é o de teste do Resend", () => {
+    expect(loadConfig(required).resend).toBeUndefined();
+    expect(loadConfig({ ...required, RESEND_API_KEY: "re_123" }).resend).toEqual({ apiKey: "re_123", from: "Miaucha <onboarding@resend.dev>" });
+    expect(loadConfig({ ...required, RESEND_API_KEY: "re_123", MAIL_FROM: "Miaucha <codigo@miaucha.app>" }).resend?.from).toBe(
+      "Miaucha <codigo@miaucha.app>",
+    );
+  });
+
+  it("Gmail: as quatro variáveis juntas; faltando alguma, a API nem sobe (diz o que falta)", () => {
+    const gmail = {
+      GMAIL_CLIENT_ID: "cliente.apps.googleusercontent.com",
+      GMAIL_CLIENT_SECRET: "segredo",
+      GMAIL_REFRESH_TOKEN: "1//refresh",
+      GMAIL_SENDER: "projeto.miaucha@gmail.com",
+    };
+    expect(loadConfig(required).gmail).toBeUndefined();
+    expect(loadConfig({ ...required, ...gmail }).gmail).toEqual({
+      clientId: gmail.GMAIL_CLIENT_ID,
+      clientSecret: "segredo",
+      refreshToken: "1//refresh",
+      sender: "projeto.miaucha@gmail.com",
+    });
+    expect(() => loadConfig({ ...required, GMAIL_CLIENT_ID: "x", GMAIL_SENDER: "y" })).toThrow("GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN");
+  });
+
+  it("valores colados com espaço, quebra de linha ou aspas em volta são limpos (erro comum no painel do Render)", () => {
+    const config = loadConfig({
+      ...required,
+      GMAIL_CLIENT_ID: " cliente.apps.googleusercontent.com\n",
+      GMAIL_CLIENT_SECRET: '"GOCSPX-segredo"',
+      GMAIL_REFRESH_TOKEN: "'1//refresh' ",
+      GMAIL_SENDER: ' "miaucha26@gmail.com"\r\n',
+      RESEND_API_KEY: "  re_123  ",
+    });
+    expect(config.gmail).toEqual({
+      clientId: "cliente.apps.googleusercontent.com",
+      clientSecret: "GOCSPX-segredo",
+      refreshToken: "1//refresh",
+      sender: "miaucha26@gmail.com",
+    });
+    expect(config.resend?.apiKey).toBe("re_123");
+  });
+
+  it("variável só com espaços conta como vazia", () => {
+    expect(loadConfig({ ...required, GMAIL_CLIENT_ID: "  ", GMAIL_CLIENT_SECRET: "", GMAIL_REFRESH_TOKEN: " ", GMAIL_SENDER: "" }).gmail).toBeUndefined();
+  });
+
+  it("lê região e bucket do storage", () => {
+    const config = loadConfig({ ...required, STORAGE_REGION: "us-west-2", STORAGE_BUCKET: "fotos" });
+    expect(config.storage).toMatchObject({ region: "us-west-2", bucket: "fotos" });
   });
 
   it("lê porta, client IDs do Google (separados por vírgula) e limite de requisições", () => {
@@ -32,6 +106,13 @@ describe("loadConfig", () => {
     expect(config.port).toBe(4000);
     expect(config.googleClientIds).toEqual(["android.apps.googleusercontent.com", "ios.apps.googleusercontent.com"]);
     expect(config.throttle).toEqual({ ttlMs: 1000, limit: 3 });
+  });
+
+  it("lê o limite de mensagens do chat e o Redis opcional (adapter do Socket.IO)", () => {
+    const config = loadConfig({ ...required, CHAT_THROTTLE_LIMIT: "5", CHAT_THROTTLE_TTL_MS: "2000", REDIS_URL: "redis://localhost:6379" });
+    expect(config.chatThrottle).toEqual({ ttlMs: 2000, limit: 5 });
+    expect(config.redisUrl).toBe("redis://localhost:6379");
+    expect(loadConfig(required).redisUrl).toBeUndefined();
   });
 
   it.each(Object.keys(required))("falha sem %s", (key) => {

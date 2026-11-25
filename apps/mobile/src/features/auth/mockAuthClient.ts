@@ -25,6 +25,14 @@ export function createMockAuthClient(): AuthClient {
       await wait();
       pendingName = name;
     },
+    async requestPasswordReset() {
+      await wait();
+    },
+    async resetPassword(email) {
+      await wait();
+      user = { id: "dev", name: email.split("@")[0], hasConsent: false };
+      return user;
+    },
     async verifyEmail() {
       await wait();
       user = { id: "dev", name: pendingName || "Tutor", hasConsent: false };

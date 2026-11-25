@@ -1,4 +1,4 @@
-import { formatTimeAgo, formatDistance } from "../format";
+import { formatApproxDistance, formatTimeAgo, formatDistance } from "../format";
 
 const now = new Date("2026-11-17T15:00:00Z");
 const ago = (ms: number) => new Date(now.getTime() - ms);
@@ -34,5 +34,17 @@ describe("formatDistance", () => {
     [12_400, "12 km"],
   ])("%i m → %s", (m, esperado) => {
     expect(formatDistance(m)).toBe(esperado);
+  });
+});
+
+describe("formatApproxDistance (alertas: a posição do usuário é uma célula de ~1 km)", () => {
+  it.each([
+    [20, "100 m"],
+    [149, "100 m"],
+    [820, "800 m"],
+    [960, "1 km"],
+    [2_340, "2,3 km"],
+  ])("%i m → %s", (m, esperado) => {
+    expect(formatApproxDistance(m)).toBe(esperado);
   });
 });

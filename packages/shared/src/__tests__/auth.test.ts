@@ -1,4 +1,4 @@
-import { validateLogin, validateSignUp, validateEmailCode } from "../auth";
+import { validatePassword, validateLogin, validateSignUp, validateEmailCode } from "../auth";
 
 describe("validateLogin (NF-02)", () => {
   it("aceita e-mail e senha preenchidos", () => {
@@ -40,4 +40,13 @@ describe("validateEmailCode", () => {
   it.each(["12345", "1234567", "12a456", ""])("rejeita %p", (c) =>
     expect(validateEmailCode(c)).toBe(false),
   );
+});
+
+describe("validatePassword", () => {
+  it("exige 8 caracteres com letras e números", () => {
+    expect(validatePassword("segura123")).toBeUndefined();
+    for (const weak of ["curta1", "somenteletras", "12345678"]) {
+      expect(validatePassword(weak)).toBe("A senha precisa de pelo menos 8 caracteres, com letras e números");
+    }
+  });
 });
