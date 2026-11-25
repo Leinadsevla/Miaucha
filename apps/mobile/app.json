@@ -15,7 +15,7 @@
       "package": "br.tcc.miaucha",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#FF8A3D",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -38,7 +38,7 @@
         {
           "backgroundColor": "#FF8A3D",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 120
+          "imageWidth": 96
         }
       ],
       "expo-image",
@@ -62,7 +62,8 @@
       [
         "expo-notifications",
         {
-          "color": "#FF8A3D"
+          "color": "#FF8A3D",
+          "icon": "./assets/android-icon-monochrome.png"
         }
       ],
       "@maplibre/maplibre-react-native"

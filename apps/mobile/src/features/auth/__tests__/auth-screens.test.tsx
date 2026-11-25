@@ -1,8 +1,22 @@
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
+import { Text } from "react-native";
+import { AuthScreenLayout } from "../AuthScreenLayout";
 import { LoginForm } from "../LoginForm";
 import { VerifyEmailForm } from "../VerifyEmailForm";
 import { ConsentForm } from "../ConsentForm";
 import { SplashView } from "../SplashView";
+
+describe("AuthScreenLayout (login, cadastro, verificação, senha, consentimento)", () => {
+  it("cabeçalho com a logo do Miaucha (não mais a pata)", async () => {
+    await render(
+      <AuthScreenLayout title="Entrar" subtitle="Bem-vindo">
+        <Text>conteúdo</Text>
+      </AuthScreenLayout>,
+    );
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    expect(screen.queryByText("🐾")).toBeNull();
+  });
+});
 
 describe("LoginForm (NF-02)", () => {
   const setup = async () => {
@@ -150,6 +164,8 @@ describe("SplashView", () => {
     const onFinish = jest.fn();
     await render(<SplashView onFinish={onFinish} />);
     expect(screen.getByText("Miaucha")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    expect(screen.queryByText("🐾")).toBeNull();
     expect(screen.getByText("Conectando pets aos seus lares")).toBeOnTheScreen();
     await act(() => jest.advanceTimersByTime(2500));
     expect(onFinish).not.toHaveBeenCalled();

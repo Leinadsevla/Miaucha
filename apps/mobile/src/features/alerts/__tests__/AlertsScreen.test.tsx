@@ -106,6 +106,8 @@ describe("AlertsScreen (aba Alertas)", () => {
     const { props } = setup(async () => []);
     await render(<AlertsScreen {...props} />);
     expect(await screen.findByText(/Nenhum alerta por enquanto/)).toBeOnTheScreen();
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    expect(screen.queryByText("🐾")).toBeNull();
   });
 
   it("carregando", async () => {

@@ -44,6 +44,13 @@ describe("shouldShowOnboarding", () => {
 });
 
 describe("OnboardingScreen", () => {
+  it("o passo de boas-vindas mostra a logo do Miaucha", async () => {
+    await render(<OnboardingScreen onDone={jest.fn()} />);
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Próximo" }));
+    expect(screen.queryByLabelText("Logo do Miaucha")).toBeNull();
+  });
+
   it("quatro passos: avança com Próximo e termina com Começar", async () => {
     const onDone = jest.fn();
     await render(<OnboardingScreen onDone={onDone} />);
