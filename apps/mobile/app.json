@@ -36,7 +36,30 @@
           "imageWidth": 120
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Miaucha usa suas fotos para mostrar seu pet no cadastro e nos alertas.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Miaucha usa sua localização para mostrar pets perdidos perto de você e marcar onde um pet foi visto. Só a região aproximada aparece para outras pessoas.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A3D"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

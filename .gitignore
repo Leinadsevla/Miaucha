@@ -8,3 +8,6 @@ coverage/
 !.env.example
 ios/
 android/
+
+# worktrees de subagentes do Claude Code
+.claude/worktrees/

@@ -46,12 +46,38 @@ describe("LoginForm (NF-02)", () => {
     expect(onSignUp).not.toHaveBeenCalled();
 
     await fireEvent.changeText(screen.getByLabelText("Senha"), "segura123");
+    await fireEvent.changeText(screen.getByLabelText("Confirmar senha"), "segura123");
     await fireEvent.press(screen.getByRole("button", { name: "Criar conta" }));
     expect(onSignUp).toHaveBeenCalledWith({
       name: "Ana Souza",
       email: "ana@exemplo.com",
       password: "segura123",
     });
+  });
+
+  it("cadastro exige confirmar a senha igual", async () => {
+    const { onSignUp } = await setup();
+    await fireEvent.press(screen.getByRole("tab", { name: "Cadastrar" }));
+    await fireEvent.changeText(screen.getByLabelText("Nome completo"), "Ana Souza");
+    await fireEvent.changeText(screen.getByLabelText("E-mail"), "ana@exemplo.com");
+    await fireEvent.changeText(screen.getByLabelText("Senha"), "segura123");
+    await fireEvent.changeText(screen.getByLabelText("Confirmar senha"), "segura124");
+    await fireEvent.press(screen.getByRole("button", { name: "Criar conta" }));
+
+    expect(screen.getByText("As senhas não conferem")).toBeOnTheScreen();
+    expect(onSignUp).not.toHaveBeenCalled();
+  });
+
+  it("aba Entrar não pede confirmação de senha", async () => {
+    await setup();
+    expect(screen.queryByLabelText("Confirmar senha")).toBeNull();
+  });
+
+  it("Esqueci minha senha aparece na aba Entrar e chama a ação", async () => {
+    const onForgotPassword = jest.fn();
+    await render(<LoginForm onLogin={jest.fn()} onSignUp={jest.fn()} onGoogle={jest.fn()} onForgotPassword={onForgotPassword} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Esqueci minha senha" }));
+    expect(onForgotPassword).toHaveBeenCalled();
   });
 
   it("botão do Google", async () => {
