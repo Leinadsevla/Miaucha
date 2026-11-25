@@ -9,6 +9,7 @@ import {
   validateOccurrence,
   type OccurrenceErrors,
   type OccurrenceInput,
+  type OccurrenceUpdate,
   type LatLng,
   type MyPet,
   type OccurrenceType,
@@ -37,6 +38,10 @@ export type OccurrenceFormProps = {
   initial?: Partial<Values>;
   /** Registro a partir de um pet do usuário: a API completa os dados e reaproveita as fotos dele. */
   fromPet?: SelectedPet;
+  /** Edição de uma ocorrência do usuário: tipo fixo, fotos já salvas e "Manter o local" por padrão. */
+  editing?: { photos: { id: string; url: string }[] };
+  /** Salvar a edição (no lugar do `onSubmit`): `location` só vem se o usuário escolheu um local novo. */
+  onSave?: (update: OccurrenceUpdate, newPhotos: PickedPhoto[], removedPhotoIds: string[]) => void;
   /** "Vi este pet": o tipo fica fixo em avistado e a API avisa o tutor do pet perdido. */
   sightingOf?: { id: string; petName: string };
   /** Pets do usuário, para escolher em "Perdi meu pet". */
@@ -48,7 +53,7 @@ export type OccurrenceFormProps = {
 };
 
 type SelectedPet = { id: string; name: string; photoCount: number };
-type LocationMode = "current" | "address" | "map";
+type LocationMode = "keep" | "current" | "address" | "map";
 
 const MESSAGES = {
   searchFirst: "Procure o endereço para marcar o local",
@@ -79,6 +84,8 @@ export function OccurrenceForm({
   initial,
   fromPet,
   sightingOf,
+  editing,
+  onSave,
   myPets = [],
   onGeocode,
   loading,
@@ -97,19 +104,21 @@ export function OccurrenceForm({
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [errors, setErrors] = useState<OccurrenceErrors>({});
   const [selectedPet, setSelectedPet] = useState<SelectedPet | null>(fromPet ?? null);
-  const [locationMode, setLocationMode] = useState<LocationMode>("current");
+  const [locationMode, setLocationMode] = useState<LocationMode>(editing ? "keep" : "current");
+  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([]);
+  const keptPhotos = (editing?.photos ?? []).filter((p) => !removedPhotoIds.includes(p.id));
   // Ponto do endereço procurado; só vale enquanto o texto do endereço não mudar.
   const [found, setFound] = useState<{ query: string; coords: LatLng } | null>(null);
   const [searching, setSearching] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string>();
   const set = <K extends keyof Values>(key: K, value: Values[K]) => setValues((prev) => ({ ...prev, [key]: value }));
-  const remainingPhotos = MAX_OCCURRENCE_PHOTOS - (selectedPet?.photoCount ?? 0);
+  const remainingPhotos = MAX_OCCURRENCE_PHOTOS - (selectedPet?.photoCount ?? 0) - keptPhotos.length;
   const address = values.approxAddress.trim();
   const addressPoint = found && found.query === address ? found.coords : null;
   // Ponto de partida (localização atual ou endereço encontrado) e o ajuste feito arrastando o pino.
   const currentPoint = location?.status === "ok" ? location.coords : null;
   // Em "Marcar no mapa" não há ponto de partida: vale só o toque (o mapa abre na localização ou na região padrão).
-  const basePoint = locationMode === "address" ? addressPoint : locationMode === "map" ? null : currentPoint;
+  const basePoint = locationMode === "address" ? addressPoint : locationMode === "current" ? currentPoint : null;
   const mapCenter = currentPoint ?? { lat: DEFAULT_REGION.latitude, lng: DEFAULT_REGION.longitude };
   const [pin, setPin] = useState<LatLng | null>(null);
   useEffect(() => setPin(null), [locationMode, found, location]);
@@ -153,6 +162,22 @@ export function OccurrenceForm({
       return;
     }
     const coords = pin ?? basePoint ?? { lat: Number.NaN, lng: Number.NaN };
+    if (editing && onSave) {
+      const update: OccurrenceUpdate = {
+        species: values.species,
+        petName: values.petName.trim(),
+        breed: values.breed.trim(),
+        color: values.color.trim(),
+        approxAddress: values.approxAddress.trim(),
+        description: values.description.trim(),
+        ...(locationMode === "keep" ? {} : { location: coords }),
+      };
+      // Mantendo o local, valida com um ponto qualquer válido (o local salvo não muda).
+      const problems = validateOccurrence({ ...update, type: values.type, ...(update.location ?? { lat: 0, lng: 0 }) });
+      setErrors(problems);
+      if (Object.keys(problems).length === 0) onSave(update, photos, removedPhotoIds);
+      return;
+    }
     const input: OccurrenceInput = {
       type: values.type,
       species: values.species,
@@ -180,7 +205,7 @@ export function OccurrenceForm({
             {`Você viu ${sightingOf.petName}. O tutor recebe um aviso na hora, com a região aproximada de onde você está.`}
           </Text>
         </View>
-      ) : (
+      ) : editing ? null : (
         <Card>
           <SectionLabel>O que aconteceu?</SectionLabel>
           <View className="gap-2">
@@ -209,7 +234,7 @@ export function OccurrenceForm({
         </Card>
       )}
 
-      {values.type === "lost" && myPets.length > 0 ? (
+      {values.type === "lost" && myPets.length > 0 && !editing ? (
         <Card>
           <SectionLabel>Qual pet?</SectionLabel>
           <View className="flex-row flex-wrap gap-2">
@@ -235,7 +260,14 @@ export function OccurrenceForm({
 
       <Card>
         <SectionLabel>Fotos do animal</SectionLabel>
-        <PhotoPickerField photos={photos} onChange={setPhotos} onPickPhotos={onPickPhotos} max={Math.max(0, remainingPhotos)} />
+        <PhotoPickerField
+          photos={photos}
+          onChange={setPhotos}
+          onPickPhotos={onPickPhotos}
+          max={Math.max(0, remainingPhotos) + keptPhotos.length}
+          existing={keptPhotos}
+          onRemoveExisting={(id) => setRemovedPhotoIds((prev) => [...prev, id])}
+        />
       </Card>
 
       <Card>
@@ -265,6 +297,11 @@ export function OccurrenceForm({
       <Card className="gap-3">
         <SectionLabel>{values.type === "lost" ? "Último local visto" : "Onde foi"}</SectionLabel>
         <View className="flex-row flex-wrap gap-2">
+          {editing ? (
+            <PetChoice label="Manter o local" selected={locationMode === "keep"} onPress={() => setLocationMode("keep")}>
+              <MapPin size={14} color={locationMode === "keep" ? colors.primary : colors.mutedForeground} />
+            </PetChoice>
+          ) : null}
           <PetChoice label="Minha localização" selected={locationMode === "current"} onPress={() => setLocationMode("current")}>
             <Navigation size={14} color={locationMode === "current" ? colors.primary : colors.mutedForeground} />
           </PetChoice>
@@ -299,6 +336,8 @@ export function OccurrenceForm({
               <Text className="font-nunito-semibold text-xs text-lost">{geocodeError}</Text>
             ) : null}
           </>
+        ) : locationMode === "keep" ? (
+          <Text className="font-sans text-xs text-muted-foreground">O local registrado continua o mesmo.</Text>
         ) : locationMode === "map" ? null : location === null ? (
           <View className="flex-row items-center gap-2">
             <ActivityIndicator color={colors.primary} />
@@ -346,7 +385,11 @@ export function OccurrenceForm({
       </Card>
 
       {serverError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{serverError}</Text> : null}
-      <PrimaryButton title="Emitir alerta" onPress={submit} loading={loading} icon={<AlertTriangle size={18} color={colors.white} />} />
+      {editing ? (
+        <PrimaryButton title="Salvar alterações" onPress={submit} loading={loading} />
+      ) : (
+        <PrimaryButton title="Emitir alerta" onPress={submit} loading={loading} icon={<AlertTriangle size={18} color={colors.white} />} />
+      )}
     </View>
   );
 }

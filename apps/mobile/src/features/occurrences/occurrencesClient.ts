@@ -1,4 +1,4 @@
-import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceType, type PublicOccurrence, type Species, type SpeciesFilter } from "@miaucha/shared";
+import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceUpdate, type OccurrenceType, type PublicOccurrence, type Species, type SpeciesFilter } from "@miaucha/shared";
 import type { ApiSession } from "@/features/auth/apiSession";
 import { bboxParam, type BBox } from "@/features/map/region";
 import { uploadPhotoVia, type Uploader } from "@/features/pets/petsClient";
@@ -21,6 +21,9 @@ export type OccurrencesClient = {
   create(input: OccurrenceInput): Promise<PublicOccurrence>;
   addPhoto(id: string, photo: PickedPhoto): Promise<OccurrencePhoto>;
   resolve(id: string): Promise<PublicOccurrence>;
+  /** Edição pelo autor; `location` só quando há um local novo. */
+  update(id: string, input: OccurrenceUpdate): Promise<PublicOccurrence>;
+  removePhoto(id: string, photoId: string): Promise<void>;
 };
 
 export function createHttpOccurrencesClient({ session, upload }: { session: ApiSession; upload: Uploader }): OccurrencesClient {
@@ -39,6 +42,10 @@ export function createHttpOccurrencesClient({ session, upload }: { session: ApiS
     create: (input) => session.authed<PublicOccurrence>("POST", "/occurrences", input),
     addPhoto: (id, photo) => uploadPhotoVia(session, upload, `/occurrences/${encodeURIComponent(id)}`, photo),
     resolve: (id) => session.authed<PublicOccurrence>("POST", `/occurrences/${encodeURIComponent(id)}/resolve`),
+    update: (id, { location, ...data }) =>
+      session.authed<PublicOccurrence>("PATCH", `/occurrences/${encodeURIComponent(id)}`, { ...data, ...(location ?? {}) }),
+    removePhoto: async (id, photoId) =>
+      void (await session.authed("DELETE", `/occurrences/${encodeURIComponent(id)}/photos/${encodeURIComponent(photoId)}`)),
   };
 }
 
@@ -55,6 +62,33 @@ export async function saveOccurrence(client: OccurrencesClient, input: Occurrenc
     }
   }
   return { occurrence: { ...occurrence, photoUrls: [...occurrence.photoUrls, ...uploaded] }, failedPhotos };
+}
+
+/** Salva a edição, remove as fotos marcadas e envia as novas. Uma foto que falha não desfaz o resto. */
+export async function updateOccurrence(
+  client: OccurrencesClient,
+  id: string,
+  input: OccurrenceUpdate,
+  newPhotos: PickedPhoto[],
+  removedPhotoIds: string[],
+) {
+  await client.update(id, input);
+  let failedPhotos = 0;
+  for (const photoId of removedPhotoIds) {
+    try {
+      await client.removePhoto(id, photoId);
+    } catch {
+      failedPhotos++;
+    }
+  }
+  for (const photo of newPhotos) {
+    try {
+      await client.addPhoto(id, photo);
+    } catch {
+      failedPhotos++;
+    }
+  }
+  return { failedPhotos };
 }
 
 const DAY = 24 * 3600 * 1000;
@@ -134,6 +168,24 @@ export function createMockOccurrencesClient({ seed = true }: { seed?: boolean } 
     async resolve(id) {
       find(id).status = "resolved";
       return find(id);
+    },
+    async update(id, { location, ...data }) {
+      const o = find(id);
+      Object.assign(o, {
+        species: data.species,
+        petName: data.petName.trim() || null,
+        breed: data.breed.trim() || null,
+        color: data.color.trim() || null,
+        description: data.description.trim() || null,
+        approxAddress: data.approxAddress.trim() || null,
+      });
+      if (location) o.publicLocation = publicPoint(location.lat, location.lng);
+      return o;
+    },
+    async removePhoto(id, photoId) {
+      const o = find(id);
+      const index = Number(photoId.split("-").pop()) - 1;
+      o.photoUrls = o.photoUrls.filter((_, i) => i !== index);
     },
   };
 }

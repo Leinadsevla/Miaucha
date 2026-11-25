@@ -5,6 +5,7 @@ import {
   occurrenceExpiryCutoff,
   publicPoint,
   validateOccurrence,
+  type OccurrenceUpdate,
   type OccurrenceInput,
   type PublicOccurrence,
   isSpecies,
@@ -56,7 +57,7 @@ export class OccurrencesService {
 
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
-    @Inject(PHOTO_STORAGE) storage: PhotoStorage,
+    @Inject(PHOTO_STORAGE) private readonly storage: PhotoStorage,
     @Inject(ALERT_QUEUE) private readonly alertQueue: AlertQueue,
   ) {
     this.photos = new PhotoUploads(pool, storage, {
@@ -196,6 +197,61 @@ export class OccurrencesService {
     return this.toPublic(rows, "cover");
   }
 
+  /** Edição pelo autor, só enquanto aberta. O tipo não muda; o local só muda se vier um novo (MP-07: novo ponto público). */
+  async update(authorId: string, id: string, input: OccurrenceUpdate): Promise<PublicOccurrence> {
+    if (!UUID_RE.test(id)) throw notFound();
+    const { rows } = await this.pool.query<{ type: PublicOccurrence["type"]; status: PublicOccurrence["status"] }>(
+      "select type, status from occurrences where id = $1 and author_id = $2",
+      [id, authorId],
+    );
+    const current = rows[0];
+    if (!current) throw notFound();
+    if (current.status === "resolved") throw new BadRequestException("Ocorrência resolvida não pode mais ser editada");
+    // Sem local novo, valida com um ponto qualquer válido: o local atual não muda.
+    const errors = validateOccurrence({ ...input, type: current.type, ...(input.location ?? { lat: 0, lng: 0 }) });
+    if (Object.keys(errors).length > 0) throw new BadRequestException({ message: "Confira os dados da ocorrência", errors });
+
+    const params: unknown[] = [
+      id,
+      authorId,
+      input.species,
+      optional(input.petName),
+      optional(input.breed),
+      optional(input.color),
+      optional(input.description),
+      optional(input.approxAddress),
+    ];
+    let locationSql = "";
+    if (input.location) {
+      const shown = publicPoint(input.location.lat, input.location.lng);
+      params.push(input.location.lng, input.location.lat, shown.lng, shown.lat);
+      locationSql = `, location = st_setsrid(st_makepoint($9, $10), 4326)::geography,
+                       public_location = st_setsrid(st_makepoint($11, $12), 4326)::geography`;
+    }
+    await this.pool.query(
+      `update occurrences set species = $3, pet_name = $4, breed = $5, color = $6, description = $7, approx_address = $8,
+              updated_at = now()${locationSql}
+        where id = $1 and author_id = $2`,
+      params,
+    );
+    return this.findPublic(authorId, id);
+  }
+
+  /** Remove a foto da ocorrência. O arquivo só sai do storage se o cadastro do pet não o usa mais. */
+  async removePhoto(authorId: string, id: string, photoId: string): Promise<void> {
+    if (!UUID_RE.test(id) || !UUID_RE.test(photoId)) throw notFound();
+    const { rows } = await this.pool.query<{ object_key: string; shared: boolean }>(
+      `delete from occurrence_photos ph using occurrences o
+        where ph.id = $1 and ph.occurrence_id = o.id and o.id = $2 and o.author_id = $3
+        returning ph.object_key,
+                  exists (select 1 from pet_photos pp where pp.object_key = ph.object_key)
+                  or exists (select 1 from occurrence_photos op where op.object_key = ph.object_key and op.id <> ph.id) as shared`,
+      [photoId, id, authorId],
+    );
+    if (!rows[0]) throw notFound();
+    if (!rows[0].shared) await this.storage.delete(rows[0].object_key);
+  }
+
   async resolve(authorId: string, id: string): Promise<PublicOccurrence> {
     if (!UUID_RE.test(id)) throw notFound();
     const { rowCount } = await this.pool.query(
@@ -218,11 +274,11 @@ export class OccurrencesService {
   /** "cover": só a primeira foto (listas, para não assinar centenas de URLs); "all": todas. */
   private async toPublic(rows: OccurrenceRow[], photos: "cover" | "all"): Promise<PublicOccurrence[]> {
     if (rows.length === 0) return [];
-    const { rows: photoRows } = await this.pool.query<{ occurrence_id: string; object_key: string }>(
+    const { rows: photoRows } = await this.pool.query<{ id: string; occurrence_id: string; object_key: string }>(
       photos === "cover"
-        ? `select distinct on (occurrence_id) occurrence_id, object_key from occurrence_photos
+        ? `select distinct on (occurrence_id) id, occurrence_id, object_key from occurrence_photos
             where occurrence_id = any($1::uuid[]) and uploaded_at is not null order by occurrence_id, uploaded_at, id`
-        : `select occurrence_id, object_key from occurrence_photos
+        : `select id, occurrence_id, object_key from occurrence_photos
             where occurrence_id = any($1::uuid[]) and uploaded_at is not null order by uploaded_at, id`,
       [rows.map((r) => r.id)],
     );
@@ -237,15 +293,19 @@ export class OccurrencesService {
           color: row.color,
           description: row.description,
           approxAddress: row.approx_address,
-          photoUrls: await Promise.all(
-            photoRows.filter((ph) => ph.occurrence_id === row.id).map((ph) => this.photos.signedUrl(ph.object_key)),
-          ),
+          photoUrls: [],
           publicLocation: { lat: row.lat, lng: row.lng },
           authorPseudonym: row.pseudonym,
           status: row.status,
           isMine: row.is_mine,
           createdAt: row.created_at.toISOString(),
         };
+        const own = await Promise.all(
+          photoRows.filter((ph) => ph.occurrence_id === row.id).map(async (ph) => ({ id: ph.id, url: await this.photos.signedUrl(ph.object_key) })),
+        );
+        view.photoUrls = own.map((p) => p.url);
+        // O id das fotos só vai para o autor (para remover na edição).
+        if (row.is_mine && photos === "all") view.photos = own;
         if (row.distance !== undefined) view.distanceMeters = Math.round(row.distance);
         return view;
       }),

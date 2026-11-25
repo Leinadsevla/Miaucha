@@ -19,6 +19,8 @@ export type PublicOccurrence = {
   description: string | null;
   /** URLs assinadas que expiram (NF-05). Nas buscas vem só a foto de capa; no detalhe, todas. */
   photoUrls: string[];
+  /** Só para o autor: as mesmas fotos com o id, para remover na edição. */
+  photos?: { id: string; url: string }[];
   publicLocation: { lat: number; lng: number };
   approxAddress: string | null;
   authorPseudonym: string;

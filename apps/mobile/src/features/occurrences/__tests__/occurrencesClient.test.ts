@@ -6,6 +6,7 @@ import {
   createHttpOccurrencesClient,
   createMockOccurrencesClient,
   saveOccurrence,
+  updateOccurrence,
   type OccurrencesClient,
 } from "../occurrencesClient";
 
@@ -108,31 +109,51 @@ describe("createHttpOccurrencesClient", () => {
     expect(calls.map((c) => c.path)).toEqual(["/occurrences/o1/photos", "/occurrences/o1/photos/f1/confirm"]);
   });
 
+  it("update faz PATCH com os dados e só manda lat/lng quando há local novo; removePhoto faz DELETE", async () => {
+    const { client, calls } = setup({
+      "PATCH /occurrences/o1": () => ({ status: 200, body: thor }),
+      "DELETE /occurrences/o1/photos/f1": () => ({ status: 204 }),
+    });
+    const data = { species: "cat" as const, petName: "Mia", breed: "", color: "", description: "", approxAddress: "Praça" };
+    await client.update("o1", data);
+    await client.update("o1", { ...data, location: { lat: -23.5, lng: -46.6 } });
+    await client.removePhoto("o1", "f1");
+    expect(calls[0].body).toEqual(data);
+    expect(calls[1].body).toEqual({ ...data, lat: -23.5, lng: -46.6 });
+    expect(calls[2]).toMatchObject({ method: "DELETE", path: "/occurrences/o1/photos/f1" });
+  });
+
   it("erro da API chega com a mensagem dela", async () => {
     const { client } = setup({ "POST /occurrences": () => ({ status: 400, body: { message: "x", errors: { petName: "Informe o nome do pet" } } }) });
     await expect(client.create(input)).rejects.toThrow("Informe o nome do pet");
   });
 });
 
-describe("saveOccurrence", () => {
-  function fakeClient(failOn: string[] = []): OccurrencesClient & { added: string[] } {
-    const added: string[] = [];
-    return {
-      added,
-      nearby: async () => [],
-      inArea: async () => [],
-      get: async () => thor,
-      listMine: async () => [],
-      resolve: async () => thor,
-      create: async () => thor,
-      addPhoto: async (_id, photo) => {
-        if (failOn.includes(photo.uri)) throw new Error("falhou");
-        added.push(photo.uri);
-        return { id: photo.uri, url: photo.uri };
-      },
-    };
-  }
+function fakeClient(failOn: string[] = []): OccurrencesClient & { added: string[] } {
+  const added: string[] = [];
+  return {
+    added,
+    nearby: async () => [],
+    inArea: async () => [],
+    get: async () => thor,
+    listMine: async () => [],
+    resolve: async () => thor,
+    create: async () => thor,
+    update: async () => thor,
+    removePhoto: async (_id, photoId) => {
+      if (failOn.includes(photoId)) throw new Error("falhou");
+      added.push(`-${photoId}`);
+    },
+    addPhoto: async (_id, photo) => {
+      if (failOn.includes(photo.uri)) throw new Error("falhou");
+      added.push(photo.uri);
+      return { id: photo.uri, url: photo.uri };
+    },
+  };
+}
 
+
+describe("saveOccurrence", () => {
   it("cria e envia as fotos em ordem", async () => {
     const client = fakeClient();
     const result = await saveOccurrence(client, input, [{ uri: "a.jpg" }, { uri: "b.jpg" }]);
@@ -144,6 +165,22 @@ describe("saveOccurrence", () => {
     const result = await saveOccurrence(fakeClient(["a.jpg"]), input, [{ uri: "a.jpg" }, { uri: "b.jpg" }]);
     expect(result.failedPhotos).toBe(1);
     expect(result.occurrence.photoUrls).toEqual(["b.jpg"]);
+  });
+});
+
+describe("updateOccurrence", () => {
+  const data = { species: "dog" as const, petName: "Thor", breed: "", color: "", description: "", approxAddress: "" };
+
+  it("salva os dados, remove as fotos marcadas e envia as novas", async () => {
+    const client = fakeClient();
+    const result = await updateOccurrence(client, "o1", data, [{ uri: "c.jpg" }], ["f1"]);
+    expect(result.failedPhotos).toBe(0);
+    expect(client.added).toEqual(["-f1", "c.jpg"]);
+  });
+
+  it("foto que falha não desfaz o resto", async () => {
+    const result = await updateOccurrence(fakeClient(["f1", "c.jpg"]), "o1", data, [{ uri: "c.jpg" }], ["f1"]);
+    expect(result.failedPhotos).toBe(2);
   });
 });
 

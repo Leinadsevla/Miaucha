@@ -112,6 +112,33 @@ describe("OccurrenceForm (registrar ocorrência)", () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ type: "seen", sightingOf: "lost-1", petName: "Mia" }), []);
   });
 
+  it("edição: tipo fixo, dados preenchidos, mantém o local por padrão e salva só os campos editáveis", async () => {
+    const onSave = jest.fn();
+    await setup({
+      initial: { type: "lost", species: "cat", petName: "Mia", breed: "Persa", color: "", approxAddress: "Praça", description: "" },
+      editing: { photos: [{ id: "f1", url: "https://x/f1.jpg" }, { id: "f2", url: "https://x/f2.jpg" }] },
+      onSave,
+    });
+    expect(screen.queryByRole("button", { name: "Perdi meu pet" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Manter o local" })).toBeSelected();
+    await fireEvent.changeText(screen.getByLabelText("Cor predominante"), " Branca ");
+    await fireEvent.press(screen.getByRole("button", { name: "Remover foto salva 1" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(onSave).toHaveBeenCalledWith(
+      { species: "cat", petName: "Mia", breed: "Persa", color: "Branca", approxAddress: "Praça", description: "" },
+      [],
+      ["f1"],
+    );
+  });
+
+  it("edição: escolher outro local manda o ponto novo", async () => {
+    const onSave = jest.fn();
+    await setup({ initial: { type: "seen", species: "dog" }, editing: { photos: [] }, onSave });
+    await fireEvent.press(screen.getByRole("button", { name: "Minha localização" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ location: { lat: -23.5614, lng: -46.6559 } }), [], []);
+  });
+
   it("adiciona e remove fotos (até 5)", async () => {
     const { onSubmit, onPickPhotos } = await setup({ initial: { petName: "Thor" } }, [[{ uri: "file:///a.jpg" }, { uri: "file:///b.jpg" }]]);
     await fireEvent.press(screen.getByRole("button", { name: "Adicionar foto" }));

@@ -21,6 +21,14 @@ export type OccurrenceInput = {
   sightingOf?: string;
 };
 
+/**
+ * Edição pelo autor. O tipo não muda. `location` só vem quando o autor escolheu um local novo: o app
+ * conhece só o ponto público, e reenviá-lo trocaria o ponto exato por um já deslocado.
+ */
+export type OccurrenceUpdate = Pick<OccurrenceInput, "species" | "petName" | "breed" | "color" | "description" | "approxAddress"> & {
+  location?: { lat: number; lng: number };
+};
+
 export type OccurrenceErrors = Partial<Record<Exclude<keyof OccurrenceInput, "lat" | "lng" | "petId" | "sightingOf"> | "location", string>>;
 
 export const MAX_OCCURRENCE_PHOTOS = MAX_PET_PHOTOS;

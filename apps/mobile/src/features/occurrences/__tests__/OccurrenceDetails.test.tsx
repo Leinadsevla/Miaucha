@@ -21,7 +21,7 @@ const thor: PublicOccurrence = {
 };
 
 async function setup(data: Partial<PublicOccurrence> = {}, extra: { resolving?: boolean; chatLoading?: boolean; chatError?: string } = {}) {
-  const handlers = { onBack: jest.fn(), onDirections: jest.fn(), onResolve: jest.fn(), onChat: jest.fn(), onReportSighting: jest.fn() };
+  const handlers = { onBack: jest.fn(), onDirections: jest.fn(), onResolve: jest.fn(), onChat: jest.fn(), onReportSighting: jest.fn(), onEdit: jest.fn() };
   await render(<OccurrenceDetails occurrence={{ ...thor, ...data }} now={now} {...handlers} {...extra} />);
   return handlers;
 }
@@ -105,6 +105,20 @@ describe("OccurrenceDetails", () => {
   ])("sem 'Vi este pet' para %s", async (_label, data) => {
     await setup(data);
     expect(screen.queryByRole("button", { name: "Vi este pet" })).toBeNull();
+  });
+
+  it("o autor pode editar enquanto está aberta", async () => {
+    const { onEdit } = await setup({ isMine: true });
+    await fireEvent.press(screen.getByRole("button", { name: "Editar" }));
+    expect(onEdit).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["quem não é o autor", { isMine: false }],
+    ["ocorrência resolvida", { isMine: true, status: "resolved" as const }],
+  ])("sem 'Editar' para %s", async (_label, data) => {
+    await setup(data);
+    expect(screen.queryByRole("button", { name: "Editar" })).toBeNull();
   });
 
   it("Voltar chama onBack", async () => {
