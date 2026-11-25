@@ -44,6 +44,21 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Miaucha usa sua localização para mostrar pets perdidos perto de você e marcar onde um pet foi visto. Só a região aproximada aparece para outras pessoas.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF8A3D"
+        }
       ]
     ],
     "experiments": {

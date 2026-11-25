@@ -1,7 +1,7 @@
 import type { MyPet } from "@miaucha/shared";
 import { createApiSession, type FetchLike } from "@/features/auth/apiSession";
 import type { SessionStorage, StoredSession } from "@/features/auth/sessionStorage";
-import { createHttpPetsClient, savePet, type PetsClient, type Uploader } from "../petsClient";
+import { createHttpPetsClient, savePet, updatePet, type PetsClient, type Uploader } from "../petsClient";
 
 type Call = { method: string; path: string; body: unknown; authorization?: string };
 
@@ -42,6 +42,20 @@ describe("createHttpPetsClient", () => {
     const { client, calls } = setup({ "GET /pets/p1": () => ({ status: 200, body: thor }) });
     expect(await client.get("p1")).toEqual(thor);
     expect(calls[0].authorization).toBe("Bearer access");
+  });
+
+  it("update faz PATCH e removePhoto faz DELETE, autenticados", async () => {
+    const { client, calls } = setup({
+      "PATCH /pets/p1": () => ({ status: 200, body: thor }),
+      "DELETE /pets/p1/photos/f1": () => ({ status: 204 }),
+    });
+    expect(await client.update("p1", input)).toEqual(thor);
+    await client.removePhoto("p1", "f1");
+    expect(calls.map((c) => [c.method, c.path, c.authorization])).toEqual([
+      ["PATCH", "/pets/p1", "Bearer access"],
+      ["DELETE", "/pets/p1/photos/f1", "Bearer access"],
+    ]);
+    expect(calls[0].body).toEqual(input);
   });
 
   it("create envia os dados do formulário", async () => {
@@ -87,6 +101,8 @@ describe("savePet", () => {
       listMine: async () => [],
       get: async () => thor,
       create: async () => thor,
+      update: async () => thor,
+      removePhoto: async () => undefined,
       addPhoto: async (_petId, photo) => {
         if (failOn.includes(photo.uri)) throw new Error("falhou");
         added.push(photo.uri);
@@ -106,5 +122,38 @@ describe("savePet", () => {
     const result = await savePet(fakeClient(["b.jpg"]), input, [{ uri: "a.jpg" }, { uri: "b.jpg" }]);
     expect(result.failedPhotos).toBe(1);
     expect(result.pet.photos).toHaveLength(1);
+  });
+});
+
+describe("updatePet", () => {
+  it("atualiza os dados, remove as fotos marcadas e envia as novas, nessa ordem", async () => {
+    const order: string[] = [];
+    const client: PetsClient = {
+      listMine: async () => [],
+      get: async () => ({ ...thor, photos: [{ id: "nova", url: "u" }] }),
+      create: async () => thor,
+      update: async () => (order.push("update"), thor),
+      removePhoto: async (_p, id) => void order.push(`remove ${id}`),
+      addPhoto: async (_p, photo) => (order.push(`add ${photo.uri}`), { id: "nova", url: "u" }),
+    };
+    const result = await updatePet(client, "p1", input, [{ uri: "c.jpg" }], ["f1", "f2"]);
+    expect(order).toEqual(["update", "remove f1", "remove f2", "add c.jpg"]);
+    expect(result.failedPhotos).toBe(0);
+  });
+
+  it("conta as fotos que falharam sem desfazer a edição", async () => {
+    const client: PetsClient = {
+      listMine: async () => [],
+      get: async () => thor,
+      create: async () => thor,
+      update: async () => thor,
+      removePhoto: async () => {
+        throw new Error("x");
+      },
+      addPhoto: async () => {
+        throw new Error("y");
+      },
+    };
+    expect((await updatePet(client, "p1", input, [{ uri: "c.jpg" }], ["f1"])).failedPhotos).toBe(2);
   });
 });

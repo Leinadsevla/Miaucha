@@ -10,7 +10,7 @@ describe("validatePet", () => {
   it("exige nome e espécie válida", () => {
     expect(validatePet({ ...valid, name: "  ", species: "hamster" as never })).toEqual({
       name: "Informe o nome do pet",
-      species: "Escolha cão ou gato",
+      species: "Escolha a espécie do animal",
     });
   });
 
