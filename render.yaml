@@ -12,9 +12,10 @@ services:
     # A API roda com @swc-node/register porque o @miaucha/shared é publicado como TypeScript.
     startCommand: cd apps/api && node -r @swc-node/register src/main.ts
     healthCheckPath: /health
-    # Hoje o Render publica a cada push na branch ligada. Quando os deploy hooks estiverem no GitHub
-    # (docs/DEPLOY-APP.md), acrescente `autoDeployTrigger: "off"` para o deploy passar a ser só pelo deploy.yml,
-    # depois dos testes. Sem os hooks configurados, essa linha faz o Render não publicar mais nada.
+    # Publica a cada push na branch ligada. Quando os deploy hooks estiverem no GitHub (docs/DEPLOY-APP.md),
+    # troque para "off" para o deploy ser só pelo deploy.yml, depois dos testes. Com "off" e sem os hooks,
+    # o Render não publica mais nada (aconteceu uma vez: o deploy do push foi cancelado).
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
         value: "24"
