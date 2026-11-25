@@ -22,7 +22,16 @@ describe("runMigrations", () => {
     );
 
     const applied = await pool.query("select name from schema_migrations order by name");
-    expect(applied.rows.map((r) => r.name)).toEqual(["001_auth.sql", "002_row_level_security.sql", "003_pets.sql", "005_password_reset.sql"]);
+    expect(applied.rows.map((r) => r.name)).toEqual([
+      "001_auth.sql",
+      "002_row_level_security.sql",
+      "003_pets.sql",
+      "004_occurrences.sql",
+      "005_password_reset.sql",
+      "006_chat.sql",
+      "007_alerts.sql",
+      "008_more_species.sql",
+    ]);
   });
 
   it("ativa o PostGIS (necessário a partir da S2)", async () => {

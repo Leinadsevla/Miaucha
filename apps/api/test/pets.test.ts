@@ -57,7 +57,7 @@ describe("POST /pets", () => {
   it("dados inválidos → 400 com as mensagens de validatePet", async () => {
     const t = await tutor();
     const res = await ctx.http.post("/pets").set(t.auth).send({ name: "", species: "peixe" }).expect(400);
-    expect(res.body.errors).toEqual({ name: "Informe o nome do pet", species: "Escolha cão ou gato" });
+    expect(res.body.errors).toEqual({ name: "Informe o nome do pet", species: "Escolha a espécie do animal" });
   });
 
   it("sem login → 401", async () => {
@@ -254,6 +254,21 @@ describe("editar pet", () => {
     await addPhoto(t, pet.id);
   });
 
+  it("foto também usada por uma ocorrência criada a partir do pet: some do pet, mas o arquivo continua", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const photo = (await addPhoto(t, pet.id)).body;
+    const occurrence = (
+      await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", species: "dog", petName: "Thor", lat: -22.9, lng: -43.2, petId: pet.id }).expect(201)
+    ).body;
+
+    await ctx.http.delete(`/pets/${pet.id}/photos/${photo.id}`).set(t.auth).expect(204);
+
+    const detail = await ctx.http.get(`/occurrences/${occurrence.id}`).set(t.auth).expect(200);
+    expect(detail.body.photoUrls).toHaveLength(1);
+    expect((await fetch(detail.body.photoUrls[0])).status).toBe(200);
+  });
+
   it("apagar foto de pet de outra pessoa → 404", async () => {
     const ana = await tutor();
     const bia = await tutor();
@@ -261,5 +276,17 @@ describe("editar pet", () => {
     const photo = (await addPhoto(ana, pet.id)).body;
     await ctx.http.delete(`/pets/${pet.id}/photos/${photo.id}`).set(bia.auth).expect(404);
     await ctx.http.delete(`/pets/${pet.id}/photos/nao-e-uuid`).set(ana.auth).expect(404);
+  });
+});
+
+describe("pets de outras espécies", () => {
+  it("aceita pássaro, coelho, roedor, réptil e outro animal; recusa espécie desconhecida", async () => {
+    const t = await tutor();
+    for (const species of ["bird", "rabbit", "rodent", "reptile", "other"]) {
+      const res = await ctx.http.post("/pets").set(t.auth).send({ name: "Bicho", species }).expect(201);
+      expect(res.body.species).toBe(species);
+    }
+    const bad = await ctx.http.post("/pets").set(t.auth).send({ name: "Bicho", species: "dragon" }).expect(400);
+    expect(bad.body.errors).toEqual({ species: "Escolha a espécie do animal" });
   });
 });

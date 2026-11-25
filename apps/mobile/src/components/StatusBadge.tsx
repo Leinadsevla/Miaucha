@@ -1,15 +1,22 @@
 import { Text, View } from "react-native";
+import { AlertTriangle, Eye, HandHeart } from "lucide-react-native";
 import { occurrenceStyle, type OccurrenceType } from "@miaucha/shared";
 
-export function StatusBadge({ type }: { type: OccurrenceType }) {
-  const { color, label } = occurrenceStyle(type);
+const ICONS = { lost: AlertTriangle, seen: Eye, found: HandHeart } as const;
+
+/** Tipo da ocorrência em destaque: fundo sólido na cor do tipo, ícone e texto em caixa alta (cor legível por tipo). */
+export function StatusBadge({ type, size = "md" }: { type: OccurrenceType; size?: "md" | "lg" }) {
+  const { color, label, textOn } = occurrenceStyle(type);
+  const Icon = ICONS[type];
+  const large = size === "lg";
   return (
     <View
-      className="flex-row items-center self-start gap-1 rounded-full px-2 py-0.5"
-      style={{ backgroundColor: `${color}1F` }}
+      testID="status-badge"
+      className={large ? "flex-row items-center self-start gap-1.5 rounded-xl px-3 py-1.5" : "flex-row items-center self-start gap-1 rounded-lg px-2 py-1"}
+      style={{ backgroundColor: color }}
     >
-      <View testID="status-dot" className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-      <Text className="font-nunito-bold text-xs" style={{ color }}>
+      <Icon size={large ? 14 : 12} color={textOn} />
+      <Text className={large ? "font-nunito-black text-sm uppercase" : "font-nunito-black text-xs uppercase"} style={{ color: textOn }}>
         {label}
       </Text>
     </View>

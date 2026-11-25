@@ -6,3 +6,5 @@ export * from "./photos";
 export * from "./pickPhotos";
 export * from "./fileUploader";
 export * from "./PetDetails";
+export * from "./PhotoPickerField";
+export * from "./SpeciesSelector";

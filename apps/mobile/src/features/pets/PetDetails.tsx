@@ -1,10 +1,10 @@
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
-import { Cake, ChevronLeft, Palette, PawPrint, Pencil } from "lucide-react-native";
+import { AlertTriangle, Cake, ChevronLeft, Palette, PawPrint, Pencil } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet } from "@miaucha/shared";
-import { Card, SpeciesIcon } from "@/components";
+import { colors, speciesLabel, type MyPet } from "@miaucha/shared";
+import { Card, PrimaryButton, SpeciesIcon } from "@/components";
 
 const PHOTO_HEIGHT = 288;
 const OVERLAY = "rgba(0, 0, 0, 0.35)";
@@ -20,8 +20,21 @@ function Info({ icon, label, value }: { icon: ReactNode; label: string; value: s
   );
 }
 
-/** Detalhes do pet para o tutor: galeria de fotos (deslize para o lado) e informações do cadastro. */
-export function PetDetails({ pet, onBack, onEdit }: { pet: MyPet; onBack: () => void; onEdit?: () => void }) {
+/**
+ * Detalhes do pet para o tutor: galeria de fotos (deslize para o lado) e informações do cadastro.
+ * `onEdit` abre a edição; `onReportLost` abre o registro de ocorrência já preenchido com este pet.
+ */
+export function PetDetails({
+  pet,
+  onBack,
+  onEdit,
+  onReportLost,
+}: {
+  pet: MyPet;
+  onBack: () => void;
+  onEdit?: () => void;
+  onReportLost?: () => void;
+}) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const subtitle = [pet.breed, pet.color].filter(Boolean).join(" · ");
@@ -84,12 +97,18 @@ export function PetDetails({ pet, onBack, onEdit }: { pet: MyPet; onBack: () => 
         <Info
           icon={<SpeciesIcon species={pet.species} size={18} color={colors.primary} />}
           label="Espécie"
-          value={pet.species === "dog" ? "Cão" : "Gato"}
+          value={speciesLabel(pet.species)}
         />
         <Info icon={<PawPrint size={18} color={colors.primary} />} label="Raça" value={pet.breed} />
         <Info icon={<Palette size={18} color={colors.primary} />} label="Cor" value={pet.color} />
         <Info icon={<Cake size={18} color={colors.primary} />} label="Idade" value={pet.approxAge} />
       </View>
+
+      {onReportLost ? (
+        <View className="px-5 pt-4">
+          <PrimaryButton title="Registrar como perdido" onPress={onReportLost} icon={<AlertTriangle size={18} color={colors.white} />} />
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

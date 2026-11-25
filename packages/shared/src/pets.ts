@@ -1,5 +1,5 @@
 import type { FieldErrors } from "./auth";
-import type { Species } from "./types";
+import { SPECIES_MESSAGE, isSpecies, type Species } from "./species";
 
 export type PetInput = { name: string; species: Species; breed: string; color: string; approxAge: string };
 
@@ -31,7 +31,7 @@ export function validatePet(input: PetInput): FieldErrors<PetInput> {
   const name = input.name.trim();
   if (!name) errors.name = "Informe o nome do pet";
   else if (name.length > MAX_NAME) errors.name = `Use até ${MAX_NAME} caracteres`;
-  if (input.species !== "dog" && input.species !== "cat") errors.species = "Escolha cão ou gato";
+  if (!isSpecies(input.species)) errors.species = SPECIES_MESSAGE;
   for (const field of ["breed", "color", "approxAge"] as const) {
     if (input[field].trim().length > MAX_TEXT) errors[field] = `Use até ${MAX_TEXT} caracteres`;
   }
