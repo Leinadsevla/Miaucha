@@ -14,7 +14,7 @@ import {
 } from "@expo-google-fonts/nunito";
 import { AlertsProvider } from "@/features/alerts";
 import { createAlertsRuntimeDeps } from "@/features/alerts/runtime";
-import { AuthProvider, createClients, redirectTarget, routeFor, useAuth, type AppClients } from "@/features/auth";
+import { AuthProvider, DemoBadge, DemoInfoProvider, createClients, redirectTarget, routeFor, useAuth, withDemoGoogle, type AppClients } from "@/features/auth";
 import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
 import { onboardingStore, shouldShowOnboarding } from "@/features/onboarding";
@@ -27,7 +27,12 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_900Black });
   // API real quando EXPO_PUBLIC_API_URL existe (ver apps/mobile/.env.example); senão, clientes falsos em dev.
-  const [clients] = useState(createClients);
+  // `generation` muda quando o botão do Google (sem credenciais, em dev) entra ou sai da demonstração:
+  // o app inteiro remonta com os clientes novos e restaura a sessão deles.
+  const [{ clients, generation }, setSession] = useState(() => {
+    const swap = (next: AppClients) => setSession((current) => ({ clients: next, generation: current.generation + 1 }));
+    return { clients: withDemoGoogle(createClients(), { isDev: __DEV__, swap }), generation: 0 };
+  });
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
@@ -37,7 +42,8 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider client={clients.auth}>
+      <DemoInfoProvider value={{ demo: clients.demo, googleIsDemo: !!clients.googleIsDemo }}>
+      <AuthProvider key={generation} client={clients.auth}>
         <PetsClientProvider client={clients.pets}>
           <OccurrencesClientProvider client={clients.occurrences}>
             <ProfileClientProvider client={clients.profile}>
@@ -46,12 +52,14 @@ export default function RootLayout() {
                   <RouteStatusBar />
                   <AuthGate />
                   <Stack screenOptions={{ headerShown: false }} />
+                  <DemoBadge />
                 </SessionChatProvider>
               </AlertsLayer>
             </ProfileClientProvider>
           </OccurrencesClientProvider>
         </PetsClientProvider>
       </AuthProvider>
+      </DemoInfoProvider>
     </SafeAreaProvider>
   );
 }

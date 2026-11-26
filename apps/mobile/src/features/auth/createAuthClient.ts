@@ -61,7 +61,62 @@ export type AppClients = {
   profile: ProfileClient;
   chat: ChatClient;
   chatRealtime: ChatRealtime;
+  /** Clientes falsos em memória (dados de exemplo): a tela mostra o aviso de demonstração. */
+  demo: boolean;
+  /** O botão do Google entra na demonstração (não há login real com Google configurado). */
+  googleIsDemo?: boolean;
 };
+
+/** Clientes falsos em memória, com dados de exemplo: nada vai para a API. */
+export function createMockClients(): AppClients {
+  const pets = createMockPetsClient();
+  const occurrences = createMockOccurrencesClient();
+  return {
+    auth: createMockAuthClient(),
+    pets,
+    occurrences,
+    alerts: createMockAlertsClient(),
+    profile: createMockProfileClient({ pets, occurrences }),
+    chat: createMockChatClient(),
+    chatRealtime: createLocalChatRealtime(),
+    demo: true,
+  };
+}
+
+/**
+ * Sem login real com Google configurado, em desenvolvimento, o botão "Continuar com Google" entra numa
+ * sessão de demonstração (Tutor Google, dados de exemplo), como antes de existir a API. `swap` troca
+ * os clientes do app inteiro (que remonta e restaura a sessão); sair da demonstração devolve os reais.
+ * Num build de produção isso nunca acontece: sem Google configurado, o botão fica escondido.
+ */
+export function withDemoGoogle(real: AppClients, { isDev, swap }: { isDev: boolean; swap: (clients: AppClients) => void }): AppClients {
+  if (!isDev || real.demo || real.auth.supportsGoogle) return real;
+  const wrapped: AppClients = {
+    ...real,
+    googleIsDemo: true,
+    auth: {
+      ...real.auth,
+      supportsGoogle: true,
+      async loginWithGoogle() {
+        const demo = createMockClients();
+        const user = await demo.auth.loginWithGoogle();
+        const leave = demo.auth.logout;
+        swap({
+          ...demo,
+          auth: {
+            ...demo.auth,
+            async logout() {
+              await leave();
+              swap(wrapped);
+            },
+          },
+        });
+        return user;
+      },
+    },
+  };
+  return wrapped;
+}
 
 /**
  * Clientes da API do app. Todos usam a mesma sessão, para existir um único refresh por vez.
@@ -74,19 +129,7 @@ export function createClients(): AppClients {
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     webApiUrl: process.env.EXPO_PUBLIC_WEB_API_URL,
   });
-  if (chooseAuthClient({ apiUrl, isDev: __DEV__, demo: DEMO_MODE }) === "mock") {
-    const pets = createMockPetsClient();
-    const occurrences = createMockOccurrencesClient();
-    return {
-      auth: createMockAuthClient(),
-      pets,
-      occurrences,
-      alerts: createMockAlertsClient(),
-      profile: createMockProfileClient({ pets, occurrences }),
-      chat: createMockChatClient(),
-      chatRealtime: createLocalChatRealtime(),
-    };
-  }
+  if (chooseAuthClient({ apiUrl, isDev: __DEV__, demo: DEMO_MODE }) === "mock") return createMockClients();
   const storage = createSecureSessionStorage();
   const session = createApiSession({ baseUrl: apiUrl!, storage });
   const upload = createFileUploader();
@@ -103,5 +146,6 @@ export function createClients(): AppClients {
     profile: createHttpProfileClient({ session }),
     chat: createHttpChatClient({ session, upload }),
     chatRealtime: createChatRealtime({ url: apiUrl!, session, connect: socketIoFactory }),
+    demo: false,
   };
 }

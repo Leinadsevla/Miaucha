@@ -1,4 +1,4 @@
-import { chooseApiUrl, chooseAuthClient, googleSignInFor } from "../createAuthClient";
+import { chooseApiUrl, chooseAuthClient, createMockClients, googleSignInFor, withDemoGoogle, type AppClients } from "../createAuthClient";
 
 describe("chooseAuthClient", () => {
   it("com a URL da API → cliente HTTP", () => {
@@ -53,5 +53,46 @@ describe("googleSignInFor", () => {
     expect(googleSignInFor({ os: "web", webClientId: "  ", create: factory })).toBeUndefined();
     expect(googleSignInFor({ os: "android", webClientId: "abc", create: factory })).toBeUndefined();
     expect(factory).not.toHaveBeenCalled();
+  });
+});
+
+describe("withDemoGoogle (botão do Google sem credenciais, em desenvolvimento)", () => {
+  const realAuth = (supportsGoogle: boolean) =>
+    ({ supportsGoogle, loginWithGoogle: jest.fn(async () => ({ id: "real", name: "Real", hasConsent: true })), logout: jest.fn(async () => {}) }) as unknown as AppClients["auth"];
+  const real = (supportsGoogle: boolean) => ({ ...createMockClients(), demo: false, auth: realAuth(supportsGoogle) }) as AppClients;
+
+  it("sem Google configurado, em dev: o botão existe e entra na demonstração como Tutor Google", async () => {
+    const swap = jest.fn();
+    const clients = withDemoGoogle(real(false), { isDev: true, swap });
+    expect(clients.auth.supportsGoogle).toBe(true);
+    expect(clients.googleIsDemo).toBe(true);
+
+    const user = await clients.auth.loginWithGoogle();
+    expect(user.name).toBe("Tutor Google");
+    const demo = swap.mock.calls[0][0] as AppClients;
+    expect(demo.demo).toBe(true);
+    // A sessão de demonstração já está aberta nos clientes novos (o app remonta e só restaura).
+    expect((await demo.auth.restore())?.name).toBe("Tutor Google");
+  });
+
+  it("sair da demonstração devolve os clientes reais", async () => {
+    const swap = jest.fn();
+    const clients = withDemoGoogle(real(false), { isDev: true, swap });
+    await clients.auth.loginWithGoogle();
+    const demo = swap.mock.calls[0][0] as AppClients;
+    await demo.auth.logout();
+    expect(swap).toHaveBeenLastCalledWith(clients);
+  });
+
+  it("com o Google de verdade configurado, nada muda", () => {
+    const original = real(true);
+    expect(withDemoGoogle(original, { isDev: true, swap: jest.fn() })).toBe(original);
+  });
+
+  it("num build de produção sem Google, o botão continua escondido (nunca login falso)", () => {
+    const original = real(false);
+    const clients = withDemoGoogle(original, { isDev: false, swap: jest.fn() });
+    expect(clients).toBe(original);
+    expect(clients.auth.supportsGoogle).toBe(false);
   });
 });

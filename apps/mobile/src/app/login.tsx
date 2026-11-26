@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { router } from "expo-router";
-import { LoginForm, useAuth } from "@/features/auth";
+import { LoginForm, useAuth, useDemoInfo } from "@/features/auth";
 import { DEMO_MODE } from "@/features/auth/createAuthClient";
 import { AuthScreenLayout } from "@/features/auth/AuthScreenLayout";
 
 export default function Login() {
   const { login, signUp, loginWithGoogle, canUseGoogle, busy, error, clearError } = useAuth();
+  const { googleIsDemo } = useDemoInfo();
   // O erro de outra tela de entrada (ex.: senha errada no login) não aparece aqui.
   useEffect(() => clearError(), []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
@@ -23,6 +24,7 @@ export default function Login() {
         onLogin={login}
         onSignUp={signUp}
         onGoogle={canUseGoogle ? loginWithGoogle : undefined}
+        googleNote={googleIsDemo ? "O login com Google ainda não está configurado: este botão entra em modo demonstração, com dados de exemplo." : undefined}
         onForgotPassword={() => router.push("/forgot-password")}
         loading={busy}
         serverError={error}

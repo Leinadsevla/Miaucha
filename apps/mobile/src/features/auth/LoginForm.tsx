@@ -13,12 +13,14 @@ type Props = {
   onSignUp: (input: SignUpInput) => void;
   /** Sem ele (login com Google não configurado), o botão não aparece. */
   onGoogle?: () => void;
+  /** Aviso pequeno abaixo do botão do Google (ex.: quando ele entra em modo demonstração). */
+  googleNote?: string;
   onForgotPassword?: () => void;
   loading?: boolean;
   serverError?: string;
 };
 
-export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loading, serverError }: Props) {
+export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPassword, loading, serverError }: Props) {
   const [tab, setTab] = useState<Tab>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -150,6 +152,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
               disabled={loading}
               icon={<GoogleLogo />}
             />
+            {googleNote ? <Text className="text-center font-sans text-xs leading-4 text-muted-foreground">{googleNote}</Text> : null}
           </>
         ) : null}
       </View>
