@@ -18,6 +18,8 @@ import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
 import { onboardingStore, shouldShowOnboarding } from "@/features/onboarding";
 import { PetsClientProvider } from "@/features/pets";
+import { WebFrame } from "@/components";
+import { statusBarStyleFor } from "@/lib/statusBar";
 import { ProfileClientProvider } from "@/features/profile";
 
 SplashScreen.preventAutoHideAsync();
@@ -41,9 +43,11 @@ export default function RootLayout() {
             <ProfileClientProvider client={clients.profile}>
               <AlertsLayer clients={clients}>
                 <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
-                  <StatusBar style="light" />
+                  <RouteStatusBar />
                   <AuthGate />
-                  <Stack screenOptions={{ headerShown: false }} />
+                  <WebFrame>
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </WebFrame>
                 </SessionChatProvider>
               </AlertsLayer>
             </ProfileClientProvider>
@@ -52,6 +56,11 @@ export default function RootLayout() {
       </AuthProvider>
     </SafeAreaProvider>
   );
+}
+
+/** Ícones da barra de status claros sobre laranja ou foto, escuros sobre telas brancas. */
+function RouteStatusBar() {
+  return <StatusBar style={statusBarStyleFor(usePathname())} />;
 }
 
 /** Mantém o usuário na tela certa para o estado da sessão (login → código → consentimento → app). */

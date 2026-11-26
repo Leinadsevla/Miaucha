@@ -1,3 +1,4 @@
+import { Text } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { colors } from "@miaucha/shared";
 import { StatusBadge } from "../StatusBadge";
@@ -6,7 +7,11 @@ import { TextField } from "../TextField";
 import { PetCard } from "../PetCard";
 import { BottomNav } from "../BottomNav";
 import { AppLogo } from "../AppLogo";
-import { ComingSoon } from "../ComingSoon";
+import { EmptyState } from "../EmptyState";
+import { GradientHeader } from "../GradientHeader";
+import { IconButton } from "../IconButton";
+import { SkeletonList } from "../Skeleton";
+import { WebFrame } from "../WebFrame";
 
 describe("StatusBadge (MP-01)", () => {
   it.each([
@@ -176,10 +181,110 @@ describe("AppLogo", () => {
     const logo = screen.getByLabelText("Logo do Miaucha");
     expect(logo).toHaveStyle({ width: 40, height: 40 });
   });
+});
 
-  it("ComingSoon usa a logo no lugar da pata", async () => {
-    await render(<ComingSoon title="X" sprint="S9" description="d" />);
-    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
-    expect(screen.queryByText("🐾")).toBeNull();
+describe("PrimaryButton (acabamento)", () => {
+  it("botão laranja usa texto escuro (contraste AA) e o azul, texto branco", async () => {
+    await render(
+      <>
+        <PrimaryButton title="Laranja" variant="primary" onPress={() => {}} />
+        <PrimaryButton title="Azul" onPress={() => {}} />
+      </>,
+    );
+    expect(screen.getByText("Laranja")).toHaveStyle({ color: colors.foreground });
+    expect(screen.getByText("Azul")).toHaveStyle({ color: colors.white });
+  });
+
+  it("tem pelo menos 52 px de altura", async () => {
+    await render(<PrimaryButton title="Entrar" onPress={() => {}} />);
+    expect(screen.getByRole("button", { name: "Entrar" })).toHaveStyle({ minHeight: 52 });
+  });
+});
+
+describe("IconButton", () => {
+  it("é um botão com nome acessível, alvo de 44 px e chama onPress", async () => {
+    const onPress = jest.fn();
+    await render(<IconButton label="Voltar" icon={<></>} onPress={onPress} />);
+    const button = screen.getByRole("button", { name: "Voltar" });
+    expect(button).toHaveStyle({ width: 44, height: 44 });
+    await fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("desabilitado não chama onPress e avisa o leitor de tela", async () => {
+    const onPress = jest.fn();
+    await render(<IconButton label="Enviar foto" icon={<></>} onPress={onPress} disabled />);
+    const button = screen.getByRole("button", { name: "Enviar foto" });
+    expect(button).toBeDisabled();
+    await fireEvent.press(button);
+    expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe("EmptyState", () => {
+  it("mostra título, texto e a ação", async () => {
+    const onAction = jest.fn();
+    await render(<EmptyState icon={<></>} title="Nenhum alerta" message="Quando um pet sumir perto de você, ele aparece aqui." actionLabel="Ajustar alertas" onAction={onAction} />);
+    expect(screen.getByRole("header", { name: "Nenhum alerta" })).toBeOnTheScreen();
+    expect(screen.getByText("Quando um pet sumir perto de você, ele aparece aqui.")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Ajustar alertas" }));
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem ação, não mostra botão", async () => {
+    await render(<EmptyState icon={<></>} title="Sem conversas" message="..." />);
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("Skeleton", () => {
+  it("lista de carregamento avisa o leitor de tela uma vez só", async () => {
+    await render(<SkeletonList count={3} />);
+    expect(screen.getByLabelText("Carregando")).toBeOnTheScreen();
+    expect(screen.getAllByTestId("skeleton-row")).toHaveLength(3);
+  });
+});
+
+describe("GradientHeader", () => {
+  it("mostra o título como cabeçalho e o conteúdo extra", async () => {
+    await render(
+      <GradientHeader eyebrow="Olá, Ana" title="Encontre pets perto de você">
+        <Text>chips</Text>
+      </GradientHeader>,
+    );
+    expect(screen.getByRole("header", { name: "Encontre pets perto de você" })).toBeOnTheScreen();
+    expect(screen.getByText("Olá, Ana")).toBeOnTheScreen();
+    expect(screen.getByText("chips")).toBeOnTheScreen();
+  });
+});
+
+describe("BottomNav (acabamento)", () => {
+  it("rótulos com pelo menos 12 px e o item ativo marcado", async () => {
+    await render(<BottomNav active="map" onNavigate={() => {}} />);
+    expect(screen.getByText("Mapa")).toHaveStyle({ fontSize: 12 });
+    expect(screen.getByRole("tab", { name: "Mapa", selected: true })).toBeOnTheScreen();
+    expect(screen.getByTestId("tab-indicator-map")).toBeOnTheScreen();
+    expect(screen.queryByTestId("tab-indicator-index")).toBeNull();
+  });
+});
+
+describe("WebFrame", () => {
+  it("no aparelho só repassa o conteúdo", async () => {
+    await render(
+      <WebFrame os="android">
+        <Text>app</Text>
+      </WebFrame>,
+    );
+    expect(screen.queryByTestId("web-frame")).toBeNull();
+    expect(screen.getByText("app")).toBeOnTheScreen();
+  });
+
+  it("na web centraliza numa coluna de 480 px", async () => {
+    await render(
+      <WebFrame os="web">
+        <Text>app</Text>
+      </WebFrame>,
+    );
+    expect(screen.getByTestId("web-frame")).toHaveStyle({ maxWidth: 480, width: "100%" });
   });
 });

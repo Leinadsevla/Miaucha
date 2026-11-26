@@ -11,8 +11,11 @@ module.exports = {
     extend: {
       colors: {
         primary: "#FF8A3D",
+        "primary-deep": "#F2701F",
         "primary-soft": "#FFF1E7",
         accent: "#2D6CDF",
+        "accent-deep": "#2257BD",
+        "accent-soft": "#EAF1FD",
         hope: "#FFD447",
         lost: "#EF4444",
         seen: "#F59E0B",

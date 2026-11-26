@@ -1,20 +1,12 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import type { ReactNode } from "react";
-import { colors } from "@miaucha/shared";
-import { cn } from "@/lib/cn";
-
-type Variant = "accent" | "primary" | "outline";
-
-const VARIANTS: Record<Variant, { box: string; text: string; spinner: string }> = {
-  accent: { box: "bg-accent", text: "text-white", spinner: colors.white },
-  primary: { box: "bg-primary", text: "text-white", spinner: colors.white },
-  outline: { box: "bg-white border border-border", text: "text-foreground", spinner: colors.foreground },
-};
+import { buttonColors, elevation, type ButtonVariant } from "@miaucha/shared";
 
 type Props = {
   title: string;
   onPress: () => void;
-  variant?: Variant;
+  /** `accent` (azul): ação principal. `primary` (laranja, texto escuro): destaque da marca. */
+  variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
   icon?: ReactNode;
@@ -22,30 +14,46 @@ type Props = {
 };
 
 export function PrimaryButton({ title, onPress, variant = "accent", disabled, loading, icon, className }: Props) {
-  const v = VARIANTS[variant];
-  const inactive = disabled || loading;
+  const c = buttonColors(variant);
+  const inactive = !!(disabled || loading);
+  const outline = variant === "outline";
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      accessibilityState={{ disabled: !!inactive, busy: !!loading }}
-      disabled={inactive}
-      onPress={onPress}
-      className={cn(
-        "w-full flex-row items-center justify-center gap-2 rounded-2xl py-4 active:opacity-80",
-        v.box,
-        inactive && "opacity-50",
-        className,
-      )}
-    >
-      {loading ? (
-        <ActivityIndicator testID="button-loading" color={v.spinner} />
-      ) : (
-        <View className="flex-row items-center gap-2">
-          {icon}
-          <Text className={cn("font-nunito-bold text-base", v.text)}>{title}</Text>
-        </View>
-      )}
-    </Pressable>
+    <View className={className}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ disabled: inactive, busy: !!loading }}
+        disabled={inactive}
+        onPress={onPress}
+        style={({ pressed }) => [
+          {
+            width: "100%",
+            minHeight: 52,
+            paddingHorizontal: 20,
+            borderRadius: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: pressed ? c.pressed : c.background,
+            borderWidth: outline ? 1 : 0,
+            borderColor: c.pressed,
+            opacity: inactive && !loading ? 0.5 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          },
+          outline || inactive ? null : elevation.card,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator testID="button-loading" color={c.text} />
+        ) : (
+          <View className="flex-row items-center gap-2">
+            {icon}
+            <Text className="font-nunito-bold text-base" style={{ color: c.text }}>
+              {title}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
   );
 }
