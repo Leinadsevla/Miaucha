@@ -1,23 +1,34 @@
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
-import { AppLogo, KeyboardScreen } from "@/components";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, elevation } from "@miaucha/shared";
+import { AppLogo, KeyboardScreen } from "@/components";
 
-/** Cabeçalho laranja com a logo, como na tela de login do design. */
+/** Telas de entrada: cabeçalho laranja em degradê com a logo e o formulário num cartão sobreposto. */
 export function AuthScreenLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <KeyboardScreen contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-        <View className="items-center gap-4 bg-primary px-6 pb-8" style={{ paddingTop: insets.top + 24 }}>
-          <View className="h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg">
-            <AppLogo size={48} />
-          </View>
-          <View className="items-center">
-            <Text className="text-center font-nunito-black text-2xl text-white">{title}</Text>
-            <Text className="mt-1 text-center font-sans text-sm text-white/70">{subtitle}</Text>
-          </View>
+      <LinearGradient
+        colors={[colors.primary, colors.primaryDeep]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ alignItems: "center", gap: 16, paddingHorizontal: 24, paddingTop: insets.top + 28, paddingBottom: 56 }}
+      >
+        <View className="h-20 w-20 items-center justify-center rounded-3xl bg-white" style={elevation.floating}>
+          <AppLogo size={56} />
         </View>
-        <View className="px-5 pt-5">{children}</View>
+        <View className="items-center">
+          <Text accessibilityRole="header" className="text-center font-nunito-black text-[28px] leading-9 text-white">
+            {title}
+          </Text>
+          <Text className="mt-1 text-center font-nunito-semibold text-base text-white">{subtitle}</Text>
+        </View>
+      </LinearGradient>
+      <View className="-mt-8 mx-4 rounded-3xl border border-border bg-card p-5" style={elevation.raised}>
+        {children}
+      </View>
     </KeyboardScreen>
   );
 }

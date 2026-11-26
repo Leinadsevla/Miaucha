@@ -1,15 +1,9 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
+import { elevation, validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
 import { PrimaryButton, TextField, TextLink } from "@/components";
 import { cn } from "@/lib/cn";
-
-/**
- * Sombra da aba selecionada pelo `style`, não por `shadow-sm` condicional: no NativeWind 4 isso
- * adiciona variáveis CSS depois da primeira renderização e quebra no Expo Router (ver nativewind-rules.test.ts).
- */
-const SELECTED_TAB_SHADOW = { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 };
 
 type Tab = "login" | "register";
 type Errors = Partial<Record<keyof SignUpInput | "confirmPassword", string>>;
@@ -65,10 +59,10 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
               accessibilityLabel={label}
               accessibilityState={{ selected }}
               onPress={() => switchTab(t)}
-              className={cn("flex-1 items-center rounded-xl py-2", selected && "bg-white")}
-              style={selected ? SELECTED_TAB_SHADOW : undefined}
+              className={cn("flex-1 items-center justify-center rounded-xl", selected && "bg-white")}
+              style={[{ minHeight: 44 }, selected ? elevation.card : null]}
             >
-              <Text className={cn("font-nunito-bold text-sm", selected ? "text-primary" : "text-muted-foreground")}>
+              <Text className={cn("text-base", selected ? "font-nunito-black text-foreground" : "font-nunito-bold text-muted-foreground")}>
                 {label}
               </Text>
             </Pressable>

@@ -33,8 +33,12 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
             onPress={() => onNavigate(name)}
             style={({ pressed }) => ({ flex: 1, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2, opacity: pressed ? 0.7 : 1 })}
           >
-            <View className="h-8 w-14 items-center justify-center rounded-full">
-              {selected ? <View testID={`tab-indicator-${name}`} className="absolute inset-0 rounded-full bg-primary-soft" /> : null}
+            {/* Pílula do item ativo pelo fundo do próprio container (um View absoluto cobriria o ícone na web). */}
+            <View
+              testID={selected ? `tab-indicator-${name}` : undefined}
+              className="h-8 w-14 items-center justify-center rounded-full"
+              style={{ backgroundColor: selected ? colors.primarySoft : "transparent" }}
+            >
               <Icon size={22} color={tint} strokeWidth={selected ? 2.4 : 2} />
             </View>
             <Text className={selected ? "font-nunito-bold" : "font-nunito-semibold"} style={{ color: tint, fontSize: 12 }}>

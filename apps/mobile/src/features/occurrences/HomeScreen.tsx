@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
-import { AlertTriangle, Map as MapIcon, Plus } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SEARCH_RADIUS_OPTIONS_KM, colors, type PublicOccurrence } from "@miaucha/shared";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { AlertTriangle, ChevronRight, CloudOff, Map as MapIcon, Plus, SearchX } from "lucide-react-native";
+import { SEARCH_RADIUS_OPTIONS_KM, colors, elevation, withAlpha, type PublicOccurrence } from "@miaucha/shared";
 import { cn } from "@/lib/cn";
-import { PetCard, PrimaryButton } from "@/components";
+import { EmptyState, GradientHeader, PetCard, Skeleton } from "@/components";
 import type { GetLocation, LocationResult } from "@/features/location/currentLocation";
 import { LocationProblem } from "@/features/location/LocationProblem";
 import type { OccurrencesClient } from "./occurrencesClient";
@@ -38,7 +37,6 @@ export function lostNearbyLabel(count: number): string {
 
 /** Aba Início: pets perdidos, avistados e encontrados no raio escolhido (5 km de início, até 30 km). */
 export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, onOpenSettings, onOpenMap, refreshSignal, now }: Props) {
-  const insets = useSafeAreaInsets();
   const [state, setState] = useState<State>({ status: "loading" });
   const [refreshing, setRefreshing] = useState(false);
   const [radiusKm, setRadiusKm] = useState(HOME_RADIUS_KM);
@@ -88,19 +86,23 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
         contentContainerStyle={{ paddingBottom: 96 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
       >
-        <View className="bg-primary px-5 pb-6" style={{ paddingTop: insets.top + 20 }}>
-          {firstName ? <Text className="font-nunito-semibold text-xs text-white/70">Olá, {firstName}</Text> : null}
-          <Text accessibilityRole="header" className="font-nunito-black text-lg text-white">
-            Encontre pets perto de você
-          </Text>
+        <GradientHeader eyebrow={firstName ? `Olá, ${firstName}` : undefined} title="Encontre pets perto de você">
           <RadiusSelector value={radiusKm} onChange={setRadiusKm} />
-        </View>
+        </GradientHeader>
 
-        <View className="gap-4 px-5 pt-4">
+        <View className="gap-5 px-5 pt-5">
           {state.status === "loading" ? (
-            <View className="items-center gap-3 py-10">
-              <ActivityIndicator color={colors.primary} />
-              <Text className="font-sans text-sm text-muted-foreground">Procurando pets perto de você...</Text>
+            <View accessible accessibilityLabel="Procurando pets perto de você..." className="gap-4">
+              <Text className="font-nunito-semibold text-sm text-muted-foreground">Procurando pets perto de você...</Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                {[0, 1].map((i) => (
+                  <View key={i} className="gap-2 rounded-3xl border border-border bg-card p-3" style={[{ width: "48.5%" }, elevation.card]}>
+                    <Skeleton height={110} radius={16} />
+                    <Skeleton width="70%" />
+                    <Skeleton width="50%" height={12} />
+                  </View>
+                ))}
+              </View>
             </View>
           ) : state.status === "location" ? (
             <LocationProblem
@@ -110,10 +112,13 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
               onOpenSettings={onOpenSettings}
             />
           ) : state.status === "error" ? (
-            <View className="items-center gap-3 rounded-3xl border border-border bg-card p-5">
-              <Text className="text-center font-sans text-sm text-lost">{state.message}</Text>
-              <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void load("full")} />
-            </View>
+            <EmptyState
+              icon={<CloudOff size={28} color={colors.primaryDeep} />}
+              title="Não deu para carregar"
+              message={state.message}
+              actionLabel="Tentar de novo"
+              onAction={() => void load("full")}
+            />
           ) : (
             <NearbyList occurrences={state.occurrences} radiusKm={radiusKm} now={now} onOpen={onOpen} onOpenMap={onOpenMap} />
           )}
@@ -124,10 +129,25 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
         accessibilityRole="button"
         accessibilityLabel="Registrar ocorrência"
         onPress={onRegister}
-        className="absolute bottom-4 right-5 flex-row items-center gap-2 rounded-2xl bg-accent px-4 py-3 shadow-lg active:opacity-90"
+        style={({ pressed }) => [
+          {
+            position: "absolute",
+            bottom: 16,
+            right: 20,
+            minHeight: 52,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 18,
+            paddingHorizontal: 18,
+            backgroundColor: pressed ? colors.accentDeep : colors.accent,
+            transform: [{ scale: pressed ? 0.97 : 1 }],
+          },
+          elevation.floating,
+        ]}
       >
-        <Plus size={18} color={colors.white} />
-        <Text className="font-nunito-bold text-sm text-white">Registrar ocorrência</Text>
+        <Plus size={20} color={colors.white} strokeWidth={2.6} />
+        <Text className="font-nunito-black text-base text-white">Registrar ocorrência</Text>
       </Pressable>
     </View>
   );
@@ -135,7 +155,8 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
 
 function RadiusSelector({ value, onChange }: { value: number; onChange: (km: number) => void }) {
   return (
-    <View className="mt-3 flex-row flex-wrap gap-2">
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }} style={{ marginHorizontal: -20 }}>
+      <View style={{ width: 12 }} />
       {SEARCH_RADIUS_OPTIONS_KM.map((km) => {
         const selected = km === value;
         return (
@@ -145,13 +166,15 @@ function RadiusSelector({ value, onChange }: { value: number; onChange: (km: num
             accessibilityLabel={`${km} km`}
             accessibilityState={{ selected }}
             onPress={() => onChange(km)}
-            className={cn("rounded-xl px-3 py-1.5", selected ? "bg-white" : "bg-white/20")}
+            hitSlop={4}
+            className={cn("items-center justify-center rounded-full px-4", selected ? "bg-white" : "bg-white/20")}
+            style={{ minHeight: 40 }}
           >
-            <Text className={cn("font-nunito-bold text-xs", selected ? "text-primary" : "text-white")}>{km} km</Text>
+            <Text className={cn("text-sm", selected ? "font-nunito-black text-foreground" : "font-nunito-bold text-white")}>{km} km</Text>
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -172,32 +195,42 @@ function NearbyList({
   return (
     <>
       <View
-        className="flex-row items-center gap-3 rounded-2xl border p-3"
-        style={{ backgroundColor: `${colors.seen}14`, borderColor: `${colors.seen}55` }}
+        className="flex-row items-center gap-3 rounded-3xl border p-4"
+        style={{ backgroundColor: withAlpha(colors.seen, 0.08), borderColor: withAlpha(colors.seen, 0.35) }}
       >
-        <View className="h-8 w-8 items-center justify-center rounded-xl bg-seen">
-          <AlertTriangle size={15} color={colors.white} />
+        <View className="h-10 w-10 items-center justify-center rounded-2xl bg-seen">
+          <AlertTriangle size={18} color={colors.foreground} />
         </View>
         <View className="flex-1">
-          <Text className="font-nunito-bold text-xs text-foreground">{lostNearbyLabel(lost)}</Text>
+          <Text className="font-nunito-black text-sm text-foreground">{lostNearbyLabel(lost)}</Text>
           <Text className="font-sans text-xs text-muted-foreground">Raio de {radiusKm} km</Text>
         </View>
       </View>
 
       <View>
-        <View className="mb-3 flex-row items-center justify-between">
-          <Text className="font-nunito-bold text-sm text-foreground">Pets próximos</Text>
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text accessibilityRole="header" className="font-nunito-black text-lg text-foreground">
+            Pets próximos
+          </Text>
           {onOpenMap ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Ver no mapa" onPress={onOpenMap} className="flex-row items-center gap-1">
-              <MapIcon size={14} color={colors.primary} />
-              <Text className="font-nunito-bold text-xs text-primary">Ver no mapa</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Ver no mapa"
+              onPress={onOpenMap}
+              style={({ pressed }) => ({ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 12, opacity: pressed ? 0.6 : 1 })}
+            >
+              <MapIcon size={16} color={colors.accent} />
+              <Text className="font-nunito-bold text-sm text-accent">Ver no mapa</Text>
+              <ChevronRight size={16} color={colors.accent} />
             </Pressable>
           ) : null}
         </View>
         {occurrences.length === 0 ? (
-          <View className="items-center rounded-3xl border border-border bg-card p-5">
-            <Text className="text-center font-sans text-sm text-muted-foreground">Nenhuma ocorrência num raio de {radiusKm} km.</Text>
-          </View>
+          <EmptyState
+            icon={<SearchX size={28} color={colors.primaryDeep} />}
+            title="Tudo tranquilo por aqui"
+            message={`Nenhuma ocorrência num raio de ${radiusKm} km.`}
+          />
         ) : (
           // Grade de duas colunas. São no máximo 200 itens, e a tela já rola (ScrollView): sem lista virtualizada aninhada.
           <View testID="nearby-grid" style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12 }}>

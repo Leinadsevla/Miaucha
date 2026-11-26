@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Bell, MessageCircle, Plus } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "@miaucha/shared";
+import { colors, elevation } from "@miaucha/shared";
 import { AppLogo, PrimaryButton } from "@/components";
 
 export const ONBOARDING_SLIDES = [
@@ -36,21 +37,31 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const last = index === ONBOARDING_SLIDES.length - 1;
 
   return (
-    <View className="flex-1 bg-primary px-6" style={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}>
+    <LinearGradient
+      colors={[colors.primary, colors.primaryDeep]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
+    >
       <View className="flex-row justify-end">
-        <Pressable accessibilityRole="button" accessibilityLabel="Pular" onPress={onDone} className="px-2 py-1">
-          <Text className="font-nunito-bold text-sm text-white">Pular</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pular"
+          onPress={onDone}
+          style={({ pressed }) => ({ minHeight: 44, minWidth: 64, alignItems: "center", justifyContent: "center", borderRadius: 22, opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text className="font-nunito-bold text-base text-white">Pular</Text>
         </Pressable>
       </View>
 
       <View className="flex-1 items-center justify-center gap-6">
-        <View className="h-28 w-28 items-center justify-center rounded-[36px] bg-white">
-          {slide.Icon ? <slide.Icon size={52} color={colors.primary} /> : <AppLogo size={80} />}
+        <View className="h-32 w-32 items-center justify-center rounded-[40px] bg-white" style={elevation.floating}>
+          {slide.Icon ? <slide.Icon size={56} color={colors.primaryDeep} /> : <AppLogo size={88} />}
         </View>
-        <Text accessibilityRole="header" className="text-center font-nunito-black text-2xl text-white">
+        <Text accessibilityRole="header" className="text-center font-nunito-black text-[28px] leading-9 text-white">
           {slide.title}
         </Text>
-        <Text className="text-center font-sans text-base text-white">{slide.body}</Text>
+        <Text className="text-center font-nunito-semibold text-base leading-6 text-white">{slide.body}</Text>
       </View>
 
       <View className="gap-4">
@@ -68,11 +79,16 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
           <PrimaryButton title="Próximo" variant="outline" onPress={() => setIndex(index + 1)} />
         )}
         {index > 0 ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => setIndex(index - 1)} className="self-center px-2 py-1">
-            <Text className="font-nunito-semibold text-sm text-white">Voltar</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
+            onPress={() => setIndex(index - 1)}
+            style={({ pressed }) => ({ minHeight: 44, alignSelf: "center", paddingHorizontal: 16, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
+          >
+            <Text className="font-nunito-bold text-sm text-white">Voltar</Text>
           </Pressable>
         ) : null}
       </View>
-    </View>
+    </LinearGradient>
   );
 }

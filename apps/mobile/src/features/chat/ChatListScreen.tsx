@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { MessageCircle } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type ChatConversation } from "@miaucha/shared";
-import { PrimaryButton, SpeciesIcon } from "@/components";
+import { CloudOff, MessageCircle } from "lucide-react-native";
+import { colors, elevation, type ChatConversation } from "@miaucha/shared";
+import { EmptyState, SkeletonList, SpeciesIcon, TabHeader } from "@/components";
 import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { ChatClient } from "./chatClient";
 import type { ChatRealtime } from "./chatRealtime";
@@ -27,7 +26,6 @@ export function unreadLabel(count: number): string {
 
 /** Aba Chat: conversas mais recentes primeiro, com o outro participante só pelo pseudônimo (CH-02). */
 export function ChatListScreen({ client, realtime, onOpen, refreshSignal, now }: Props) {
-  const insets = useSafeAreaInsets();
   const [state, setState] = useState<State>({ status: "loading" });
   const [refreshing, setRefreshing] = useState(false);
   const latest = useRef(0);
@@ -83,22 +81,22 @@ export function ChatListScreen({ client, realtime, onOpen, refreshSignal, now }:
 
   return (
     <View className="flex-1 bg-background">
-      <View className="border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <Text accessibilityRole="header" className="font-nunito-black text-lg text-foreground">
-          Conversas
-        </Text>
-        <Text className="font-sans text-xs text-muted-foreground">Por pseudônimo, sem expor seu telefone ou e-mail</Text>
-      </View>
+      <TabHeader title="Conversas" subtitle="Por pseudônimo, sem expor seu telefone ou e-mail" />
 
       {state.status === "loading" ? (
-        <View className="items-center gap-3 py-10">
-          <ActivityIndicator color={colors.primary} />
-          <Text className="font-sans text-sm text-muted-foreground">Carregando conversas...</Text>
+        <View className="gap-3 p-5">
+          <Text className="font-nunito-semibold text-sm text-muted-foreground">Carregando conversas...</Text>
+          <SkeletonList count={4} />
         </View>
       ) : state.status === "error" ? (
-        <View className="m-5 items-center gap-3 rounded-3xl border border-border bg-card p-5">
-          <Text className="text-center font-sans text-sm text-lost">{state.message}</Text>
-          <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void load("full")} />
+        <View className="p-5">
+          <EmptyState
+            icon={<CloudOff size={28} color={colors.primaryDeep} />}
+            title="Não deu para carregar"
+            message={state.message}
+            actionLabel="Tentar de novo"
+            onAction={() => void load("full")}
+          />
         </View>
       ) : (
         <FlatList
@@ -107,15 +105,11 @@ export function ChatListScreen({ client, realtime, onOpen, refreshSignal, now }:
           contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: 96 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
           ListEmptyComponent={
-            <View className="items-center gap-3 rounded-3xl border border-border bg-card p-6">
-              <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft">
-                <MessageCircle size={22} color={colors.primary} />
-              </View>
-              <Text className="font-nunito-bold text-base text-foreground">Nenhuma conversa ainda</Text>
-              <Text className="text-center font-sans text-sm text-muted-foreground">
-                Abra uma ocorrência e toque em "Conversar" para falar com quem registrou.
-              </Text>
-            </View>
+            <EmptyState
+              icon={<MessageCircle size={28} color={colors.primaryDeep} />}
+              title="Nenhuma conversa ainda"
+              message={'Abra uma ocorrência e toque em "Conversar" para falar com quem registrou.'}
+            />
           }
           renderItem={({ item }) => <ConversationRow conversation={item} now={now} onPress={() => onOpen(item.id)} />}
         />
@@ -132,27 +126,28 @@ function ConversationRow({ conversation: c, now, onPress }: { conversation: Chat
       accessibilityRole="button"
       accessibilityLabel={`Conversa com ${c.otherPseudonym} sobre ${title}`}
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-3xl border border-border bg-card p-3 active:opacity-80"
+      className="flex-row items-center gap-3 rounded-3xl border border-border bg-card p-3.5 active:opacity-80"
+      style={elevation.card}
     >
-      <View className="h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-primary-soft">
+      <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary-soft">
         {c.occurrence.photoUrl ? (
-          <Image source={{ uri: c.occurrence.photoUrl }} contentFit="cover" style={{ width: 48, height: 48 }} accessibilityLabel={`Foto de ${title}`} />
+          <Image source={{ uri: c.occurrence.photoUrl }} contentFit="cover" style={{ width: 56, height: 56 }} accessibilityLabel={`Foto de ${title}`} />
         ) : (
-          <SpeciesIcon species={c.occurrence.species} size={22} color={colors.primary} />
+          <SpeciesIcon species={c.occurrence.species} size={24} color={colors.primaryDeep} />
         )}
       </View>
       <View className="flex-1 gap-0.5">
         <View className="flex-row items-center justify-between gap-2">
-          <Text numberOfLines={1} className="flex-1 font-nunito-bold text-sm text-foreground">
+          <Text numberOfLines={1} className="flex-1 font-nunito-black text-base text-foreground">
             {c.otherPseudonym}
           </Text>
           {time ? <Text className="font-sans text-xs text-muted-foreground">{time}</Text> : null}
         </View>
-        <Text numberOfLines={1} className="font-nunito-semibold text-xs text-primary">
+        <Text numberOfLines={1} className="font-nunito-bold text-xs text-accent">
           Sobre: {title}
         </Text>
         <View className="flex-row items-center justify-between gap-2">
-          <Text numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
+          <Text numberOfLines={1} className="flex-1 font-sans text-sm text-muted-foreground">
             {lastMessagePreview(c.lastMessage)}
           </Text>
           {c.unreadCount > 0 ? (

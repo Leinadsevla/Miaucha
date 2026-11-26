@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { Bell, BellRing, Clock, MapPin } from "lucide-react-native";
+import { BellRing, Clock, CloudOff, MapPin, SlidersHorizontal } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, speciesLabel, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
-import { AppLogo, MISSING_REGION, PrimaryButton, SpeciesIcon, StatusBadge } from "@/components";
+import { colors, elevation, speciesLabel, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
+import { AppLogo, EmptyState, FilterChips, MISSING_REGION, SkeletonList, SpeciesIcon, StatusBadge, TabHeader } from "@/components";
 import type { AlertsClient } from "./alertsClient";
 
 export type DistanceFilter = "all" | "under1" | "1to3" | "3to5";
@@ -96,70 +96,62 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
 
   return (
     <View className="flex-1 bg-background">
-      <View className="border-b border-border bg-card px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <View className="flex-row items-center justify-between">
-          <View className="flex-1">
-            <Text accessibilityRole="header" className="font-nunito-black text-lg text-foreground">
-              Alertas
-            </Text>
-            <Text className="font-sans text-xs text-muted-foreground">Pets desaparecidos próximos a você</Text>
-          </View>
+      <TabHeader
+        title="Alertas"
+        subtitle="Pets desaparecidos próximos a você"
+        right={
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Preferências de alerta"
             onPress={onOpenPreferences}
-            className="flex-row items-center gap-2 rounded-xl bg-primary-soft px-3 py-2 active:opacity-80"
+            style={({ pressed }) => ({
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              borderRadius: 14,
+              paddingHorizontal: 14,
+              backgroundColor: pressed ? colors.border : colors.muted,
+            })}
           >
-            <Bell size={14} color={colors.primary} />
-            <Text className="font-nunito-bold text-xs text-primary">Preferências</Text>
+            <SlidersHorizontal size={16} color={colors.foreground} />
+            <Text className="font-nunito-bold text-sm text-foreground">Preferências</Text>
           </Pressable>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3" contentContainerStyle={{ gap: 8 }}>
-          {FILTERS.map((f) => (
-            <Pressable
-              key={f.key}
-              accessibilityRole="button"
-              accessibilityLabel={f.label}
-              accessibilityState={{ selected: filter === f.key }}
-              onPress={() => setFilter(f.key)}
-              className={filter === f.key ? "rounded-xl bg-primary px-3 py-1.5" : "rounded-xl bg-muted px-3 py-1.5"}
-            >
-              <Text className={filter === f.key ? "font-nunito-bold text-xs text-white" : "font-nunito-bold text-xs text-muted-foreground"}>
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+        }
+      >
+        <FilterChips options={FILTERS} value={filter} onChange={setFilter} />
+      </TabHeader>
 
       <ScrollView
         contentContainerStyle={{ padding: 20, paddingBottom: 96, gap: 12 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
       >
         {pushNotice ? (
-          <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3">
-            <BellRing size={16} color={colors.accent} />
+          <View className="flex-row items-center gap-2 px-1">
+            <BellRing size={14} color={colors.mutedForeground} />
             <Text className="flex-1 font-sans text-xs text-muted-foreground">{pushNotice}</Text>
           </View>
         ) : null}
 
         {state.status === "loading" ? (
-          <View className="items-center gap-3 py-10">
-            <ActivityIndicator color={colors.primary} />
-            <Text className="font-sans text-sm text-muted-foreground">Carregando alertas...</Text>
+          <View className="gap-3">
+            <Text className="font-nunito-semibold text-sm text-muted-foreground">Carregando alertas...</Text>
+            <SkeletonList count={3} />
           </View>
         ) : state.status === "error" ? (
-          <View className="items-center gap-3 rounded-3xl border border-border bg-card p-5">
-            <Text className="text-center font-sans text-sm text-lost">{state.message}</Text>
-            <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void load("full")} />
-          </View>
+          <EmptyState
+            icon={<CloudOff size={28} color={colors.primaryDeep} />}
+            title="Não deu para carregar"
+            message={state.message}
+            actionLabel="Tentar de novo"
+            onAction={() => void load("full")}
+          />
         ) : state.alerts.length === 0 ? (
-          <View className="items-center gap-2 rounded-3xl border border-border bg-card p-5">
-            <AppLogo size={56} />
-            <Text className="text-center font-sans text-sm text-muted-foreground">
-              Nenhum alerta por enquanto. Quando um pet sumir dentro do seu raio, ele aparece aqui.
-            </Text>
-          </View>
+          <EmptyState
+            icon={<AppLogo size={40} />}
+            title="Nenhum alerta por enquanto"
+            message="Quando um pet sumir dentro do seu raio, ele aparece aqui."
+          />
         ) : filterAlerts(state.alerts, filter).length === 0 ? (
           <Text className="py-6 text-center font-sans text-sm text-muted-foreground">Nenhum alerta nesta distância.</Text>
         ) : (
@@ -181,17 +173,18 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
       accessibilityLabel={`${title}, ${distance.slice(1)}${a.seenAt ? "" : ", novo"}`}
       onPress={onPress}
       className="flex-row gap-3 rounded-3xl border border-border bg-card p-4 active:opacity-90"
+      style={elevation.card}
     >
-      <View className="h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-muted">
+      <View className="h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-2xl bg-muted">
         {o.photoUrl ? (
-          <Image source={{ uri: o.photoUrl }} style={{ width: 64, height: 64 }} contentFit="cover" />
+          <Image source={{ uri: o.photoUrl }} style={{ width: 72, height: 72 }} contentFit="cover" transition={200} />
         ) : (
           <SpeciesIcon species={o.species} size={26} color={colors.mutedForeground} />
         )}
       </View>
       <View className="flex-1">
         <View className="flex-row items-center justify-between gap-2">
-          <Text numberOfLines={1} className="flex-1 font-nunito-black text-sm text-foreground">
+          <Text numberOfLines={1} className="flex-1 font-nunito-black text-base text-foreground">
             {title}
           </Text>
           <StatusBadge type={o.type} />
@@ -201,16 +194,16 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
         </Text>
         <View className="mt-2 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
-            <MapPin size={11} color={colors.primary} />
-            <Text className="font-nunito-bold text-xs text-primary">{distance}</Text>
+            <MapPin size={13} color={colors.primaryDeep} />
+            <Text className="font-nunito-bold text-xs text-foreground">{distance}</Text>
           </View>
           <View className="flex-row items-center gap-1">
-            <Clock size={11} color={colors.mutedForeground} />
+            <Clock size={13} color={colors.mutedForeground} />
             <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(a.createdAt), now)}</Text>
           </View>
           {a.seenAt ? null : (
-            <View className="rounded-full bg-lost px-2 py-0.5">
-              <Text className="font-nunito-bold text-[10px] text-white">Novo</Text>
+            <View className="rounded-full bg-accent px-2 py-0.5">
+              <Text className="font-nunito-black text-xs text-white">Novo</Text>
             </View>
           )}
         </View>
