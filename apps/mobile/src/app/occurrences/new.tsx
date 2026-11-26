@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/featu
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
+import { openAppSettings } from "@/lib/settings";
 
 const pickPhotos = createPhotoPicker();
 
@@ -107,7 +108,7 @@ export default function NewOccurrence() {
           <OccurrenceForm
             location={location}
             onRetryLocation={locate}
-            onOpenSettings={() => void Linking.openSettings()}
+            onOpenSettings={openAppSettings}
             onSubmit={save}
             onPickPhotos={pickPhotos}
             initial={
