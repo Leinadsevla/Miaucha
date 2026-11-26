@@ -9,6 +9,7 @@ import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
 import { openAppSettings } from "@/lib/settings";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -90,7 +91,7 @@ export default function NewOccurrence() {
       ) : pet === undefined || lost === undefined ? (
         <Text className="p-5 text-center font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : (
-        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
           <OccurrenceForm
             location={location}
             onRetryLocation={locate}

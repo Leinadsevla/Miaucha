@@ -8,6 +8,7 @@ import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { ChatClient } from "./chatClient";
 import type { ChatRealtime } from "./chatRealtime";
 import { applyIncoming, formatMessageTime, lastMessagePreview, upsertConversation } from "./chatState";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 type State = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; conversations: ChatConversation[] };
 
@@ -102,7 +103,7 @@ export function ChatListScreen({ client, realtime, onOpen, refreshSignal, now }:
         <FlatList
           data={state.conversations}
           keyExtractor={(c) => c.id}
-          contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: 96 }}
+          contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, gap: 12, paddingBottom: 96 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
           ListEmptyComponent={
             <EmptyState

@@ -11,6 +11,11 @@ describe("chooseAuthClient", () => {
     expect(chooseAuthClient({ apiUrl: "  ", isDev: true })).toBe("mock");
   });
 
+  it("modo demonstração (EXPO_PUBLIC_DEMO=1) → cliente falso, mesmo com a URL da API e num build de produção", () => {
+    expect(chooseAuthClient({ apiUrl: "https://api.miaucha.app", isDev: false, demo: true })).toBe("mock");
+    expect(chooseAuthClient({ apiUrl: undefined, isDev: false, demo: true })).toBe("mock");
+  });
+
   it("sem URL num build de produção → erro, nunca o cliente falso", () => {
     expect(() => chooseAuthClient({ apiUrl: undefined, isDev: false })).toThrow("EXPO_PUBLIC_API_URL");
   });

@@ -9,6 +9,7 @@ import { OccurrenceForm, occurrenceTitle, updateOccurrence, useOccurrencesClient
 import { createPhotoPicker, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
 import { openAppSettings } from "@/lib/settings";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -51,7 +52,7 @@ export default function EditOccurrence() {
     <View className="flex-1 bg-background">
       <ScreenHeader title={"Editar ocorrência"} subtitle={occurrence ? occurrenceTitle(occurrence) : "Carregando..."} onBack={() => router.back()} />
       {occurrence ? (
-        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
           <OccurrenceForm
             location={location}
             onRetryLocation={locate}

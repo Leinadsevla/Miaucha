@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation } from "@miaucha/shared";
 import { AppLogo, PrimaryButton } from "@/components";
+import { centered } from "@/lib/layout";
 
 export const ONBOARDING_SLIDES = [
   {
@@ -43,6 +44,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
       end={{ x: 1, y: 1 }}
       style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
     >
+      <View style={[centered(520), { flex: 1 }]}>
       <View className="flex-row justify-end">
         <Pressable
           accessibilityRole="button"
@@ -88,6 +90,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
             <Text className="font-nunito-bold text-sm text-white">Voltar</Text>
           </Pressable>
         ) : null}
+      </View>
       </View>
     </LinearGradient>
   );

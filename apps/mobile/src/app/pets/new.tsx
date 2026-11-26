@@ -6,6 +6,7 @@ import { type PetInput } from "@miaucha/shared";
 import { KeyboardScreen, ScreenHeader } from "@/components";
 import { PetForm, createPhotoPicker, savePet, usePetsClient, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -34,7 +35,7 @@ export default function NewPet() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title={"Cadastrar pet"} subtitle={"Preencha os dados do seu pet"} onBack={() => router.back()} />
-      <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+      <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
         <PetForm onSubmit={save} onPickPhotos={pickPhotos} loading={busy} serverError={error} />
       </KeyboardScreen>
     </View>

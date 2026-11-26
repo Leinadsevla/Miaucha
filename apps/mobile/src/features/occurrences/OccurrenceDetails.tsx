@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronLeft, Clock, Eye, MapPin, Pencil, MessageCircle, N
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation, speciesLabel, formatTimeAgo, occurrenceStyle, withAlpha, type LatLng, type PublicOccurrence } from "@miaucha/shared";
 import { Card, IconButton, PhotoCarousel, PrimaryButton, SectionLabel, SpeciesIcon, StatusBadge } from "@/components";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const PHOTO_HEIGHT = 320;
 const NOT_INFORMED = "Não informado";
@@ -67,7 +68,7 @@ export function OccurrenceDetails({
 
   return (
     <View className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView contentContainerStyle={{ ...centered(READING_MAX_WIDTH), paddingBottom: 24 }}>
         <View style={{ height: PHOTO_HEIGHT }} className="bg-muted">
           {o.photoUrls.length > 0 ? (
             <PhotoCarousel urls={o.photoUrls} label={title} height={PHOTO_HEIGHT} />
@@ -180,6 +181,7 @@ export function OccurrenceDetails({
       </ScrollView>
 
       <View className="gap-1.5 border-t border-border bg-white px-5 pt-3" style={[{ paddingBottom: insets.bottom + 12 }, elevation.raised]}>
+        <View className="gap-1.5" style={centered(READING_MAX_WIDTH - 40)}>
         {chatError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{chatError}</Text> : null}
         <PrimaryButton
           title="Conversar"
@@ -191,6 +193,7 @@ export function OccurrenceDetails({
         <Text className="text-center font-sans text-xs text-muted-foreground">
           {o.isMine ? "Esta ocorrência é sua: as conversas aparecem na aba Chat" : `Converse com ${o.authorPseudonym} sem expor seu contato`}
         </Text>
+        </View>
       </View>
     </View>
   );

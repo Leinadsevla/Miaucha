@@ -5,7 +5,8 @@ import { colors, elevation } from "@miaucha/shared";
 
 export type TabName = "index" | "map" | "alerts" | "chat" | "profile";
 
-const ITEMS: { name: TabName; label: string; Icon: LucideIcon }[] = [
+/** As abas do app, na ordem (compartilhadas pela barra de baixo e pelo menu lateral). */
+export const TAB_ITEMS: { name: TabName; label: string; Icon: LucideIcon }[] = [
   { name: "index", label: "Início", Icon: Home },
   { name: "map", label: "Mapa", Icon: Map },
   { name: "alerts", label: "Alertas", Icon: Bell },
@@ -21,7 +22,7 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
       className="flex-row border-t border-border bg-white px-2 pt-2"
       style={[{ paddingBottom: Math.max(insets.bottom, 10) }, elevation.raised]}
     >
-      {ITEMS.map(({ name, label, Icon }) => {
+      {TAB_ITEMS.map(({ name, label, Icon }) => {
         const selected = active === name;
         const tint = selected ? colors.primaryDeep : colors.mutedForeground;
         return (

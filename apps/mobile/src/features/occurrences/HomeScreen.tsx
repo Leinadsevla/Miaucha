@@ -7,6 +7,7 @@ import { EmptyState, GradientHeader, PetCard, Skeleton } from "@/components";
 import type { GetLocation, LocationResult } from "@/features/location/currentLocation";
 import { LocationProblem } from "@/features/location/LocationProblem";
 import type { OccurrencesClient } from "./occurrencesClient";
+import { centered, PAGE_MAX_WIDTH, useLayout } from "@/lib/layout";
 
 /** Raio inicial da busca; o usuário escolhe outro entre `SEARCH_RADIUS_OPTIONS_KM` (até 30 km). */
 export const HOME_RADIUS_KM = 5;
@@ -29,6 +30,8 @@ type Props = {
   refreshSignal?: number;
   now?: Date;
 };
+
+const GRID_GAP = 12;
 
 export function lostNearbyLabel(count: number): string {
   if (count === 0) return "Nenhum pet perdido por perto";
@@ -90,13 +93,13 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
           <RadiusSelector value={radiusKm} onChange={setRadiusKm} />
         </GradientHeader>
 
-        <View className="gap-5 px-5 pt-5">
+        <View className="gap-5 px-5 pt-5" style={centered(PAGE_MAX_WIDTH)}>
           {state.status === "loading" ? (
             <View accessible accessibilityLabel="Procurando pets perto de você..." className="gap-4">
               <Text className="font-nunito-semibold text-sm text-muted-foreground">Procurando pets perto de você...</Text>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 {[0, 1].map((i) => (
-                  <View key={i} className="gap-2 rounded-3xl border border-border bg-card p-3" style={[{ width: "48.5%" }, elevation.card]}>
+                  <View key={i} className="gap-2 rounded-3xl border border-border bg-card p-3" style={[{ width: "48.5%", maxWidth: 280 }, elevation.card]}>
                     <Skeleton height={110} radius={16} />
                     <Skeleton width="70%" />
                     <Skeleton width="50%" height={12} />
@@ -192,6 +195,10 @@ function NearbyList({
   onOpenMap?: () => void;
 }) {
   const lost = occurrences.filter((o) => o.type === "lost").length;
+  const { petColumns, contentWidth } = useLayout();
+  // Largura da grade = conteúdo (até o máximo da página) menos o respiro lateral de 20 px de cada lado.
+  const gridWidth = Math.min(contentWidth, PAGE_MAX_WIDTH) - 40;
+  const cardWidth = Math.floor((gridWidth - GRID_GAP * (petColumns - 1)) / petColumns);
   return (
     <>
       <View
@@ -232,10 +239,10 @@ function NearbyList({
             message={`Nenhuma ocorrência num raio de ${radiusKm} km.`}
           />
         ) : (
-          // Grade de duas colunas. São no máximo 200 itens, e a tela já rola (ScrollView): sem lista virtualizada aninhada.
-          <View testID="nearby-grid" style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12 }}>
+          // Grade de 2 a 4 colunas, conforme a largura. São no máximo 200 itens, e a tela já rola (ScrollView): sem lista virtualizada aninhada.
+          <View testID="nearby-grid" style={{ flexDirection: "row", flexWrap: "wrap", gap: GRID_GAP }}>
             {occurrences.map((item) => (
-              <View key={item.id} style={{ width: "48.5%" }}>
+              <View key={item.id} style={{ width: cardWidth }}>
                 <PetCard occurrence={item} now={now} onPress={() => onOpen(item.id)} fill />
               </View>
             ))}

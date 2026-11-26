@@ -15,6 +15,7 @@ import { MapCanvas, type MapCanvasRef } from "./MapCanvas";
 import { ClusterMarker, OccurrenceMarker } from "./MapMarkers";
 import { OccurrenceCard } from "./OccurrenceCard";
 import { DEFAULT_REGION, bboxContains, regionAround, regionToBBox, type Region } from "./region";
+import { useLayout } from "@/lib/layout";
 
 export const OFFLINE_NOTICE = "Sem conexão: mostrando o último mapa carregado";
 
@@ -45,6 +46,7 @@ const FLOATING = elevation.floating;
 export function MapScreen({ getLocation, client, cache, onOpen, onDirections, onOpenSettings, refreshSignal, now }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { wide } = useLayout();
   const mapRef = useRef<MapCanvasRef>(null);
   const [start, setStart] = useState<Start | null>(null);
   const [location, setLocation] = useState<LocationResult | null>(null);
@@ -157,7 +159,7 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
         )}
       </MapCanvas>
 
-      <View pointerEvents="box-none" className="absolute left-0 right-0 top-0 gap-2 px-4" style={{ paddingTop: insets.top + 12 }}>
+      <View pointerEvents="box-none" className="absolute left-0 right-0 top-0 gap-2 px-4" style={{ paddingTop: insets.top + 12, maxWidth: wide ? 560 : undefined }}>
         <View pointerEvents="box-none" className="flex-row items-center gap-2">
           <View className="flex-1 flex-row items-center gap-2 rounded-2xl bg-white px-4 py-3" style={FLOATING}>
             {data.loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
@@ -212,8 +214,15 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
           />
         ) : null}
 
-        <Legend />
+        {wide ? null : <Legend />}
       </View>
+
+      {/* Tela larga: a legenda fica no canto direito, longe dos controles da esquerda. */}
+      {wide ? (
+        <View pointerEvents="box-none" className="absolute right-4" style={{ top: insets.top + 12 }}>
+          <Legend />
+        </View>
+      ) : null}
 
       <View pointerEvents="box-none" className="absolute bottom-4 left-4 right-4 gap-3">
         {location?.status === "ok" ? (
@@ -228,7 +237,9 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
           </Pressable>
         ) : null}
         {selected ? (
-          <OccurrenceCard occurrence={selected} now={now} onOpen={onOpen} onDirections={onDirections} onClose={() => setSelectedId(null)} />
+          <View style={{ width: "100%", maxWidth: 460 }}>
+            <OccurrenceCard occurrence={selected} now={now} onOpen={onOpen} onDirections={onDirections} onClose={() => setSelectedId(null)} />
+          </View>
         ) : null}
       </View>
 

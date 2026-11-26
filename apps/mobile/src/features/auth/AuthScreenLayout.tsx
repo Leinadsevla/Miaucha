@@ -4,6 +4,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation } from "@miaucha/shared";
 import { AppLogo, KeyboardScreen } from "@/components";
+import { centered } from "@/lib/layout";
+
+/** Largura do cartão do formulário em telas largas. */
+const AUTH_CARD_WIDTH = 460;
 
 /** Telas de entrada: cabeçalho laranja em degradê com a logo e o formulário num cartão sobreposto. */
 export function AuthScreenLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
@@ -26,8 +30,10 @@ export function AuthScreenLayout({ title, subtitle, children }: { title: string;
           <Text className="mt-1 text-center font-nunito-semibold text-base text-white">{subtitle}</Text>
         </View>
       </LinearGradient>
-      <View className="-mt-8 mx-4 rounded-3xl border border-border bg-card p-5" style={elevation.raised}>
-        {children}
+      <View className="-mt-8 px-4">
+        <View className="rounded-3xl border border-border bg-card p-5" style={[centered(AUTH_CARD_WIDTH), elevation.raised]}>
+          {children}
+        </View>
       </View>
     </KeyboardScreen>
   );

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, speciesLabel, withAlpha, type MyPet } from "@miaucha/shared";
 import { Card, IconButton, PhotoCarousel, PrimaryButton, SpeciesIcon } from "@/components";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const PHOTO_HEIGHT = 320;
 const NOT_INFORMED = "Não informado";
@@ -38,7 +39,7 @@ export function PetDetails({
   const subtitle = [pet.breed, pet.color].filter(Boolean).join(" · ");
 
   return (
-    <ScrollView className="flex-1 bg-background" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+    <ScrollView className="flex-1 bg-background" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), paddingBottom: insets.bottom + 24 }}>
       <View style={{ height: PHOTO_HEIGHT }} className="bg-muted">
         {pet.photos.length > 0 ? (
           <PhotoCarousel urls={pet.photos.map((p) => p.url)} label={pet.name} height={PHOTO_HEIGHT} />

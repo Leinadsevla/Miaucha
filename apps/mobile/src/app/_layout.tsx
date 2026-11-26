@@ -18,7 +18,6 @@ import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
 import { onboardingStore, shouldShowOnboarding } from "@/features/onboarding";
 import { PetsClientProvider } from "@/features/pets";
-import { WebFrame } from "@/components";
 import { statusBarStyleFor } from "@/lib/statusBar";
 import { ProfileClientProvider } from "@/features/profile";
 
@@ -45,9 +44,7 @@ export default function RootLayout() {
                 <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
                   <RouteStatusBar />
                   <AuthGate />
-                  <WebFrame>
-                    <Stack screenOptions={{ headerShown: false }} />
-                  </WebFrame>
+                  <Stack screenOptions={{ headerShown: false }} />
                 </SessionChatProvider>
               </AlertsLayer>
             </ProfileClientProvider>

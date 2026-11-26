@@ -13,7 +13,14 @@ import { createHttpAuthClient } from "./httpAuthClient";
 import { createMockAuthClient } from "./mockAuthClient";
 import { createSecureSessionStorage } from "./sessionStorage";
 
-export function chooseAuthClient({ apiUrl, isDev }: { apiUrl: string | undefined; isDev: boolean }): "http" | "mock" {
+/**
+ * Modo demonstração (`EXPO_PUBLIC_DEMO=1`): o app inteiro com dados de exemplo, sem API, para apresentar.
+ * Vale até num build de produção, porque é ligado de propósito. Leia como `process.env.EXPO_PUBLIC_DEMO`.
+ */
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO === "1";
+
+export function chooseAuthClient({ apiUrl, isDev, demo = false }: { apiUrl: string | undefined; isDev: boolean; demo?: boolean }): "http" | "mock" {
+  if (demo) return "mock";
   if (apiUrl?.trim()) return "http";
   if (isDev) return "mock";
   throw new Error("EXPO_PUBLIC_API_URL não definida: um build de produção não pode usar o login falso");
@@ -48,7 +55,7 @@ export function createClients(): AppClients {
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     webApiUrl: process.env.EXPO_PUBLIC_WEB_API_URL,
   });
-  if (chooseAuthClient({ apiUrl, isDev: __DEV__ }) === "mock") {
+  if (chooseAuthClient({ apiUrl, isDev: __DEV__, demo: DEMO_MODE }) === "mock") {
     const pets = createMockPetsClient();
     const occurrences = createMockOccurrencesClient();
     return {

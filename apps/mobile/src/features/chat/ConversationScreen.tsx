@@ -12,6 +12,7 @@ import type { ChatRealtime } from "./chatRealtime";
 import { applyCatchUp, applyRead, catchUpMessages, mergeMessages, newestCreatedAt, sendsOnKey } from "./chatState";
 import { ConversationOptions } from "./ConversationOptions";
 import { MessageBubble } from "./MessageBubble";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 type Props = {
   conversationId: string;
@@ -213,7 +214,8 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={KEYBOARD_AVOIDING_BEHAVIOR}>
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
+      <View className="border-b border-border bg-white px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
+        <View className="flex-row items-center gap-3" style={centered(READING_MAX_WIDTH)}>
         <IconButton label="Voltar" icon={<ChevronLeft size={22} color={colors.foreground} />} onPress={onBack} />
         <View className="h-11 w-11 items-center justify-center rounded-full bg-primary-soft">
           <UserRound size={20} color={colors.primaryDeep} />
@@ -225,6 +227,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
           <Text className="font-sans text-xs text-muted-foreground">{c.iAmAuthor ? "Quer ajudar no seu caso" : "Registrou esta ocorrência"}</Text>
         </View>
         <IconButton label="Opções da conversa" icon={<MoreVertical size={20} color={colors.foreground} />} onPress={() => setShowOptions((v) => !v)} />
+        </View>
       </View>
 
       {showOptions ? (
@@ -237,7 +240,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
         />
       ) : null}
 
-      <View className="gap-2 px-4 pt-3">
+      <View className="gap-2 px-4 pt-3" style={centered(READING_MAX_WIDTH)}>
         <View className="flex-row items-start gap-2 rounded-2xl border p-3" style={{ backgroundColor: withAlpha(colors.seen, 0.1), borderColor: withAlpha(colors.seen, 0.35) }}>
           <ShieldAlert size={18} color={colors.foreground} />
           <Text className="flex-1 font-sans text-xs text-foreground">
@@ -267,7 +270,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
         inverted
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: 16, gap: 12 }}
+        contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 16, gap: 12 }}
         renderItem={({ item }) => <MessageBubble message={item} now={now} onOpenLocation={onOpenLocation} />}
         onEndReached={() => void loadOlder()}
         onEndReachedThreshold={0.3}
@@ -287,7 +290,8 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
       {error ? <Text className="px-4 pb-1 text-center font-nunito-semibold text-xs text-lost">{error}</Text> : null}
 
       {c.canSend ? (
-        <View className="flex-row items-end gap-2 border-t border-border bg-white px-3 pt-3" style={[{ paddingBottom: insets.bottom + 12 }, elevation.raised]}>
+        <View className="border-t border-border bg-white px-3 pt-3" style={[{ paddingBottom: insets.bottom + 12 }, elevation.raised]}>
+          <View className="flex-row items-end gap-2" style={centered(READING_MAX_WIDTH)}>
           <IconButton label="Enviar foto" icon={<Camera size={20} color={colors.foreground} />} onPress={() => void sendPhoto()} disabled={sending} />
           <IconButton label="Enviar minha localização aproximada" icon={<MapPin size={20} color={colors.foreground} />} onPress={() => void sendLocation()} disabled={sending} />
           <TextInput
@@ -309,6 +313,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
             style={{ minHeight: 44 }}
           />
           <IconButton label="Enviar" tone="accent" icon={<Send size={18} color={colors.white} />} onPress={sendText} disabled={sending || !text.trim()} />
+          </View>
         </View>
       ) : (
         <View className="border-t border-border bg-white px-4 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>

@@ -11,7 +11,8 @@ type Errors = Partial<Record<keyof SignUpInput | "confirmPassword", string>>;
 type Props = {
   onLogin: (input: LoginInput) => void;
   onSignUp: (input: SignUpInput) => void;
-  onGoogle: () => void;
+  /** Sem ele (login com Google não configurado), o botão não aparece. */
+  onGoogle?: () => void;
   onForgotPassword?: () => void;
   loading?: boolean;
   serverError?: string;
@@ -134,19 +135,23 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
           className="mt-2"
         />
 
-        <View className="my-1 flex-row items-center gap-3">
-          <View className="h-px flex-1 bg-border" />
-          <Text className="font-nunito-semibold text-xs text-muted-foreground">ou</Text>
-          <View className="h-px flex-1 bg-border" />
-        </View>
+        {onGoogle ? (
+          <>
+            <View className="my-1 flex-row items-center gap-3">
+              <View className="h-px flex-1 bg-border" />
+              <Text className="font-nunito-semibold text-xs text-muted-foreground">ou</Text>
+              <View className="h-px flex-1 bg-border" />
+            </View>
 
-        <PrimaryButton
-          title="Continuar com Google"
-          variant="outline"
-          onPress={onGoogle}
-          disabled={loading}
-          icon={<GoogleLogo />}
-        />
+            <PrimaryButton
+              title="Continuar com Google"
+              variant="outline"
+              onPress={onGoogle}
+              disabled={loading}
+              icon={<GoogleLogo />}
+            />
+          </>
+        ) : null}
       </View>
     </View>
   );

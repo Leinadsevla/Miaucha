@@ -6,6 +6,7 @@ import { type MyPet, type PetInput } from "@miaucha/shared";
 import { KeyboardScreen, ScreenHeader } from "@/components";
 import { PetForm, createPhotoPicker, updatePet, usePetsClient, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -41,7 +42,7 @@ export default function EditPet() {
     <View className="flex-1 bg-background">
       <ScreenHeader title={"Editar pet"} subtitle={pet?.name ?? "Carregando..."} onBack={() => router.back()} />
       {pet ? (
-        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
           <PetForm
             initial={{ name: pet.name, species: pet.species, breed: pet.breed ?? "", color: pet.color ?? "", approxAge: pet.approxAge ?? "" }}
             existingPhotos={pet.photos}

@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@miaucha/shared";
+import { centered, PAGE_MAX_WIDTH } from "@/lib/layout";
 
 type Props = {
   title: string;
@@ -12,10 +13,12 @@ type Props = {
   right?: ReactNode;
   /** Conteúdo abaixo do título (chips, avatar, contadores). */
   children?: ReactNode;
+  /** Largura máxima do conteúdo (o degradê ocupa a tela toda). */
+  maxWidth?: number;
 };
 
 /** Cabeçalho laranja das abas, com degradê sutil da marca e cantos de baixo arredondados. */
-export function GradientHeader({ title, eyebrow, right, children }: Props) {
+export function GradientHeader({ title, eyebrow, right, children, maxWidth = PAGE_MAX_WIDTH }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <LinearGradient
@@ -24,6 +27,7 @@ export function GradientHeader({ title, eyebrow, right, children }: Props) {
       end={{ x: 1, y: 1 }}
       style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}
     >
+      <View style={centered(maxWidth)}>
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
           {eyebrow ? <Text className="font-nunito-semibold text-sm text-white">{eyebrow}</Text> : null}
@@ -34,6 +38,7 @@ export function GradientHeader({ title, eyebrow, right, children }: Props) {
         {right}
       </View>
       {children ? <View className="mt-4">{children}</View> : null}
+      </View>
     </LinearGradient>
   );
 }

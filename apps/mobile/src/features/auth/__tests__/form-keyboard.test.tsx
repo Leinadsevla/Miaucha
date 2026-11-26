@@ -60,3 +60,16 @@ describe("VerifyEmailForm: reenviar código", () => {
     }
   });
 });
+
+describe("botão do Google", () => {
+  it("aparece quando o login com Google está disponível", async () => {
+    await render(<LoginForm onLogin={jest.fn()} onSignUp={jest.fn()} onGoogle={jest.fn()} />);
+    expect(screen.getByRole("button", { name: "Continuar com Google" })).toBeOnTheScreen();
+  });
+
+  it("some (com o separador 'ou') quando o login com Google não está configurado", async () => {
+    await render(<LoginForm onLogin={jest.fn()} onSignUp={jest.fn()} />);
+    expect(screen.queryByRole("button", { name: "Continuar com Google" })).toBeNull();
+    expect(screen.queryByText("ou")).toBeNull();
+  });
+});

@@ -7,6 +7,7 @@ import { colors, elevation, speciesLabel, formatTimeAgo, withAlpha, type MyPet, 
 import { Card, SpeciesIcon, StatusBadge } from "@/components";
 import { MyPetsCard } from "@/features/pets/MyPetsCard";
 import type { MyProfile } from "./profileClient";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 type Props = {
   name: string;
@@ -73,7 +74,7 @@ export function ProfileView(p: Props) {
         </View>
       </LinearGradient>
 
-      <View className="gap-4 p-5">
+      <View className="gap-4 p-5" style={centered(READING_MAX_WIDTH)}>
         <MyPetsCard pets={p.pets} error={p.petsError} onAdd={p.onAddPet} onOpen={p.onOpenPet} />
 
         <Card>

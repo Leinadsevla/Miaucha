@@ -11,7 +11,8 @@ import { EmptyState } from "../EmptyState";
 import { GradientHeader } from "../GradientHeader";
 import { IconButton } from "../IconButton";
 import { SkeletonList } from "../Skeleton";
-import { WebFrame } from "../WebFrame";
+import { SideNav } from "../SideNav";
+import { Centered } from "../Centered";
 
 describe("StatusBadge (MP-01)", () => {
   it.each([
@@ -268,24 +269,26 @@ describe("BottomNav (acabamento)", () => {
   });
 });
 
-describe("WebFrame", () => {
-  it("no aparelho só repassa o conteúdo", async () => {
-    await render(
-      <WebFrame os="android">
-        <Text>app</Text>
-      </WebFrame>,
-    );
-    expect(screen.queryByTestId("web-frame")).toBeNull();
-    expect(screen.getByText("app")).toBeOnTheScreen();
+describe("SideNav (telas largas)", () => {
+  it("as mesmas abas, com a ativa marcada, e navega ao tocar", async () => {
+    const onNavigate = jest.fn();
+    await render(<SideNav active="alerts" onNavigate={onNavigate} />);
+    expect(screen.getByRole("tab", { name: "Alertas", selected: true })).toBeOnTheScreen();
+    expect(screen.getAllByRole("tab")).toHaveLength(5);
+    await fireEvent.press(screen.getByRole("tab", { name: "Mapa" }));
+    expect(onNavigate).toHaveBeenCalledWith("map");
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
   });
+});
 
-  it("na web centraliza numa coluna de 480 px", async () => {
+describe("Centered", () => {
+  it("limita a largura e centraliza", async () => {
     await render(
-      <WebFrame os="web">
-        <Text>app</Text>
-      </WebFrame>,
+      <Centered maxWidth={720} testID="c">
+        <Text>conteúdo</Text>
+      </Centered>,
     );
-    expect(screen.getByTestId("web-frame")).toHaveStyle({ maxWidth: 480, width: "100%" });
+    expect(screen.getByTestId("c")).toHaveStyle({ maxWidth: 720, width: "100%", alignSelf: "center" });
   });
 });
 

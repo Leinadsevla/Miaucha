@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation, speciesLabel, formatApproxDistance, formatTimeAgo, type AlertItem } from "@miaucha/shared";
 import { AppLogo, EmptyState, FilterChips, MISSING_REGION, SkeletonList, SpeciesIcon, StatusBadge, TabHeader } from "@/components";
 import type { AlertsClient } from "./alertsClient";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 export type DistanceFilter = "all" | "under1" | "1to3" | "3to5";
 
@@ -123,7 +124,7 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
       </TabHeader>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 96, gap: 12 }}
+        contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: 96, gap: 12 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
       >
         {pushNotice ? (

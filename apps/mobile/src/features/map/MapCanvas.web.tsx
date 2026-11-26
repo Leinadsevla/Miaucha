@@ -78,8 +78,12 @@ export function MapCanvas({ ref, testID, style, initialRegion, showsUserLocation
     instance.once("load", emitRegion);
     instance.on("moveend", emitRegion);
     instance.on("click", (event) => handlers.current.onPress?.({ lat: event.lngLat.lat, lng: event.lngLat.lng }));
+    // O MapLibre só acompanha a janela; aqui o contêiner muda de tamanho sozinho (menu lateral, abas).
+    const resizer = new ResizeObserver(() => instance.resize());
+    resizer.observe(container.current as unknown as HTMLElement);
     setMap(instance);
     return () => {
+      resizer.disconnect();
       setMap(null);
       instance.remove();
     };
