@@ -83,6 +83,7 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     accessTokenTtlSeconds: 900,
     refreshTokenTtlDays: 30,
     googleClientIds: ["teste.apps.googleusercontent.com"],
+    corsOrigins: [],
     throttle: { ttlMs: 60_000, limit: 1000 },
     storage: storageConfigFromEnv(),
     trustProxy: 0,

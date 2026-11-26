@@ -17,6 +17,11 @@ export type AppConfig = {
   refreshTokenTtlDays: number;
   /** Client IDs do Google aceitos como `aud` do ID token (Android, iOS, web). */
   googleClientIds: string[];
+  /**
+   * Origens (ex.: `http://localhost:8081`) que podem chamar a API pelo navegador: o app web.
+   * Vazio (o padrão) deixa o CORS desligado; o app nativo não precisa dele.
+   */
+  corsOrigins: string[];
   /** Rate limit das rotas de autenticação (NF-04). */
   throttle: { ttlMs: number; limit: number };
   /** Limite de mensagens do chat, por usuário (NF-04). Sem ele, 30 por minuto. */
@@ -62,6 +67,14 @@ function int(env: Env, key: string, fallback: number): number {
   return value ? Number.parseInt(value, 10) : fallback;
 }
 
+/** Lista separada por vírgula, sem itens vazios. */
+function list(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 /** Remove espaços, quebras de linha e aspas em volta: valores colados no painel do Render costumam vir assim. */
 function clean(value: string | undefined): string | undefined {
   const trimmed = value?.trim().replace(/^(["'])(.*)\1$/s, "$2").trim();
@@ -96,10 +109,8 @@ export function loadConfig(env: Env): AppConfig {
     codeSecret: secret(env, "CODE_SECRET"),
     accessTokenTtlSeconds: 900,
     refreshTokenTtlDays: 30,
-    googleClientIds: (env.GOOGLE_CLIENT_IDS ?? "")
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean),
+    googleClientIds: list(env.GOOGLE_CLIENT_IDS),
+    corsOrigins: list(env.CORS_ORIGINS),
     throttle: { ttlMs: int(env, "THROTTLE_TTL_MS", 60_000), limit: int(env, "THROTTLE_LIMIT", 10) },
     chatThrottle: {
       ttlMs: int(env, "CHAT_THROTTLE_TTL_MS", DEFAULT_CHAT_THROTTLE.ttlMs),

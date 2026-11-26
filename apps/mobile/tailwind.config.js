@@ -4,6 +4,9 @@
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
+  // O app é só claro. Com o padrão ("media"), o NativeWind quebra na web em desenvolvimento
+  // ("Cannot manually set color scheme") quando o CSS carrega depois do JavaScript.
+  darkMode: "class",
   theme: {
     extend: {
       colors: {

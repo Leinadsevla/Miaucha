@@ -96,6 +96,6 @@ jobs:
             echo "::error::Configure as variáveis API_URL e EAS_CHANNEL no ambiente do GitHub."
             exit 1
           fi
-          # --environment é obrigatório no modo não interativo; --platform android porque o app não tem web
+          # --environment é obrigatório no modo não interativo; --platform android porque a web não é publicada
           # (o react-native-web não está instalado) e o iOS não é publicado.
           eas update --channel "$CHANNEL" --environment "$CHANNEL" --platform android --message "$MESSAGE" --non-interactive

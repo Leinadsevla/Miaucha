@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { createHttpAlertsClient, createMockAlertsClient, type AlertsClient } from "@/features/alerts/alertsClient";
 import { createHttpChatClient, createMockChatClient, type ChatClient } from "@/features/chat/chatClient";
 import { createChatRealtime, createLocalChatRealtime, type ChatRealtime } from "@/features/chat/chatRealtime";
@@ -18,6 +19,14 @@ export function chooseAuthClient({ apiUrl, isDev }: { apiUrl: string | undefined
   throw new Error("EXPO_PUBLIC_API_URL não definida: um build de produção não pode usar o login falso");
 }
 
+/**
+ * No navegador a API precisa liberar a origem do app por CORS (`CORS_ORIGINS` na API). A de produção
+ * pode não liberar o `localhost`; por isso a web aceita um endereço próprio, sem mexer no do aparelho.
+ */
+export function chooseApiUrl({ os, apiUrl, webApiUrl }: { os: string; apiUrl: string | undefined; webApiUrl: string | undefined }): string | undefined {
+  return os === "web" && webApiUrl?.trim() ? webApiUrl.trim() : apiUrl;
+}
+
 export type AppClients = {
   auth: AuthClient;
   pets: PetsClient;
@@ -34,7 +43,11 @@ export type AppClients = {
  */
 export function createClients(): AppClients {
   // Acesso estático: o Expo só embute `EXPO_PUBLIC_*` escrito assim, com ponto.
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+  const apiUrl = chooseApiUrl({
+    os: Platform.OS,
+    apiUrl: process.env.EXPO_PUBLIC_API_URL,
+    webApiUrl: process.env.EXPO_PUBLIC_WEB_API_URL,
+  });
   if (chooseAuthClient({ apiUrl, isDev: __DEV__ }) === "mock") {
     const pets = createMockPetsClient();
     const occurrences = createMockOccurrencesClient();

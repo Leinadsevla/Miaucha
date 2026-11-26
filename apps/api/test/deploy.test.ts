@@ -66,6 +66,38 @@ describe("trust proxy (rate limit atrás do proxy do Render)", () => {
   });
 });
 
+describe("CORS (app web no navegador)", () => {
+  const WEB = "http://localhost:8081";
+
+  it("com CORS_ORIGINS, a origem listada pode chamar a API e as outras não", async () => {
+    const ctx = await createTestApp({ corsOrigins: [WEB] });
+    try {
+      const preflight = await ctx.http
+        .options("/auth/login")
+        .set("Origin", WEB)
+        .set("Access-Control-Request-Method", "POST")
+        .set("Access-Control-Request-Headers", "content-type,authorization");
+      expect(preflight.status).toBe(204);
+      expect(preflight.headers["access-control-allow-origin"]).toBe(WEB);
+
+      const other = await ctx.http.get("/health").set("Origin", "https://outro-site.example");
+      expect(other.headers["access-control-allow-origin"]).toBeUndefined();
+    } finally {
+      await closeTestApp(ctx);
+    }
+  });
+
+  it("sem CORS_ORIGINS (padrão, produção de hoje), nenhuma origem recebe os cabeçalhos", async () => {
+    const ctx = await createTestApp();
+    try {
+      const res = await ctx.http.get("/health").set("Origin", WEB);
+      expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+    } finally {
+      await closeTestApp(ctx);
+    }
+  });
+});
+
 describe("e-mail: Resend quando configurado", () => {
   it("com RESEND_API_KEY usa o Resend; sem ela, o log de desenvolvimento", async () => {
     const withResend = await Test.createTestingModule({
