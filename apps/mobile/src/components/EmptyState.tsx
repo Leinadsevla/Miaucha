@@ -15,8 +15,8 @@ type Props = {
 export function EmptyState({ icon, title, message, actionLabel, onAction }: Props) {
   return (
     <View className="items-center rounded-3xl border border-border bg-card px-6 py-8" style={elevation.card}>
-      <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-primary-soft">{icon}</View>
-      <Text accessibilityRole="header" className="text-center font-nunito-black text-base text-foreground">
+      <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-brand-soft">{icon}</View>
+      <Text accessibilityRole="header" className="text-center font-ui-extrabold text-base text-foreground">
         {title}
       </Text>
       <Text className="mt-1.5 text-center font-sans text-sm leading-5 text-muted-foreground">{message}</Text>

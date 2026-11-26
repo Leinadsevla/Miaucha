@@ -23,8 +23,8 @@ export function LocationProblem({ result, purpose, onRetry, onOpenSettings }: Pr
 
   return (
     <View className="items-center gap-3 rounded-3xl border border-border bg-card p-5" style={elevation.card}>
-      <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft">
-        <MapPinOff size={22} color={colors.primaryDeep} />
+      <View className="h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft">
+        <MapPinOff size={22} color={colors.brand} />
       </View>
       <Text className="text-center font-sans text-sm leading-5 text-foreground">{message}</Text>
       {/* O navegador não diz quando a localização foi bloqueada: a dica fica sempre visível. */}
@@ -36,7 +36,7 @@ export function LocationProblem({ result, purpose, onRetry, onOpenSettings }: Pr
           <Text className="text-center font-sans text-xs text-muted-foreground">
             O acesso foi bloqueado. Libere a localização para o Miaucha nas configurações do aparelho.
           </Text>
-          {onOpenSettings ? <PrimaryButton title="Abrir configurações" variant="primary" onPress={onOpenSettings} /> : null}
+          {onOpenSettings ? <PrimaryButton title="Abrir configurações" variant="soft" onPress={onOpenSettings} /> : null}
         </>
       ) : null}
       <PrimaryButton title="Tentar de novo" variant="outline" onPress={onRetry} />

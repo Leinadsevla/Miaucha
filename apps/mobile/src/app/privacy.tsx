@@ -20,7 +20,7 @@ export default function Privacy() {
       <ScrollView className="flex-1 bg-background" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24, gap: 12 }}>
         {SECTIONS.map(([title, body]) => (
           <Card key={title}>
-            <Text accessibilityRole="header" className="mb-1 font-nunito-black text-base text-foreground">
+            <Text accessibilityRole="header" className="mb-1 font-ui-extrabold text-base text-foreground">
               {title}
             </Text>
             <Text className="font-sans text-sm leading-5 text-muted-foreground">{body}</Text>

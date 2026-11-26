@@ -2,14 +2,13 @@ import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 import { colors, withAlpha } from "@miaucha/shared";
 
-type Tone = "muted" | "white" | "overlay" | "accent" | "ink";
+type Tone = "muted" | "white" | "overlay" | "brand";
 
 const TONES: Record<Tone, { background: string; pressed: string }> = {
   muted: { background: colors.muted, pressed: colors.border },
   white: { background: colors.white, pressed: colors.muted },
   overlay: { background: withAlpha(colors.foreground, 0.35), pressed: withAlpha(colors.foreground, 0.5) },
-  accent: { background: colors.accent, pressed: colors.accentDeep },
-  ink: { background: colors.foreground, pressed: colors.inkDeep },
+  brand: { background: colors.brand, pressed: colors.brandDeep },
 };
 
 type Props = {

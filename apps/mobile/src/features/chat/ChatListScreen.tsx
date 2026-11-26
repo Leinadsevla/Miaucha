@@ -86,13 +86,13 @@ export function ChatListScreen({ client, realtime, onOpen, refreshSignal, now }:
 
       {state.status === "loading" ? (
         <View className="gap-3 p-5">
-          <Text className="font-nunito-semibold text-sm text-muted-foreground">Carregando conversas...</Text>
+          <Text className="font-ui-semibold text-sm text-muted-foreground">Carregando conversas...</Text>
           <SkeletonList count={4} />
         </View>
       ) : state.status === "error" ? (
         <View className="p-5">
           <EmptyState
-            icon={<CloudOff size={28} color={colors.primaryDeep} />}
+            icon={<CloudOff size={28} color={colors.brand} />}
             title="Não deu para carregar"
             message={state.message}
             actionLabel="Tentar de novo"
@@ -104,10 +104,10 @@ export function ChatListScreen({ client, realtime, onOpen, refreshSignal, now }:
           data={state.conversations}
           keyExtractor={(c) => c.id}
           contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, gap: 12, paddingBottom: 96 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.brand} colors={[colors.brand]} />}
           ListEmptyComponent={
             <EmptyState
-              icon={<MessageCircle size={28} color={colors.primaryDeep} />}
+              icon={<MessageCircle size={28} color={colors.brand} />}
               title="Nenhuma conversa ainda"
               message={'Abra uma ocorrência e toque em "Conversar" para falar com quem registrou.'}
             />
@@ -130,21 +130,21 @@ function ConversationRow({ conversation: c, now, onPress }: { conversation: Chat
       className="flex-row items-center gap-3 rounded-3xl border border-border bg-card p-3.5 active:opacity-80"
       style={elevation.card}
     >
-      <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-primary-soft">
+      <View className="h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-brand-soft">
         {c.occurrence.photoUrl ? (
           <Image source={{ uri: c.occurrence.photoUrl }} contentFit="cover" style={{ width: 56, height: 56 }} accessibilityLabel={`Foto de ${title}`} />
         ) : (
-          <SpeciesIcon species={c.occurrence.species} size={24} color={colors.primaryDeep} />
+          <SpeciesIcon species={c.occurrence.species} size={24} color={colors.brand} />
         )}
       </View>
       <View className="flex-1 gap-0.5">
         <View className="flex-row items-center justify-between gap-2">
-          <Text numberOfLines={1} className="flex-1 font-nunito-black text-base text-foreground">
+          <Text numberOfLines={1} className="flex-1 font-ui-extrabold text-base text-foreground">
             {c.otherPseudonym}
           </Text>
           {time ? <Text className="font-sans text-xs text-muted-foreground">{time}</Text> : null}
         </View>
-        <Text numberOfLines={1} className="font-nunito-bold text-xs text-accent">
+        <Text numberOfLines={1} className="font-ui-bold text-xs text-brand">
           Sobre: {title}
         </Text>
         <View className="flex-row items-center justify-between gap-2">
@@ -152,8 +152,8 @@ function ConversationRow({ conversation: c, now, onPress }: { conversation: Chat
             {lastMessagePreview(c.lastMessage)}
           </Text>
           {c.unreadCount > 0 ? (
-            <View accessibilityLabel={unreadLabel(c.unreadCount)} className="min-w-5 items-center rounded-full bg-accent px-1.5 py-0.5">
-              <Text className="font-nunito-bold text-xs text-white">{c.unreadCount}</Text>
+            <View accessibilityLabel={unreadLabel(c.unreadCount)} className="min-w-5 items-center rounded-full bg-brand px-1.5 py-0.5">
+              <Text className="font-ui-bold text-xs text-white">{c.unreadCount}</Text>
             </View>
           ) : null}
         </View>

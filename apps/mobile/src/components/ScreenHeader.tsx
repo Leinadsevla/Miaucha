@@ -14,7 +14,7 @@ export function ScreenHeader({ title, subtitle, onBack, right }: { title: string
       <View className="flex-row items-center gap-3" style={centered(READING_MAX_WIDTH)}>
       <IconButton label="Voltar" icon={<ChevronLeft size={22} color={colors.foreground} />} onPress={onBack} />
       <View className="flex-1">
-        <Text accessibilityRole="header" numberOfLines={1} className="font-nunito-black text-lg text-foreground">
+        <Text accessibilityRole="header" numberOfLines={1} className="font-ui-extrabold text-lg text-foreground">
           {title}
         </Text>
         {subtitle ? (

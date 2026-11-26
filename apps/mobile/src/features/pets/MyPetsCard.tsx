@@ -16,7 +16,7 @@ export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
   return (
     <Card>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text accessibilityRole="header" className="font-nunito-black text-base text-foreground">
+        <Text accessibilityRole="header" className="font-ui-extrabold text-base text-foreground">
           Meus Pets
         </Text>
         <Pressable
@@ -25,13 +25,13 @@ export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
           onPress={onAdd}
           style={({ pressed }) => ({ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 12, opacity: pressed ? 0.6 : 1 })}
         >
-          <Plus size={16} color={colors.accent} strokeWidth={2.6} />
-          <Text className="font-nunito-bold text-sm text-accent">Adicionar</Text>
+          <Plus size={16} color={colors.brand} strokeWidth={2.6} />
+          <Text className="font-ui-bold text-sm text-brand">Adicionar</Text>
         </Pressable>
       </View>
 
       {error ? (
-        <Text className="font-nunito-semibold text-sm text-lost">{error}</Text>
+        <Text className="font-ui-semibold text-sm text-lost">{error}</Text>
       ) : pets === null ? (
         <Text className="font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : pets.length === 0 ? (
@@ -59,7 +59,7 @@ export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
                 </View>
               )}
               <View>
-                <Text className="font-nunito-bold text-sm text-foreground">{pet.name}</Text>
+                <Text className="font-ui-bold text-sm text-foreground">{pet.name}</Text>
                 {pet.breed ? <Text className="font-sans text-xs text-muted-foreground">{pet.breed}</Text> : null}
               </View>
             </Pressable>

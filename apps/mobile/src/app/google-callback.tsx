@@ -16,8 +16,8 @@ export default function GoogleCallback() {
 
   return (
     <View className="flex-1 items-center justify-center gap-3 bg-background p-6">
-      <ActivityIndicator color={colors.primaryDeep} />
-      <Text className="text-center font-nunito-semibold text-base text-foreground">Concluindo o login com Google...</Text>
+      <ActivityIndicator color={colors.brand} />
+      <Text className="text-center font-ui-semibold text-base text-foreground">Concluindo o login com Google...</Text>
       <Text className="text-center font-sans text-sm text-muted-foreground">Esta janela fecha sozinha.</Text>
     </View>
   );

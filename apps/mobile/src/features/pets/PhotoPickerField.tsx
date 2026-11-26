@@ -66,15 +66,15 @@ export function PhotoPickerField({ photos, onChange, onPickPhotos, max, existing
             accessibilityRole="button"
             accessibilityLabel="Adicionar foto"
             onPress={addPhotos}
-            className="h-[88px] w-[88px] items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-primary bg-primary-soft active:opacity-80"
+            className="h-[88px] w-[88px] items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-brand bg-brand-soft active:opacity-80"
           >
-            <Camera size={24} color={colors.primaryDeep} />
-            <Text className="font-nunito-bold text-xs text-foreground">Adicionar</Text>
+            <Camera size={24} color={colors.brand} />
+            <Text className="font-ui-bold text-xs text-foreground">Adicionar</Text>
           </Pressable>
         ) : null}
       </View>
       <Text className="mt-2 font-sans text-xs text-muted-foreground">JPG, PNG ou WebP, até 10 MB, no máximo {max} fotos</Text>
-      {photoError ? <Text className="mt-1 font-nunito-semibold text-xs text-lost">{photoError}</Text> : null}
+      {photoError ? <Text className="mt-1 font-ui-semibold text-xs text-lost">{photoError}</Text> : null}
     </View>
   );
 }

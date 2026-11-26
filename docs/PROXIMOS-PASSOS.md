@@ -9,7 +9,7 @@ Sprint 1 (Fundação), parte do app pronta:
 | Item da S1 | Situação |
 | --- | --- |
 | Monorepo (`apps/mobile`, `apps/api`, `packages/shared`) | Pronto |
-| Design system (tokens, Nunito, componentes base) | Pronto |
+| Design system (tokens, Plus Jakarta Sans, componentes base) | Pronto |
 | Telas de splash, login/cadastro, código de e-mail, consentimento, política | Prontas, com login **falso** (`createMockAuthClient`) |
 | Abas (Início, Mapa, Alertas, Chat, Perfil) | Todas prontas: Início (S2), Mapa (S3), Chat (S4), Alertas (S5) e Perfil |
 | Docker Compose (PostGIS + Redis) | Falta |

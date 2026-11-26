@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Bell, MessageCircle, Plus } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, elevation } from "@miaucha/shared";
+import { colors } from "@miaucha/shared";
 import { AppLogo, PrimaryButton } from "@/components";
 import { centered } from "@/lib/layout";
 
@@ -38,12 +37,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const last = index === ONBOARDING_SLIDES.length - 1;
 
   return (
-    <LinearGradient
-      colors={[colors.primary, colors.primaryDeep]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}
-    >
+    <View className="flex-1 bg-white" style={{ paddingHorizontal: 24, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }}>
       <View style={[centered(520), { flex: 1 }]}>
       <View className="flex-row justify-end">
         <Pressable
@@ -52,33 +46,33 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
           onPress={onDone}
           style={({ pressed }) => ({ minHeight: 44, minWidth: 64, alignItems: "center", justifyContent: "center", borderRadius: 22, opacity: pressed ? 0.6 : 1 })}
         >
-          <Text className="font-nunito-bold text-base text-white">Pular</Text>
+          <Text className="font-ui-semibold text-base text-muted-foreground">Pular</Text>
         </Pressable>
       </View>
 
       <View className="flex-1 items-center justify-center gap-6">
-        <View className="h-32 w-32 items-center justify-center rounded-[40px] bg-white" style={elevation.floating}>
-          {slide.Icon ? <slide.Icon size={56} color={colors.primaryDeep} /> : <AppLogo size={88} />}
+        <View className="h-32 w-32 items-center justify-center rounded-[40px] bg-brand-soft">
+          {slide.Icon ? <slide.Icon size={56} color={colors.brand} /> : <AppLogo size={88} />}
         </View>
-        <Text accessibilityRole="header" className="text-center font-nunito-black text-[28px] leading-9 text-white">
+        <Text accessibilityRole="header" className="text-center font-ui-extrabold text-[28px] leading-9 tracking-tight text-foreground">
           {slide.title}
         </Text>
-        <Text className="text-center font-nunito-semibold text-base leading-6 text-white">{slide.body}</Text>
+        <Text className="text-center font-sans text-base leading-6 text-muted-foreground">{slide.body}</Text>
       </View>
 
       <View className="gap-4">
         <View className="flex-row justify-center gap-2" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {ONBOARDING_SLIDES.map((s, i) => (
-            <View key={s.title} className="h-2 rounded-full bg-white" style={{ width: i === index ? 24 : 8, opacity: i === index ? 1 : 0.5 }} />
+            <View key={s.title} className="h-2 rounded-full" style={{ width: i === index ? 24 : 8, backgroundColor: i === index ? colors.brand : colors.border }} />
           ))}
         </View>
-        <Text className="text-center font-sans text-xs text-white">
+        <Text className="text-center font-sans text-xs text-muted-foreground">
           Passo {index + 1} de {ONBOARDING_SLIDES.length}
         </Text>
         {last ? (
-          <PrimaryButton title="Começar" variant="outline" onPress={onDone} />
+          <PrimaryButton title="Começar" onPress={onDone} />
         ) : (
-          <PrimaryButton title="Próximo" variant="outline" onPress={() => setIndex(index + 1)} />
+          <PrimaryButton title="Próximo" arrow onPress={() => setIndex(index + 1)} />
         )}
         {index > 0 ? (
           <Pressable
@@ -87,11 +81,11 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
             onPress={() => setIndex(index - 1)}
             style={({ pressed }) => ({ minHeight: 44, alignSelf: "center", paddingHorizontal: 16, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}
           >
-            <Text className="font-nunito-bold text-sm text-white">Voltar</Text>
+            <Text className="font-ui-semibold text-sm text-muted-foreground">Voltar</Text>
           </Pressable>
         ) : null}
       </View>
       </View>
-    </LinearGradient>
+    </View>
   );
 }

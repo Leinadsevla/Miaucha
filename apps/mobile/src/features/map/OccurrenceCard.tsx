@@ -32,7 +32,7 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
 
       <View className="flex-1 gap-1">
         <View className="flex-row items-start gap-2 pr-9">
-          <Text numberOfLines={1} className="flex-shrink font-nunito-black text-base text-foreground">
+          <Text numberOfLines={1} className="flex-shrink font-ui-extrabold text-base text-foreground">
             {title}
           </Text>
           <StatusBadge type={o.type} />
@@ -41,11 +41,11 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
           {subtitle}
         </Text>
         <View className="flex-row items-center gap-1">
-          <Clock size={13} color={colors.accent} />
+          <Clock size={13} color={colors.brand} />
           <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(o.createdAt), now)}</Text>
         </View>
         <View className="flex-row items-center gap-1">
-          <MapPin size={13} color={colors.primaryDeep} />
+          <MapPin size={13} color={colors.brand} />
           <Text testID="occurrence-card-address" numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
             {o.approxAddress ?? MISSING_REGION}
           </Text>
@@ -58,7 +58,7 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
             onPress={() => onOpen(o.id)}
             style={({ pressed }) => ({ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: pressed ? colors.inkDeep : colors.foreground })}
           >
-            <Text className="font-nunito-black text-sm text-white">Ver detalhes</Text>
+            <Text className="font-ui-extrabold text-sm text-white">Ver detalhes</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -77,7 +77,7 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
             })}
           >
             <Navigation size={14} color={colors.foreground} />
-            <Text className="font-nunito-bold text-sm text-foreground">Como chegar</Text>
+            <Text className="font-ui-bold text-sm text-foreground">Como chegar</Text>
           </Pressable>
         </View>
       </View>

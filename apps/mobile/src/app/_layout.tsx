@@ -7,11 +7,12 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   useFonts,
-  Nunito_400Regular,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_900Black,
-} from "@expo-google-fonts/nunito";
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from "@expo-google-fonts/plus-jakarta-sans";
 import { AlertsProvider } from "@/features/alerts";
 import { createAlertsRuntimeDeps } from "@/features/alerts/runtime";
 import { AuthProvider, DemoBadge, DemoInfoProvider, createClients, redirectTarget, routeFor, useAuth, withDemoGoogle, type AppClients } from "@/features/auth";
@@ -25,7 +26,7 @@ import { ProfileClientProvider } from "@/features/profile";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_900Black });
+  const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
   // API real quando EXPO_PUBLIC_API_URL existe (ver apps/mobile/.env.example); senão, clientes falsos em dev.
   // `generation` muda quando o botão do Google (sem credenciais, em dev) entra ou sai da demonstração:
   // o app inteiro remonta com os clientes novos e restaura a sessão deles.
@@ -51,8 +52,8 @@ export default function RootLayout() {
                 <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
                   <RouteStatusBar />
                   <AuthGate />
-                  <Stack screenOptions={{ headerShown: false }} />
                   <DemoBadge />
+                  <Stack screenOptions={{ headerShown: false }} />
                 </SessionChatProvider>
               </AlertsLayer>
             </ProfileClientProvider>
@@ -64,7 +65,7 @@ export default function RootLayout() {
   );
 }
 
-/** Ícones da barra de status claros sobre laranja ou foto, escuros sobre telas brancas. */
+/** Ícones da barra de status claros sobre foto, escuros sobre telas brancas. */
 function RouteStatusBar() {
   return <StatusBar style={statusBarStyleFor(usePathname())} />;
 }

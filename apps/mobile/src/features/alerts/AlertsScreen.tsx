@@ -116,7 +116,7 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
             })}
           >
             <SlidersHorizontal size={16} color={colors.foreground} />
-            <Text className="font-nunito-bold text-sm text-foreground">Preferências</Text>
+            <Text className="font-ui-bold text-sm text-foreground">Preferências</Text>
           </Pressable>
         }
       >
@@ -125,7 +125,7 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
 
       <ScrollView
         contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: 96, gap: 12 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.primary} colors={[colors.primary]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} tintColor={colors.brand} colors={[colors.brand]} />}
       >
         {pushNotice ? (
           <View className="flex-row items-center gap-2 px-1">
@@ -136,12 +136,12 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
 
         {state.status === "loading" ? (
           <View className="gap-3">
-            <Text className="font-nunito-semibold text-sm text-muted-foreground">Carregando alertas...</Text>
+            <Text className="font-ui-semibold text-sm text-muted-foreground">Carregando alertas...</Text>
             <SkeletonList count={3} />
           </View>
         ) : state.status === "error" ? (
           <EmptyState
-            icon={<CloudOff size={28} color={colors.primaryDeep} />}
+            icon={<CloudOff size={28} color={colors.brand} />}
             title="Não deu para carregar"
             message={state.message}
             actionLabel="Tentar de novo"
@@ -185,7 +185,7 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
       </View>
       <View className="flex-1">
         <View className="flex-row items-center justify-between gap-2">
-          <Text numberOfLines={1} className="flex-1 font-nunito-black text-base text-foreground">
+          <Text numberOfLines={1} className="flex-1 font-ui-extrabold text-base text-foreground">
             {title}
           </Text>
           <StatusBadge type={o.type} />
@@ -195,16 +195,16 @@ function AlertCard({ alert: a, now = new Date(), onPress }: { alert: AlertItem; 
         </Text>
         <View className="mt-2 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
-            <MapPin size={13} color={colors.primaryDeep} />
-            <Text className="font-nunito-bold text-xs text-foreground">{distance}</Text>
+            <MapPin size={13} color={colors.brand} />
+            <Text className="font-ui-bold text-xs text-foreground">{distance}</Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Clock size={13} color={colors.mutedForeground} />
             <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(a.createdAt), now)}</Text>
           </View>
           {a.seenAt ? null : (
-            <View className="rounded-full bg-accent px-2 py-0.5">
-              <Text className="font-nunito-black text-xs text-white">Novo</Text>
+            <View className="rounded-full bg-brand px-2 py-0.5">
+              <Text className="font-ui-extrabold text-xs text-white">Novo</Text>
             </View>
           )}
         </View>

@@ -32,11 +32,11 @@ export function VerifyEmailForm({ email, onSubmit, onResend, loading, serverErro
     <View className="gap-4">
       <View className="gap-1 rounded-2xl bg-accent-soft p-4">
         <Text className="font-sans text-sm leading-5 text-foreground">
-          Enviamos um código para <Text className="font-nunito-bold">{email}</Text>. Ele vale por 10 minutos.
+          Enviamos um código para <Text className="font-ui-bold">{email}</Text>. Ele vale por 10 minutos.
         </Text>
         <Text className="font-sans text-xs leading-4 text-muted-foreground">Não chegou? Confira a caixa de spam e as abas Promoções ou Atualizações.</Text>
         {resent ? (
-          <Text accessibilityLiveRegion="polite" className="mt-1 font-nunito-bold text-xs text-accent">
+          <Text accessibilityLiveRegion="polite" className="mt-1 font-ui-bold text-xs text-brand">
             Enviamos um novo código. Use sempre o mais recente.
           </Text>
         ) : null}
@@ -56,7 +56,7 @@ export function VerifyEmailForm({ email, onSubmit, onResend, loading, serverErro
       <PrimaryButton title="Confirmar" onPress={() => onSubmit(code)} disabled={!valid} loading={loading} />
       <TextLink
         label={cooldown.left > 0 ? `Reenviar código em ${cooldown.left} s` : "Reenviar código"}
-        tone="primary"
+        tone="brand"
         onPress={() => void resend()}
         disabled={cooldown.left > 0}
       />

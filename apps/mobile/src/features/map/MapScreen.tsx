@@ -124,7 +124,7 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
   if (!start || !region) {
     return (
       <View className="flex-1 items-center justify-center gap-3 bg-background">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.brand} />
         <Text className="font-sans text-sm text-muted-foreground">Procurando sua localização...</Text>
       </View>
     );
@@ -162,8 +162,8 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
       <View pointerEvents="box-none" className="absolute left-0 right-0 top-0 gap-2 px-4" style={{ paddingTop: insets.top + 12, maxWidth: wide ? 560 : undefined }}>
         <View pointerEvents="box-none" className="flex-row items-center gap-2">
           <View className="flex-1 flex-row items-center gap-2 rounded-2xl bg-white px-4 py-3" style={FLOATING}>
-            {data.loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-            <Text className="flex-1 font-nunito-bold text-sm text-foreground">
+            {data.loading ? <ActivityIndicator size="small" color={colors.brand} /> : null}
+            <Text className="flex-1 font-ui-bold text-sm text-foreground">
               {data.loading && data.occurrences.length === 0 ? "Carregando ocorrências..." : countLabel(data.occurrences.length)}
             </Text>
           </View>
@@ -176,8 +176,8 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
           >
             <SlidersHorizontal size={18} color={colors.foreground} />
             {activeFilters > 0 ? (
-              <View className="absolute -right-1.5 -top-1.5 h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-accent">
-                <Text className="font-nunito-black text-xs text-white">{activeFilters}</Text>
+              <View className="absolute -right-1.5 -top-1.5 h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-brand">
+                <Text className="font-ui-extrabold text-xs text-white">{activeFilters}</Text>
               </View>
             ) : null}
           </Pressable>
@@ -186,20 +186,20 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
         {data.offline ? (
           <View className="flex-row items-center gap-2 rounded-2xl bg-foreground px-4 py-3" style={FLOATING}>
             <CloudOff size={16} color={colors.white} />
-            <Text className="flex-1 font-nunito-semibold text-sm text-white">{OFFLINE_NOTICE}</Text>
+            <Text className="flex-1 font-ui-semibold text-sm text-white">{OFFLINE_NOTICE}</Text>
           </View>
         ) : null}
 
         {data.error ? (
           <View className="flex-row items-center gap-2 rounded-2xl bg-white px-4 py-3" style={FLOATING}>
-            <Text className="flex-1 font-nunito-semibold text-sm text-lost">{data.error}</Text>
+            <Text className="flex-1 font-ui-semibold text-sm text-lost">{data.error}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Tentar de novo"
               onPress={() => void loader.refresh()}
               style={({ pressed }) => ({ minHeight: 44, justifyContent: "center", paddingHorizontal: 8, opacity: pressed ? 0.6 : 1 })}
             >
-              <Text className="font-nunito-bold text-sm text-accent">Tentar de novo</Text>
+              <Text className="font-ui-bold text-sm text-brand">Tentar de novo</Text>
             </Pressable>
           </View>
         ) : null}
@@ -233,7 +233,7 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
             className="h-12 w-12 items-center justify-center self-end rounded-2xl bg-white active:bg-muted"
             style={FLOATING}
           >
-            <LocateFixed size={20} color={colors.accent} />
+            <LocateFixed size={20} color={colors.brand} />
           </Pressable>
         ) : null}
         {selected ? (
@@ -257,7 +257,7 @@ function Legend() {
         return (
           <View key={type} className="flex-row items-center gap-2">
             <View className="h-3.5 w-3.5 rounded-full border-2 border-white" style={{ backgroundColor: color }} />
-            <Text className="font-nunito-bold text-xs text-foreground">{label}</Text>
+            <Text className="font-ui-bold text-xs text-foreground">{label}</Text>
           </View>
         );
       })}
@@ -287,7 +287,7 @@ function LocationNotice({
   return (
     <View className="gap-3 rounded-2xl bg-white p-4" style={FLOATING}>
       <View className="flex-row items-start gap-2">
-        <MapPinOff size={18} color={colors.primaryDeep} />
+        <MapPinOff size={18} color={colors.brand} />
         <Text className="flex-1 font-sans text-sm leading-5 text-foreground">{message}</Text>
         <Pressable
           accessibilityRole="button"
@@ -306,7 +306,7 @@ function LocationNotice({
         onPress={blocked ? onOpenSettings : onAllow}
         style={({ pressed }) => ({ minHeight: 44, alignSelf: "flex-start", justifyContent: "center", borderRadius: 14, paddingHorizontal: 16, backgroundColor: pressed ? colors.inkDeep : colors.foreground })}
       >
-        <Text className="font-nunito-bold text-sm text-white">
+        <Text className="font-ui-bold text-sm text-white">
           {blocked ? "Abrir configurações" : result.status === "denied" ? "Permitir localização" : "Tentar de novo"}
         </Text>
       </Pressable>

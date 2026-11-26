@@ -203,7 +203,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
             <PrimaryButton title="Voltar" variant="outline" onPress={onBack} />
           </>
         ) : (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.brand} />
         )}
       </View>
     );
@@ -217,11 +217,11 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
       <View className="border-b border-border bg-white px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
         <View className="flex-row items-center gap-3" style={centered(READING_MAX_WIDTH)}>
         <IconButton label="Voltar" icon={<ChevronLeft size={22} color={colors.foreground} />} onPress={onBack} />
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-primary-soft">
-          <UserRound size={20} color={colors.primaryDeep} />
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-brand-soft">
+          <UserRound size={20} color={colors.brand} />
         </View>
         <View className="flex-1">
-          <Text accessibilityRole="header" numberOfLines={1} className="font-nunito-black text-base text-foreground">
+          <Text accessibilityRole="header" numberOfLines={1} className="font-ui-extrabold text-base text-foreground">
             {c.otherPseudonym}
           </Text>
           <Text className="font-sans text-xs text-muted-foreground">{c.iAmAuthor ? "Quer ajudar no seu caso" : "Registrou esta ocorrência"}</Text>
@@ -252,18 +252,18 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
           accessibilityRole="button"
           accessibilityLabel={`Ver a ocorrência de ${title}`}
           onPress={() => onOpenOccurrence(c.occurrence.id)}
-          className="flex-row items-center gap-3 rounded-2xl bg-primary-soft p-3 active:opacity-80"
+          className="flex-row items-center gap-3 rounded-2xl bg-brand-soft p-3 active:opacity-80"
           style={{ minHeight: 48 }}
         >
           <View className="flex-1">
-            <Text className="font-nunito-bold text-sm text-foreground">Sobre o pet: {title}</Text>
+            <Text className="font-ui-bold text-sm text-foreground">Sobre o pet: {title}</Text>
             {c.occurrence.status === "resolved" ? <Text className="font-sans text-xs text-muted-foreground">Caso resolvido</Text> : null}
           </View>
-          <ChevronRight size={18} color={colors.primaryDeep} />
+          <ChevronRight size={18} color={colors.brand} />
         </Pressable>
 
         <ContactBanner conversation={c} busy={busy} onAccept={() => void update(() => client.setContactConsent(conversationId, true))} />
-        {notice ? <Text className="text-center font-nunito-semibold text-sm text-foreground">{notice}</Text> : null}
+        {notice ? <Text className="text-center font-ui-semibold text-sm text-foreground">{notice}</Text> : null}
       </View>
 
       <FlatList
@@ -278,16 +278,16 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
           nextCursor ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Carregar mensagens anteriores" onPress={() => void loadOlder()} className="items-center justify-center" style={{ minHeight: 44 }}>
               {loadingOlder ? (
-                <ActivityIndicator color={colors.primary} />
+                <ActivityIndicator color={colors.brand} />
               ) : (
-                <Text className="font-nunito-bold text-sm text-accent">Carregar mensagens anteriores</Text>
+                <Text className="font-ui-bold text-sm text-brand">Carregar mensagens anteriores</Text>
               )}
             </Pressable>
           ) : undefined
         }
       />
 
-      {error ? <Text className="px-4 pb-1 text-center font-nunito-semibold text-xs text-lost">{error}</Text> : null}
+      {error ? <Text className="px-4 pb-1 text-center font-ui-semibold text-xs text-lost">{error}</Text> : null}
 
       {c.canSend ? (
         <View className="border-t border-border bg-white px-3 pt-3" style={[{ paddingBottom: insets.bottom + 12 }, elevation.raised]}>
@@ -312,7 +312,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
             className="max-h-28 flex-1 rounded-2xl bg-muted px-4 py-3 font-sans text-base text-foreground"
             style={{ minHeight: 44 }}
           />
-          <IconButton label="Enviar" tone="ink" icon={<Send size={18} color={colors.white} />} onPress={sendText} disabled={sending || !text.trim()} />
+          <IconButton label="Enviar" tone="brand" icon={<Send size={18} color={colors.white} />} onPress={sendText} disabled={sending || !text.trim()} />
           </View>
         </View>
       ) : (
@@ -331,10 +331,10 @@ function ContactBanner({ conversation: c, busy, onAccept }: { conversation: Chat
   if (c.contact.otherEmail) {
     return (
       <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-white p-3">
-        <Mail size={16} color={colors.primary} />
+        <Mail size={16} color={colors.brand} />
         <View className="flex-1">
           <Text className="font-sans text-xs text-muted-foreground">Contato de {c.otherPseudonym}</Text>
-          <Text selectable className="font-nunito-bold text-sm text-foreground">
+          <Text selectable className="font-ui-bold text-sm text-foreground">
             {c.contact.otherEmail}
           </Text>
         </View>

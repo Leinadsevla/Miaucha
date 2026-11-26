@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { elevation, validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
+import { Lock, Mail, User } from "lucide-react-native";
+import { colors, elevation, validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
 import { PrimaryButton, TextField, TextLink } from "@/components";
 import { cn } from "@/lib/cn";
 
@@ -51,7 +52,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
 
   return (
     <View className="gap-5">
-      <View accessibilityRole="tablist" className="flex-row rounded-2xl bg-muted p-1">
+      <View accessibilityRole="tablist" className="flex-row rounded-[14px] bg-muted p-1">
         {(["login", "register"] as const).map((t) => {
           const selected = tab === t;
           const label = t === "login" ? "Entrar" : "Cadastrar";
@@ -62,10 +63,10 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
               accessibilityLabel={label}
               accessibilityState={{ selected }}
               onPress={() => switchTab(t)}
-              className={cn("flex-1 items-center justify-center rounded-xl", selected && "bg-white")}
+              className={cn("flex-1 items-center justify-center rounded-[10px]", selected && "bg-white")}
               style={[{ minHeight: 44 }, selected ? elevation.card : null]}
             >
-              <Text className={cn("text-base", selected ? "font-nunito-black text-foreground" : "font-nunito-bold text-muted-foreground")}>
+              <Text className={cn("text-sm", selected ? "font-ui-bold text-foreground" : "font-ui-semibold text-muted-foreground")}>
                 {label}
               </Text>
             </Pressable>
@@ -73,7 +74,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
         })}
       </View>
 
-      <View className="gap-3">
+      <View className="gap-4">
         {tab === "register" ? (
           <TextField
             label="Nome completo"
@@ -81,6 +82,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
             value={name}
             onChangeText={setName}
             autoComplete="name"
+            icon={<User size={18} color={colors.mutedForeground} />}
             error={errors.name}
           />
         ) : null}
@@ -92,6 +94,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
+          icon={<Mail size={18} color={colors.mutedForeground} />}
           error={errors.email}
         />
         <TextField
@@ -103,6 +106,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
           autoComplete={tab === "login" ? "current-password" : "new-password"}
           returnKeyType={tab === "login" ? "go" : "next"}
           onSubmitEditing={tab === "login" ? submit : undefined}
+          icon={<Lock size={18} color={colors.mutedForeground} />}
           error={errors.password}
         />
         {tab === "register" ? (
@@ -115,17 +119,18 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
             autoComplete="new-password"
             returnKeyType="go"
             onSubmitEditing={submit}
+            icon={<Lock size={18} color={colors.mutedForeground} />}
             error={errors.confirmPassword}
           />
         ) : null}
         {tab === "login" && onForgotPassword ? (
-          <View className="-my-2 self-end">
-            <TextLink label="Esqueci minha senha" tone="primary" onPress={onForgotPassword} />
+          <View className="-my-3 self-end">
+            <TextLink label="Esqueci minha senha" tone="brand" onPress={onForgotPassword} />
           </View>
         ) : null}
 
         {serverError ? (
-          <Text accessibilityRole="alert" className="text-center font-nunito-semibold text-sm text-lost">
+          <Text accessibilityRole="alert" className="rounded-xl bg-lost-soft px-3 py-2.5 text-center font-ui-semibold text-sm text-foreground">
             {serverError}
           </Text>
         ) : null}
@@ -134,14 +139,15 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPas
           title={tab === "login" ? "Entrar" : "Criar conta"}
           onPress={submit}
           loading={loading}
-          className="mt-2"
+          arrow
+          className="mt-1"
         />
 
         {onGoogle ? (
           <>
             <View className="my-1 flex-row items-center gap-3">
               <View className="h-px flex-1 bg-border" />
-              <Text className="font-nunito-semibold text-xs text-muted-foreground">ou</Text>
+              <Text className="font-ui-semibold text-xs text-muted-foreground">ou</Text>
               <View className="h-px flex-1 bg-border" />
             </View>
 

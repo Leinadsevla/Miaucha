@@ -16,12 +16,12 @@ export function SideNav({ active, onNavigate }: { active: TabName; onNavigate: (
     >
       <View className="mb-8 flex-row items-center gap-3 px-2">
         <AppLogo size={40} />
-        <Text className="font-nunito-black text-2xl text-foreground">Miaucha</Text>
+        <Text className="font-ui-extrabold text-2xl text-foreground">Miaucha</Text>
       </View>
       <View className="gap-1">
         {TAB_ITEMS.map(({ name, label, Icon }) => {
           const selected = active === name;
-          const tint = selected ? colors.primaryDeep : colors.mutedForeground;
+          const tint = selected ? colors.brand : colors.mutedForeground;
           return (
             <Pressable
               key={name}
@@ -36,11 +36,11 @@ export function SideNav({ active, onNavigate }: { active: TabName; onNavigate: (
                 gap: 12,
                 paddingHorizontal: 14,
                 borderRadius: 14,
-                backgroundColor: selected ? colors.primarySoft : pressed || hovered ? colors.muted : "transparent",
+                backgroundColor: selected ? colors.brandSoft : pressed || hovered ? colors.muted : "transparent",
               })}
             >
               <Icon size={22} color={tint} strokeWidth={selected ? 2.4 : 2} />
-              <Text className={selected ? "font-nunito-black text-base text-foreground" : "font-nunito-bold text-base text-muted-foreground"}>{label}</Text>
+              <Text className={selected ? "font-ui-extrabold text-base text-foreground" : "font-ui-bold text-base text-muted-foreground"}>{label}</Text>
             </Pressable>
           );
         })}

@@ -1,10 +1,36 @@
-import { buttonColors, BUTTON_VARIANTS, colors, contrastRatio, elevation, occurrenceStyle, OCCURRENCE_TYPES, overlay, withAlpha } from "../theme";
+import { buttonColors, BUTTON_VARIANTS, colors, contrastRatio, elevation, fonts, occurrenceStyle, OCCURRENCE_TYPES, overlay, withAlpha } from "../theme";
 
 describe("tokens do design", () => {
-  it("usa as cores do protótipo", () => {
-    expect(colors.primary).toBe("#FF8A3D");
-    expect(colors.accent).toBe("#2D6CDF");
-    expect(colors.hope).toBe("#FFD447");
+  it("a cor da marca é um laranja queimado: texto branco sobre ela e ela como texto passam no AA (4,5:1)", () => {
+    expect(contrastRatio(colors.brand, colors.white)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.brand, colors.brandSoft)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.brandDeep, colors.white)).toBeGreaterThan(contrastRatio(colors.brand, colors.white));
+  });
+
+  it("não existe mais o laranja saturado de fundo nem degradê", () => {
+    for (const gone of ["primary", "primaryDeep", "primarySoft", "cta", "ctaDeep"]) expect(colors).not.toHaveProperty(gone);
+  });
+
+  it("fundos claros (app, creme, suave da marca) aceitam o texto do app e o texto secundário", () => {
+    for (const surface of [colors.background, colors.cream, colors.brandSoft, colors.card]) {
+      expect(contrastRatio(surface, colors.foreground)).toBeGreaterThan(12);
+      expect(contrastRatio(surface, colors.mutedForeground)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("texto de erro usa um vermelho mais fundo, legível sobre branco (o vermelho do tipo fica em 3,8:1)", () => {
+    expect(contrastRatio(colors.lostDeep, colors.white)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(colors.lostDeep, colors.lostSoft)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("fonte Plus Jakarta Sans em cinco pesos (não existe 900)", () => {
+    expect(fonts).toEqual({
+      regular: "PlusJakartaSans_400Regular",
+      medium: "PlusJakartaSans_500Medium",
+      semibold: "PlusJakartaSans_600SemiBold",
+      bold: "PlusJakartaSans_700Bold",
+      extrabold: "PlusJakartaSans_800ExtraBold",
+    });
   });
 });
 
@@ -44,34 +70,39 @@ describe("etiqueta do tipo em cor sólida", () => {
   });
 });
 
+describe("selo claro do tipo", () => {
+  it("cada tipo tem um fundo claro próprio, com texto escuro legível e o ponto na cor do tipo", () => {
+    for (const type of OCCURRENCE_TYPES) {
+      const { soft, color } = occurrenceStyle(type);
+      expect({ type, ok: contrastRatio(soft, colors.foreground) >= 7 }).toEqual({ type, ok: true });
+      expect(soft).not.toBe(color);
+    }
+    expect(new Set(OCCURRENCE_TYPES.map((t) => occurrenceStyle(t).soft)).size).toBe(3);
+  });
+});
+
 describe("botões (contraste AA)", () => {
-  it("o texto de cada variante tem contraste de pelo menos 4,5:1 com o fundo", () => {
+  it("as variantes são marca (padrão), suave e contorno", () => {
+    expect(BUTTON_VARIANTS).toEqual(["brand", "soft", "outline"]);
+  });
+
+  it("texto com contraste de pelo menos 4,5:1 no fundo normal, com o mouse em cima e pressionado", () => {
     for (const variant of BUTTON_VARIANTS) {
-      const { background, text } = buttonColors(variant);
-      expect({ variant, ok: contrastRatio(background, text) >= 4.5 }).toEqual({ variant, ok: true });
+      const { background, hover, pressed, text } = buttonColors(variant);
+      for (const surface of [background, hover, pressed]) {
+        expect({ variant, surface, ok: contrastRatio(surface, text) >= 4.5 }).toEqual({ variant, surface, ok: true });
+      }
     }
   });
 
-  it("o laranja da marca leva texto escuro (branco nele fica em 2,3:1)", () => {
-    expect(buttonColors("primary")).toMatchObject({ background: colors.primary, pressed: colors.primaryDeep, text: colors.foreground });
-    expect(buttonColors("accent").text).toBe(colors.white);
+  it("o botão principal é a cor da marca com texto branco, sem degradê", () => {
+    expect(buttonColors("brand")).toEqual({ background: colors.brand, hover: colors.brandDeep, pressed: colors.brandDeep, text: colors.white });
   });
 
-  it("o botão principal é grafite (cor do texto do app) com texto branco, e é a primeira variante", () => {
-    expect(BUTTON_VARIANTS[0]).toBe("ink");
-    expect(buttonColors("ink")).toEqual({ background: colors.foreground, hover: colors.inkSoft, pressed: colors.inkDeep, text: colors.white });
-  });
-
-  it("toda variante tem um tom para o mouse em cima, diferente do normal", () => {
+  it("toda variante tem tons diferentes para mouse em cima e pressionado", () => {
     for (const variant of BUTTON_VARIANTS) {
-      const { background, hover } = buttonColors(variant);
+      const { background, hover, pressed } = buttonColors(variant);
       expect(hover).not.toBe(background);
-    }
-  });
-
-  it("o tom pressionado é diferente do normal", () => {
-    for (const variant of BUTTON_VARIANTS) {
-      const { background, pressed } = buttonColors(variant);
       expect(pressed).not.toBe(background);
     }
   });
@@ -79,13 +110,13 @@ describe("botões (contraste AA)", () => {
 
 describe("withAlpha", () => {
   it("junta a opacidade ao hex (#RRGGBBAA)", () => {
-    expect(withAlpha("#FF8A3D", 0)).toBe("#FF8A3D00");
-    expect(withAlpha("#FF8A3D", 1)).toBe("#FF8A3DFF");
+    expect(withAlpha("#C4450A", 0)).toBe("#C4450A00");
+    expect(withAlpha("#C4450A", 1)).toBe("#C4450AFF");
     expect(withAlpha("#2D6CDF", 0.12)).toBe("#2D6CDF1F");
   });
 
   it("recusa valor fora de 0..1 e hex que não seja #RRGGBB", () => {
-    expect(() => withAlpha("#FF8A3D", 1.5)).toThrow();
+    expect(() => withAlpha("#C4450A", 1.5)).toThrow();
     expect(() => withAlpha("#F80", 0.5)).toThrow();
   });
 });

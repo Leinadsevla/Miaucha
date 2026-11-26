@@ -9,7 +9,6 @@ export * from "./KeyboardScreen";
 export * from "./ScreenHeader";
 export * from "./AppLogo";
 export * from "./EmptyState";
-export * from "./GradientHeader";
 export * from "./IconButton";
 export * from "./Skeleton";
 export * from "./TextLink";

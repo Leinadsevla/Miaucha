@@ -24,7 +24,7 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
     >
       {TAB_ITEMS.map(({ name, label, Icon }) => {
         const selected = active === name;
-        const tint = selected ? colors.primaryDeep : colors.mutedForeground;
+        const tint = selected ? colors.brand : colors.mutedForeground;
         return (
           <Pressable
             key={name}
@@ -38,11 +38,11 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
             <View
               testID={selected ? `tab-indicator-${name}` : undefined}
               className="h-8 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: selected ? colors.primarySoft : "transparent" }}
+              style={{ backgroundColor: selected ? colors.brandSoft : "transparent" }}
             >
               <Icon size={22} color={tint} strokeWidth={selected ? 2.4 : 2} />
             </View>
-            <Text className={selected ? "font-nunito-bold" : "font-nunito-semibold"} style={{ color: tint, fontSize: 12 }}>
+            <Text className={selected ? "font-ui-bold" : "font-ui-semibold"} style={{ color: tint, fontSize: 12 }}>
               {label}
             </Text>
           </Pressable>

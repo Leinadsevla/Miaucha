@@ -15,7 +15,7 @@ export function MessageBubble({ message: m, now, onOpenLocation }: Props) {
       <View
         className={cn(
           "max-w-[78%] overflow-hidden rounded-2xl",
-          m.mine ? "rounded-tr-md bg-accent" : "rounded-tl-md border border-border bg-white",
+          m.mine ? "rounded-tr-md bg-brand" : "rounded-tl-md border border-border bg-white",
         )}
       >
         {m.kind === "photo" ? (
@@ -32,11 +32,11 @@ export function MessageBubble({ message: m, now, onOpenLocation }: Props) {
         ) : m.kind === "location" && m.location ? (
           <View className="gap-2 p-3">
             <View className="flex-row items-center gap-2">
-              <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary-soft">
-                <MapPin size={16} color={colors.primaryDeep} />
+              <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand-soft">
+                <MapPin size={16} color={colors.brand} />
               </View>
               <View>
-                <Text className={cn("font-nunito-bold text-xs", m.mine ? "text-white" : "text-foreground")}>Localização aproximada</Text>
+                <Text className={cn("font-ui-bold text-xs", m.mine ? "text-white" : "text-foreground")}>Localização aproximada</Text>
                 <Text className={cn("font-sans text-xs", m.mine ? "text-white" : "text-muted-foreground")}>Num raio de ~150 m</Text>
               </View>
             </View>
@@ -47,7 +47,7 @@ export function MessageBubble({ message: m, now, onOpenLocation }: Props) {
               className="items-center justify-center rounded-xl bg-white active:opacity-80"
               style={{ minHeight: 44 }}
             >
-              <Text className="font-nunito-bold text-sm text-accent">Abrir no mapa</Text>
+              <Text className="font-ui-bold text-sm text-brand">Abrir no mapa</Text>
             </Pressable>
           </View>
         ) : (
@@ -58,7 +58,7 @@ export function MessageBubble({ message: m, now, onOpenLocation }: Props) {
           {m.mine ? (
             <View accessible accessibilityLabel={m.readAt ? "Lida" : "Enviada"} className="flex-row items-center gap-0.5">
               {m.readAt ? <CheckCheck size={14} color={colors.white} /> : <Check size={14} color={colors.white} />}
-              {m.readAt ? <Text className="font-nunito-bold text-xs text-white">Lida</Text> : null}
+              {m.readAt ? <Text className="font-ui-bold text-xs text-white">Lida</Text> : null}
             </View>
           ) : null}
         </View>

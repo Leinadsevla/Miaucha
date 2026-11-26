@@ -3,7 +3,7 @@ import { colors } from "@miaucha/shared";
 
 type Option<K extends string> = { key: K; label: string };
 
-/** Fileira de filtros em pílula (alvo de 44 px). Selecionado: fundo escuro e texto branco (contraste AA). */
+/** Fileira de filtros em pílula (alvo de 44 px). Selecionado: fundo suave da marca, borda e texto na cor da marca. */
 export function FilterChips<K extends string>({ options, value, onChange }: { options: Option<K>[]; value: K; onChange: (key: K) => void }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -22,10 +22,12 @@ export function FilterChips<K extends string>({ options, value, onChange }: { op
               paddingHorizontal: 16,
               borderRadius: 20,
               justifyContent: "center",
-              backgroundColor: selected ? colors.foreground : pressed ? colors.border : colors.muted,
+              borderWidth: 1,
+              borderColor: selected ? colors.brandTint : colors.border,
+              backgroundColor: selected ? colors.brandSoft : pressed ? colors.muted : colors.white,
             })}
           >
-            <Text className="font-nunito-bold text-sm" style={{ color: selected ? colors.white : colors.foreground }}>
+            <Text className={selected ? "font-ui-bold text-sm" : "font-ui-semibold text-sm"} style={{ color: selected ? colors.brandDeep : colors.foreground }}>
               {o.label}
             </Text>
           </Pressable>

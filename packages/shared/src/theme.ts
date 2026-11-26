@@ -1,24 +1,33 @@
 export const colors = {
-  primary: "#FF8A3D",
-  /** Laranja mais fundo: botão pressionado e fim do degradê dos cabeçalhos. */
-  primaryDeep: "#F2701F",
-  primarySoft: "#FFF1E7",
+  /** Cor da marca: laranja queimado. Texto branco sobre ela tem 5:1; ela como texto sobre branco também. */
+  brand: "#C4450A",
+  /** Marca mais funda: botão com o mouse em cima ou pressionado, texto sobre o fundo suave. */
+  brandDeep: "#9E3607",
+  /** Fundo suave da marca (item ativo, ícones, destaques) e o tom logo acima dele (borda, pressionado). */
+  brandSoft: "#FFF1E7",
+  brandTint: "#FFE1CC",
+  /** Creme quase branco dos painéis grandes (tela de entrada em tela larga). */
+  cream: "#FFF8F2",
+  /** Azul: só para informação (avisos, ponto "você está aqui"), não para ações. */
   accent: "#2D6CDF",
-  /** Azul mais fundo: botão azul pressionado. */
   accentDeep: "#2257BD",
   accentSoft: "#EAF1FD",
   hope: "#FFD447",
   lost: "#EF4444",
+  /** Vermelho de texto (mensagens de erro): o `lost` em texto pequeno não passa no contraste AA. */
+  lostDeep: "#C52222",
   seen: "#F59E0B",
   found: "#22C55E",
-  background: "#F7F7F9",
+  /** Fundos claros dos selos de tipo (o ponto do selo leva a cor sólida). */
+  lostSoft: "#FDECEC",
+  seenSoft: "#FEF3D7",
+  foundSoft: "#E4F7EB",
+  background: "#F8F8FA",
   card: "#FFFFFF",
   foreground: "#1F2430",
-  /** Grafite do botão principal com o mouse em cima (um pouco mais claro) e pressionado (mais escuro). */
-  inkSoft: "#343B4D",
   inkDeep: "#12151D",
   muted: "#F1F1F4",
-  mutedForeground: "#6B7280",
+  mutedForeground: "#626978",
   border: "#E7E7EC",
   input: "#F3F3F6",
   white: "#FFFFFF",
@@ -42,45 +51,50 @@ export const overlay = {
  * `boxShadow` funciona no React Native (nova arquitetura) e na web. A cor é o texto do app, não preto puro.
  */
 export const elevation = {
-  card: { boxShadow: "0px 1px 2px rgba(31, 36, 48, 0.06), 0px 4px 12px rgba(31, 36, 48, 0.05)" },
-  raised: { boxShadow: "0px 2px 4px rgba(31, 36, 48, 0.06), 0px 8px 24px rgba(31, 36, 48, 0.08)" },
+  card: { boxShadow: "0px 1px 2px rgba(31, 36, 48, 0.04), 0px 2px 8px rgba(31, 36, 48, 0.04)" },
+  raised: { boxShadow: "0px 2px 4px rgba(31, 36, 48, 0.05), 0px 8px 24px rgba(31, 36, 48, 0.07)" },
   floating: { boxShadow: "0px 4px 8px rgba(31, 36, 48, 0.08), 0px 16px 40px rgba(31, 36, 48, 0.14)" },
 } as const;
 
-export const BUTTON_VARIANTS = ["ink", "accent", "primary", "outline"] as const;
+export const BUTTON_VARIANTS = ["brand", "soft", "outline"] as const;
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 
 /**
- * Cores dos botões. Grafite (`ink`) é a ação principal: sóbrio e com contraste alto sobre branco e
- * sobre o laranja. O laranja da marca leva texto escuro, porque branco sobre ele fica em 2,3:1
- * (o mínimo do WCAG AA é 4,5:1). `hover`: mouse em cima (web).
+ * Cores dos botões. `brand`: ação principal (cor da marca, texto branco). `soft`: ação de apoio (fundo
+ * suave da marca). `outline`: ação neutra. `hover`: mouse em cima (web).
  */
-const BUTTON_COLORS: Record<ButtonVariant, { background: string; hover: string; pressed: string; text: string }> = {
-  ink: { background: colors.foreground, hover: colors.inkSoft, pressed: colors.inkDeep, text: colors.white },
-  accent: { background: colors.accent, hover: colors.accentDeep, pressed: colors.accentDeep, text: colors.white },
-  primary: { background: colors.primary, hover: colors.primaryDeep, pressed: colors.primaryDeep, text: colors.foreground },
+type ButtonColors = { background: string; hover: string; pressed: string; text: string };
+
+const BUTTON_COLORS: Record<ButtonVariant, ButtonColors> = {
+  brand: { background: colors.brand, hover: colors.brandDeep, pressed: colors.brandDeep, text: colors.white },
+  soft: { background: colors.brandSoft, hover: colors.brandTint, pressed: colors.brandTint, text: colors.brandDeep },
   outline: { background: colors.white, hover: colors.muted, pressed: colors.muted, text: colors.foreground },
 };
 
-export function buttonColors(variant: ButtonVariant) {
+export function buttonColors(variant: ButtonVariant): ButtonColors {
   return BUTTON_COLORS[variant];
 }
 
+/** Plus Jakarta Sans. Os nomes são os do pacote `@expo-google-fonts/plus-jakarta-sans` (não existe peso 900). */
 export const fonts = {
-  regular: "Nunito_400Regular",
-  semibold: "Nunito_600SemiBold",
-  bold: "Nunito_700Bold",
-  black: "Nunito_900Black",
+  regular: "PlusJakartaSans_400Regular",
+  medium: "PlusJakartaSans_500Medium",
+  semibold: "PlusJakartaSans_600SemiBold",
+  bold: "PlusJakartaSans_700Bold",
+  extrabold: "PlusJakartaSans_800ExtraBold",
 } as const;
 
 export const OCCURRENCE_TYPES = ["lost", "seen", "found"] as const;
 export type OccurrenceType = (typeof OCCURRENCE_TYPES)[number];
 
-/** `textOn`: cor do texto sobre a cor sólida do tipo (branco não é legível no amarelo nem no verde). */
-const OCCURRENCE_STYLES: Record<OccurrenceType, { color: string; label: string; textOn: string }> = {
-  lost: { color: colors.lost, label: "Perdido", textOn: colors.white },
-  seen: { color: colors.seen, label: "Avistado", textOn: colors.foreground },
-  found: { color: colors.found, label: "Encontrado", textOn: colors.foreground },
+/**
+ * `color`: cor sólida do tipo (marcador do mapa, ponto do selo). `textOn`: texto sobre a cor sólida (branco
+ * não é legível no amarelo nem no verde). `soft`: fundo claro do selo, que leva texto escuro.
+ */
+const OCCURRENCE_STYLES: Record<OccurrenceType, { color: string; label: string; textOn: string; soft: string }> = {
+  lost: { color: colors.lost, label: "Perdido", textOn: colors.white, soft: colors.lostSoft },
+  seen: { color: colors.seen, label: "Avistado", textOn: colors.foreground, soft: colors.seenSoft },
+  found: { color: colors.found, label: "Encontrado", textOn: colors.foreground, soft: colors.foundSoft },
 };
 
 export function occurrenceStyle(type: OccurrenceType) {

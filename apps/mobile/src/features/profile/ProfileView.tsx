@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Bell, ChevronRight, Heart, HelpCircle, LogOut, MapPin, ShieldCheck } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation, speciesLabel, formatTimeAgo, withAlpha, type MyPet, type PublicOccurrence } from "@miaucha/shared";
 import { Card, SpeciesIcon, StatusBadge } from "@/components";
@@ -38,23 +37,18 @@ export function ProfileView(p: Props) {
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerStyle={{ paddingBottom: 24 }}>
-      <LinearGradient
-        colors={[colors.primary, colors.primaryDeep]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: insets.top + 24, paddingBottom: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}
-      >
-        <View className="h-24 w-24 items-center justify-center rounded-full bg-white" style={elevation.floating}>
-          <Text className="font-nunito-black text-4xl text-foreground">{p.name.charAt(0).toUpperCase()}</Text>
+      <View className="items-center gap-3 border-b border-border bg-white px-5 pb-6" style={{ paddingTop: insets.top + 24 }}>
+        <View className="h-24 w-24 items-center justify-center rounded-full bg-brand-soft">
+          <Text className="font-ui-extrabold text-4xl text-brand-deep">{p.name.charAt(0).toUpperCase()}</Text>
         </View>
         <View className="items-center">
-          <Text accessibilityRole="header" className="font-nunito-black text-2xl text-white">
+          <Text accessibilityRole="header" className="font-ui-extrabold text-2xl tracking-tight text-foreground">
             {p.name}
           </Text>
           {p.profile ? (
-            <View className="mt-1 flex-row items-center gap-1.5 rounded-full bg-white/20 px-3 py-1">
-              <Text className="font-sans text-xs text-white">Nome público</Text>
-              <Text className="font-nunito-black text-sm text-white">{p.profile.pseudonym}</Text>
+            <View className="mt-1.5 flex-row items-center gap-1.5 rounded-full bg-muted px-3 py-1">
+              <Text className="font-sans text-xs text-muted-foreground">Nome público</Text>
+              <Text className="font-ui-bold text-sm text-foreground">{p.profile.pseudonym}</Text>
             </View>
           ) : null}
         </View>
@@ -62,27 +56,26 @@ export function ProfileView(p: Props) {
           {stats.map((s) => (
             <View
               key={s.label}
-              className="min-w-[104px] items-center rounded-2xl bg-white px-4 py-2.5"
-              style={elevation.card}
+              className="min-w-[104px] items-center rounded-2xl border border-border bg-background px-4 py-2.5"
               accessible
               accessibilityLabel={s.value === undefined ? s.label : `${s.value} ${s.value === 1 ? s.one : s.many}`}
             >
-              <Text className="font-nunito-black text-2xl text-foreground">{s.value ?? "–"}</Text>
-              <Text className="font-nunito-semibold text-xs text-muted-foreground">{s.label}</Text>
+              <Text className="font-ui-extrabold text-2xl text-foreground">{s.value ?? "–"}</Text>
+              <Text className="font-ui-semibold text-xs text-muted-foreground">{s.label}</Text>
             </View>
           ))}
         </View>
-      </LinearGradient>
+      </View>
 
       <View className="gap-4 p-5" style={centered(READING_MAX_WIDTH)}>
         <MyPetsCard pets={p.pets} error={p.petsError} onAdd={p.onAddPet} onOpen={p.onOpenPet} />
 
         <Card>
-          <Text accessibilityRole="header" className="mb-3 font-nunito-black text-base text-foreground">
+          <Text accessibilityRole="header" className="mb-3 font-ui-extrabold text-base text-foreground">
             Minhas ocorrências
           </Text>
           {p.occurrencesError ? (
-            <Text className="font-nunito-semibold text-sm text-lost">{p.occurrencesError}</Text>
+            <Text className="font-ui-semibold text-sm text-lost">{p.occurrencesError}</Text>
           ) : p.occurrences === null ? (
             <Text className="font-sans text-sm text-muted-foreground">Carregando ocorrências...</Text>
           ) : p.occurrences.length === 0 ? (
@@ -104,12 +97,12 @@ export function ProfileView(p: Props) {
                       <SpeciesIcon species={o.species} size={18} color={colors.foreground} />
                     </View>
                     <View className="flex-1">
-                      <Text className="font-nunito-bold text-sm text-foreground">{title}</Text>
+                      <Text className="font-ui-bold text-sm text-foreground">{title}</Text>
                       <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(o.createdAt), p.now)}</Text>
                     </View>
                     {o.status === "resolved" ? (
                       <View className="rounded-lg bg-found px-2 py-1">
-                        <Text className="font-nunito-black text-xs uppercase text-foreground">Resolvida</Text>
+                        <Text className="font-ui-extrabold text-xs uppercase text-foreground">Resolvida</Text>
                       </View>
                     ) : (
                       <StatusBadge type={o.type} />
@@ -122,10 +115,10 @@ export function ProfileView(p: Props) {
         </Card>
 
         <View className="overflow-hidden rounded-3xl border border-border bg-card" style={elevation.card}>
-          <SettingsItem icon={<Bell size={18} color={colors.primaryDeep} />} tint={colors.primarySoft} label="Notificações" onPress={p.onOpenAlertPreferences} />
-          <SettingsItem icon={<MapPin size={18} color={colors.accent} />} tint={colors.accentSoft} label="Localização" onPress={p.onOpenAlertPreferences} />
+          <SettingsItem icon={<Bell size={18} color={colors.brand} />} tint={colors.brandSoft} label="Notificações" onPress={p.onOpenAlertPreferences} />
+          <SettingsItem icon={<MapPin size={18} color={colors.brand} />} tint={colors.brandSoft} label="Localização" onPress={p.onOpenAlertPreferences} />
           <SettingsItem icon={<ShieldCheck size={18} color={colors.foreground} />} tint={colors.muted} label="Política de privacidade" onPress={p.onOpenPrivacy} />
-          <SettingsItem icon={<HelpCircle size={18} color={colors.accent} />} tint={colors.accentSoft} label="Ajuda" onPress={p.onOpenHelp} />
+          <SettingsItem icon={<HelpCircle size={18} color={colors.brand} />} tint={colors.brandSoft} label="Ajuda" onPress={p.onOpenHelp} />
           <SettingsItem icon={<LogOut size={18} color={colors.lost} />} tint={withAlpha(colors.lost, 0.1)} label="Sair da conta" onPress={p.onLogout} last />
         </View>
 
@@ -151,7 +144,7 @@ function SettingsItem({ icon, tint, label, onPress, last }: { icon: ReactNode; t
       <View className="h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: tint }}>
         {icon}
       </View>
-      <Text className="flex-1 font-nunito-bold text-base text-foreground">{label}</Text>
+      <Text className="flex-1 font-ui-bold text-base text-foreground">{label}</Text>
       <ChevronRight size={18} color={colors.mutedForeground} />
     </Pressable>
   );

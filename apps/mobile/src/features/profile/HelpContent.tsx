@@ -16,7 +16,7 @@ export function HelpContent() {
     <View className="gap-3">
       {HELP_TOPICS.map(([title, body]) => (
         <Card key={title}>
-          <Text accessibilityRole="header" className="mb-1 font-nunito-black text-base text-foreground">
+          <Text accessibilityRole="header" className="mb-1 font-ui-extrabold text-base text-foreground">
             {title}
           </Text>
           <Text className="font-sans text-sm leading-5 text-muted-foreground">{body}</Text>

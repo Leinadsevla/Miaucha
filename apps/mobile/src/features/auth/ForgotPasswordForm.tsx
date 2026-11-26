@@ -98,11 +98,11 @@ export function ForgotPasswordForm({ onRequestCode, onReset, onBack, loading, se
         <>
           <View className="gap-1 rounded-2xl bg-accent-soft p-4">
             <Text className="font-sans text-sm leading-5 text-foreground">
-              Se existir uma conta com <Text className="font-nunito-bold">{email}</Text>, enviamos um código que vale por 10 minutos.
+              Se existir uma conta com <Text className="font-ui-bold">{email}</Text>, enviamos um código que vale por 10 minutos.
             </Text>
             <Text className="font-sans text-xs leading-4 text-muted-foreground">Não chegou? Confira a caixa de spam e as abas Promoções ou Atualizações.</Text>
             {resent ? (
-              <Text accessibilityLiveRegion="polite" className="mt-1 font-nunito-bold text-xs text-accent">
+              <Text accessibilityLiveRegion="polite" className="mt-1 font-ui-bold text-xs text-brand">
                 Enviamos um novo código. Use sempre o mais recente.
               </Text>
             ) : null}
@@ -147,7 +147,7 @@ export function ForgotPasswordForm({ onRequestCode, onReset, onBack, loading, se
       )}
 
       {generalError ? (
-        <Text accessibilityRole="alert" className="text-center font-nunito-semibold text-sm text-lost">
+        <Text accessibilityRole="alert" className="text-center font-ui-semibold text-sm text-lost">
           {generalError}
         </Text>
       ) : null}
@@ -158,7 +158,7 @@ export function ForgotPasswordForm({ onRequestCode, onReset, onBack, loading, se
         <>
           <PrimaryButton title="Trocar senha" onPress={reset} loading={loading && !resending} disabled={resending} />
           <View className="flex-row flex-wrap items-center justify-center">
-            <TextLink label={resendLabel} tone="primary" onPress={() => void resend()} disabled={resending || cooldown.left > 0} />
+            <TextLink label={resendLabel} tone="brand" onPress={() => void resend()} disabled={resending || cooldown.left > 0} />
             <TextLink label="Trocar e-mail" onPress={() => setStep("email")} />
           </View>
         </>

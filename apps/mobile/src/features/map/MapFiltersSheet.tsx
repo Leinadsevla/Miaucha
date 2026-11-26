@@ -13,7 +13,7 @@ type Props = {
   onClose: () => void;
 };
 
-function Chip({ label, selected, color = colors.primary, onPress }: { label: string; selected: boolean; color?: string; onPress: () => void }) {
+function Chip({ label, selected, color = colors.brand, onPress }: { label: string; selected: boolean; color?: string; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,7 +25,7 @@ function Chip({ label, selected, color = colors.primary, onPress }: { label: str
       style={{ minHeight: 40, borderColor: selected ? color : colors.border, backgroundColor: selected ? withAlpha(color, 0.15) : colors.card }}
     >
       {/* Texto sempre escuro: a cor do tipo (amarelo, verde) sobre fundo claro não tem contraste para texto. */}
-      <Text className={selected ? "font-nunito-black text-sm" : "font-nunito-bold text-sm"} style={{ color: selected ? colors.foreground : colors.mutedForeground }}>
+      <Text className={selected ? "font-ui-extrabold text-sm" : "font-ui-bold text-sm"} style={{ color: selected ? colors.foreground : colors.mutedForeground }}>
         {label}
       </Text>
     </Pressable>
@@ -51,7 +51,7 @@ export function MapFiltersSheet({ visible, filters, onApply, onClose }: Props) {
         <View className="gap-5 rounded-t-[32px] bg-white px-5 pt-3" style={{ paddingBottom: insets.bottom + 16 }}>
           <View className="h-1.5 w-12 self-center rounded-full bg-border" />
           <View className="flex-row items-center justify-between">
-            <Text accessibilityRole="header" className="font-nunito-black text-xl text-foreground">
+            <Text accessibilityRole="header" className="font-ui-extrabold text-xl text-foreground">
               Filtros
             </Text>
             <IconButton label="Fechar filtros" icon={<X size={20} color={colors.foreground} />} onPress={onClose} />
@@ -65,7 +65,7 @@ export function MapFiltersSheet({ visible, filters, onApply, onClose }: Props) {
                   key={value}
                   label={label}
                   selected={draft.type === value}
-                  color={value === "all" ? colors.primary : occurrenceStyle(value).color}
+                  color={value === "all" ? colors.brand : occurrenceStyle(value).color}
                   onPress={() => set("type", value)}
                 />
               ))}

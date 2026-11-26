@@ -13,9 +13,9 @@ const NOT_INFORMED = "Não informado";
 function Info({ icon, label, value }: { icon: ReactNode; label: string; value: string | null }) {
   return (
     <Card className="w-[48%] gap-1 p-3.5">
-      <View className="mb-1 h-9 w-9 items-center justify-center rounded-xl bg-primary-soft">{icon}</View>
+      <View className="mb-1 h-9 w-9 items-center justify-center rounded-xl bg-brand-soft">{icon}</View>
       <Text className="font-sans text-xs text-muted-foreground">{label}</Text>
-      <Text className="font-nunito-bold text-sm text-foreground">{value || NOT_INFORMED}</Text>
+      <Text className="font-ui-bold text-sm text-foreground">{value || NOT_INFORMED}</Text>
     </Card>
   );
 }
@@ -44,8 +44,8 @@ export function PetDetails({
         {pet.photos.length > 0 ? (
           <PhotoCarousel urls={pet.photos.map((p) => p.url)} label={pet.name} height={PHOTO_HEIGHT} />
         ) : (
-          <View accessibilityLabel={`${pet.name} ainda não tem foto`} className="flex-1 items-center bg-primary-soft" style={{ paddingTop: 72 }}>
-            <SpeciesIcon species={pet.species} size={96} color={colors.primaryDeep} />
+          <View accessibilityLabel={`${pet.name} ainda não tem foto`} className="flex-1 items-center bg-brand-soft" style={{ paddingTop: 72 }}>
+            <SpeciesIcon species={pet.species} size={96} color={colors.brand} />
           </View>
         )}
 
@@ -54,10 +54,10 @@ export function PetDetails({
           colors={[withAlpha(colors.foreground, 0), withAlpha(colors.foreground, 0.8)]}
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingBottom: 20, paddingTop: 48 }}
         >
-          <Text accessibilityRole="header" className="font-nunito-black text-[28px] leading-9 text-white">
+          <Text accessibilityRole="header" className="font-ui-extrabold text-[28px] leading-9 text-white">
             {pet.name}
           </Text>
-          {subtitle ? <Text className="font-nunito-semibold text-sm text-white">{subtitle}</Text> : null}
+          {subtitle ? <Text className="font-ui-semibold text-sm text-white">{subtitle}</Text> : null}
         </LinearGradient>
 
         <View className="absolute left-4" style={{ top: insets.top + 12 }}>
@@ -72,13 +72,13 @@ export function PetDetails({
 
       <View className="flex-row flex-wrap justify-between gap-y-3 px-5 pt-5">
         <Info
-          icon={<SpeciesIcon species={pet.species} size={18} color={colors.primaryDeep} />}
+          icon={<SpeciesIcon species={pet.species} size={18} color={colors.brand} />}
           label="Espécie"
           value={speciesLabel(pet.species)}
         />
-        <Info icon={<PawPrint size={18} color={colors.primaryDeep} />} label="Raça" value={pet.breed} />
-        <Info icon={<Palette size={18} color={colors.primaryDeep} />} label="Cor" value={pet.color} />
-        <Info icon={<Cake size={18} color={colors.primaryDeep} />} label="Idade" value={pet.approxAge} />
+        <Info icon={<PawPrint size={18} color={colors.brand} />} label="Raça" value={pet.breed} />
+        <Info icon={<Palette size={18} color={colors.brand} />} label="Cor" value={pet.color} />
+        <Info icon={<Cake size={18} color={colors.brand} />} label="Idade" value={pet.approxAge} />
       </View>
 
       {onReportLost ? (

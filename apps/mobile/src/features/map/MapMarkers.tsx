@@ -31,10 +31,10 @@ export function ClusterBubble({ count }: { count: number }) {
   return (
     <View
       accessibilityLabel={`${count} ocorrências agrupadas. Toque para aproximar`}
-      className="items-center justify-center rounded-full border-4 border-white bg-primary"
+      className="items-center justify-center rounded-full border-4 border-white bg-brand"
       style={{ width: size, height: size }}
     >
-      <Text className="font-nunito-black text-sm text-white">{count}</Text>
+      <Text className="font-ui-extrabold text-sm text-white">{count}</Text>
     </View>
   );
 }

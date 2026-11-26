@@ -54,7 +54,7 @@ export function PhotoCarousel({ urls, label, height, arrows = Platform.OS === "w
       {many ? (
         <View pointerEvents="none" className="absolute left-0 right-0 items-center" style={{ top: 16 }}>
           <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: overlay.photo }}>
-            <Text className="font-nunito-bold text-xs text-white">
+            <Text className="font-ui-bold text-xs text-white">
               {index + 1}/{urls.length}
             </Text>
           </View>

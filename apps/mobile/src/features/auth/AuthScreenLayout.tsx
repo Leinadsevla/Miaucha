@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
-import { Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Text, useWindowDimensions, View } from "react-native";
 import { Bell, Map as MapIcon, ShieldCheck, type LucideIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, elevation } from "@miaucha/shared";
+import { colors } from "@miaucha/shared";
 import { AppLogo, KeyboardScreen } from "@/components";
 import { centered, useLayout } from "@/lib/layout";
+import { AuthPreview } from "./AuthPreview";
 
-/** Largura do formulário em telas largas. */
-const FORM_WIDTH = 440;
+/** Largura do formulário. */
+const FORM_WIDTH = 420;
+/** Abaixo desta altura de janela, o painel da marca fica sem a prévia (não caberia). */
+const PREVIEW_MIN_HEIGHT = 780;
 
 /** Os três motivos mostrados no painel da marca (tela larga). */
 const REASONS: { Icon: LucideIcon; text: string }[] = [
@@ -26,58 +28,56 @@ type Props = {
 };
 
 /**
- * Telas de entrada. No celular: cabeçalho laranja com a logo e o formulário num cartão sobreposto.
- * Em tela larga: painel da marca à esquerda e o formulário à direita.
+ * Telas de entrada, sempre em fundo branco. No celular: logo, título e o formulário direto.
+ * Em tela larga: painel creme com a prévia do app à esquerda e o formulário à direita.
  */
 export function AuthScreenLayout({ title, subtitle, children, wide: forceWide }: Props) {
   const insets = useSafeAreaInsets();
   const layout = useLayout();
+  const { height } = useWindowDimensions();
   const wide = forceWide ?? layout.wide;
 
   if (wide) {
     return (
       <View className="flex-1 flex-row bg-white">
-        <LinearGradient
-          testID="auth-brand-panel"
-          colors={[colors.primary, colors.primaryDeep]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1, padding: 56, justifyContent: "space-between" }}
-        >
-          <View className="flex-row items-center gap-3">
-            <View className="h-14 w-14 items-center justify-center rounded-2xl bg-white" style={elevation.raised}>
-              <AppLogo size={40} />
-            </View>
-            <Text className="font-nunito-black text-3xl text-white">Miaucha</Text>
+        <View testID="auth-brand-panel" style={{ flex: 1, padding: 48, justifyContent: "space-between", gap: 28, backgroundColor: colors.cream }}>
+          <View className="flex-row items-center gap-2.5">
+            <AppLogo size={40} />
+            <Text className="font-ui-extrabold text-2xl tracking-tight text-foreground">Miaucha</Text>
           </View>
 
-          <View style={{ maxWidth: 520 }}>
-            <Text className="font-nunito-black text-[44px] leading-[52px] text-white">Juntos encontramos quem se perdeu</Text>
-            <Text className="mt-4 font-nunito-semibold text-lg leading-7 text-white">
-              A vizinhança avisa, o mapa mostra e o tutor reencontra o seu pet.
-            </Text>
-            <View className="mt-10 gap-4">
+          <View style={{ maxWidth: 520, gap: 28 }}>
+            <View>
+              <Text className="font-ui-extrabold text-[40px] leading-[46px] tracking-tight text-foreground">
+                Juntos encontramos quem <Text className="text-brand">se perdeu</Text>
+              </Text>
+              <Text className="mt-3 font-sans text-lg leading-7 text-muted-foreground">
+                A vizinhança avisa, o mapa mostra e o tutor reencontra o seu pet.
+              </Text>
+            </View>
+            {height >= PREVIEW_MIN_HEIGHT ? <AuthPreview /> : null}
+            <View className="gap-2.5">
               {REASONS.map(({ Icon, text }) => (
-                <View key={text} className="flex-row items-center gap-4">
-                  <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white" style={elevation.card}>
-                    <Icon size={22} color={colors.primaryDeep} />
+                <View key={text} className="flex-row items-center gap-3">
+                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-white">
+                    <Icon size={18} color={colors.brand} />
                   </View>
-                  <Text className="flex-1 font-nunito-bold text-lg text-white">{text}</Text>
+                  <Text className="flex-1 font-ui-medium text-base text-foreground">{text}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          <Text className="font-sans text-sm text-white">Miaucha · TCC 2026</Text>
-        </LinearGradient>
+          <Text className="font-sans text-sm text-muted-foreground">Miaucha · TCC 2026</Text>
+        </View>
 
         <View className="flex-1">
           <KeyboardScreen className="flex-1 bg-white" contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 40 }}>
             <View style={centered(FORM_WIDTH)}>
-              <Text accessibilityRole="header" className="font-nunito-black text-4xl text-foreground">
+              <Text accessibilityRole="header" className="font-ui-extrabold text-[32px] leading-10 tracking-tight text-foreground">
                 {title}
               </Text>
-              <Text className="mb-8 mt-2 font-sans text-base text-muted-foreground">{subtitle}</Text>
+              <Text className="mb-8 mt-1.5 font-sans text-base text-muted-foreground">{subtitle}</Text>
               {children}
             </View>
           </KeyboardScreen>
@@ -87,27 +87,17 @@ export function AuthScreenLayout({ title, subtitle, children, wide: forceWide }:
   }
 
   return (
-    <KeyboardScreen contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-      <LinearGradient
-        colors={[colors.primary, colors.primaryDeep]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ alignItems: "center", gap: 16, paddingHorizontal: 24, paddingTop: insets.top + 28, paddingBottom: 56 }}
-      >
-        <View className="h-20 w-20 items-center justify-center rounded-3xl bg-white" style={elevation.floating}>
-          <AppLogo size={56} />
+    <KeyboardScreen className="flex-1 bg-white" contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: insets.top + 28, paddingBottom: insets.bottom + 24 }}>
+      <View style={centered(FORM_WIDTH)}>
+        <View className="flex-row items-center gap-2.5">
+          <AppLogo size={40} />
+          <Text className="font-ui-extrabold text-xl tracking-tight text-foreground">Miaucha</Text>
         </View>
-        <View className="items-center">
-          <Text accessibilityRole="header" className="text-center font-nunito-black text-[28px] leading-9 text-white">
-            {title}
-          </Text>
-          <Text className="mt-1 text-center font-nunito-semibold text-base text-white">{subtitle}</Text>
-        </View>
-      </LinearGradient>
-      <View className="-mt-8 px-4">
-        <View className="rounded-3xl border border-border bg-card p-5" style={[centered(FORM_WIDTH + 40), elevation.raised]}>
-          {children}
-        </View>
+        <Text accessibilityRole="header" className="mt-8 font-ui-extrabold text-[28px] leading-9 tracking-tight text-foreground">
+          {title}
+        </Text>
+        <Text className="mb-7 mt-1.5 font-sans text-base text-muted-foreground">{subtitle}</Text>
+        {children}
       </View>
     </KeyboardScreen>
   );

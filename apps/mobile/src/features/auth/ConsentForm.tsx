@@ -30,7 +30,7 @@ export function ConsentForm({ onAccept, onOpenPolicy }: Props) {
         onPress={onOpenPolicy}
         style={({ pressed }) => ({ minHeight: 44, justifyContent: "center", marginTop: -12, opacity: pressed ? 0.6 : 1 })}
       >
-        <Text className="ml-9 font-nunito-bold text-sm text-accent">Ler a política de privacidade</Text>
+        <Text className="ml-9 font-ui-bold text-sm text-brand">Ler a política de privacidade</Text>
       </Pressable>
       <CheckRow
         checked={consent.approximateLocation}
@@ -61,12 +61,12 @@ function CheckRow({ checked, onToggle, label }: { checked: boolean; onToggle: ()
       <View
         className={cn(
           "h-6 w-6 items-center justify-center rounded-lg border-2",
-          checked ? "border-primary bg-primary" : "border-border bg-white",
+          checked ? "border-brand bg-brand" : "border-border bg-white",
         )}
       >
-        {checked ? <Check size={15} strokeWidth={3} color={colors.foreground} /> : null}
+        {checked ? <Check size={15} strokeWidth={3} color={colors.white} /> : null}
       </View>
-      <Text className="flex-1 font-nunito-semibold text-sm leading-5 text-foreground">{label}</Text>
+      <Text className="flex-1 font-ui-semibold text-sm leading-5 text-foreground">{label}</Text>
     </Pressable>
   );
 }

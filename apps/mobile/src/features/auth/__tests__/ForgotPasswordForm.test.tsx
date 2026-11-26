@@ -147,7 +147,7 @@ describe("ForgotPasswordForm", () => {
     await view.rerender(<ForgotPasswordForm {...props} serverError="Código incorreto" />);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByText("Código incorreto")).toBeOnTheScreen();
-    expect(screen.getByLabelText("Código")).toHaveStyle({ borderColor: "#EF4444" });
+    expect(screen.getByTestId("field-Código")).toHaveStyle({ borderColor: "#EF4444" });
   });
 
   it("mostra o erro do servidor", async () => {
