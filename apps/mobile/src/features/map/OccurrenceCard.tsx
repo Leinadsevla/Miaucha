@@ -56,9 +56,9 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
             accessibilityRole="button"
             accessibilityLabel="Ver detalhes"
             onPress={() => onOpen(o.id)}
-            style={({ pressed }) => ({ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: pressed ? colors.accentDeep : colors.accent })}
+            style={({ pressed }) => ({ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: pressed ? colors.inkDeep : colors.foreground })}
           >
-            <Text className="font-nunito-bold text-sm text-white">Ver detalhes</Text>
+            <Text className="font-nunito-black text-sm text-white">Ver detalhes</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"

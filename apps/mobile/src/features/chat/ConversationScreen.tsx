@@ -312,7 +312,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
             className="max-h-28 flex-1 rounded-2xl bg-muted px-4 py-3 font-sans text-base text-foreground"
             style={{ minHeight: 44 }}
           />
-          <IconButton label="Enviar" tone="accent" icon={<Send size={18} color={colors.white} />} onPress={sendText} disabled={sending || !text.trim()} />
+          <IconButton label="Enviar" tone="ink" icon={<Send size={18} color={colors.white} />} onPress={sendText} disabled={sending || !text.trim()} />
           </View>
         </View>
       ) : (

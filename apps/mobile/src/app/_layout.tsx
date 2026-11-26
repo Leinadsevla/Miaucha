@@ -1,4 +1,5 @@
 import "../../global.css";
+import "@/lib/webStyles";
 import { useEffect, useState, type ReactNode } from "react";
 import { Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";

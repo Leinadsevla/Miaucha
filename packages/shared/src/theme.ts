@@ -14,6 +14,9 @@ export const colors = {
   background: "#F7F7F9",
   card: "#FFFFFF",
   foreground: "#1F2430",
+  /** Grafite do botão principal com o mouse em cima (um pouco mais claro) e pressionado (mais escuro). */
+  inkSoft: "#343B4D",
+  inkDeep: "#12151D",
   muted: "#F1F1F4",
   mutedForeground: "#6B7280",
   border: "#E7E7EC",
@@ -44,17 +47,19 @@ export const elevation = {
   floating: { boxShadow: "0px 4px 8px rgba(31, 36, 48, 0.08), 0px 16px 40px rgba(31, 36, 48, 0.14)" },
 } as const;
 
-export const BUTTON_VARIANTS = ["accent", "primary", "outline"] as const;
+export const BUTTON_VARIANTS = ["ink", "accent", "primary", "outline"] as const;
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 
 /**
- * Cores dos botões. Azul (`accent`) é a ação principal; o laranja da marca leva texto escuro, porque
- * branco sobre ele fica em 2,3:1 (o mínimo do WCAG AA é 4,5:1).
+ * Cores dos botões. Grafite (`ink`) é a ação principal: sóbrio e com contraste alto sobre branco e
+ * sobre o laranja. O laranja da marca leva texto escuro, porque branco sobre ele fica em 2,3:1
+ * (o mínimo do WCAG AA é 4,5:1). `hover`: mouse em cima (web).
  */
-const BUTTON_COLORS: Record<ButtonVariant, { background: string; pressed: string; text: string }> = {
-  accent: { background: colors.accent, pressed: colors.accentDeep, text: colors.white },
-  primary: { background: colors.primary, pressed: colors.primaryDeep, text: colors.foreground },
-  outline: { background: colors.white, pressed: colors.muted, text: colors.foreground },
+const BUTTON_COLORS: Record<ButtonVariant, { background: string; hover: string; pressed: string; text: string }> = {
+  ink: { background: colors.foreground, hover: colors.inkSoft, pressed: colors.inkDeep, text: colors.white },
+  accent: { background: colors.accent, hover: colors.accentDeep, pressed: colors.accentDeep, text: colors.white },
+  primary: { background: colors.primary, hover: colors.primaryDeep, pressed: colors.primaryDeep, text: colors.foreground },
+  outline: { background: colors.white, hover: colors.muted, pressed: colors.muted, text: colors.foreground },
 };
 
 export function buttonColors(variant: ButtonVariant) {

@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 import { colors, withAlpha } from "@miaucha/shared";
 
-type Tone = "muted" | "white" | "overlay" | "accent";
+type Tone = "muted" | "white" | "overlay" | "accent" | "ink";
 
 const TONES: Record<Tone, { background: string; pressed: string }> = {
   muted: { background: colors.muted, pressed: colors.border },
   white: { background: colors.white, pressed: colors.muted },
   overlay: { background: withAlpha(colors.foreground, 0.35), pressed: withAlpha(colors.foreground, 0.5) },
   accent: { background: colors.accent, pressed: colors.accentDeep },
+  ink: { background: colors.foreground, pressed: colors.inkDeep },
 };
 
 type Props = {
@@ -33,13 +34,13 @@ export function IconButton({ label, icon, onPress, tone = "muted", disabled = fa
       disabled={disabled}
       onPress={onPress}
       hitSlop={4}
-      style={({ pressed }) => ({
+      style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => ({
         width: 44,
         height: 44,
         borderRadius: 14,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: pressed ? t.pressed : t.background,
+        backgroundColor: pressed || hovered ? t.pressed : t.background,
         opacity: disabled ? 0.4 : 1,
       })}
     >

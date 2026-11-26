@@ -23,6 +23,8 @@ module.exports = {
         background: "#F7F7F9",
         card: "#FFFFFF",
         foreground: "#1F2430",
+        "ink-soft": "#343B4D",
+        "ink-deep": "#12151D",
         muted: "#F1F1F4",
         "muted-foreground": "#6B7280",
         border: "#E7E7EC",

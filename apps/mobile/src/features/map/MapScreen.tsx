@@ -304,7 +304,7 @@ function LocationNotice({
         accessibilityRole="button"
         accessibilityLabel={blocked ? "Abrir configurações" : result.status === "denied" ? "Permitir localização" : "Tentar de novo"}
         onPress={blocked ? onOpenSettings : onAllow}
-        style={({ pressed }) => ({ minHeight: 44, alignSelf: "flex-start", justifyContent: "center", borderRadius: 14, paddingHorizontal: 16, backgroundColor: pressed ? colors.accentDeep : colors.accent })}
+        style={({ pressed }) => ({ minHeight: 44, alignSelf: "flex-start", justifyContent: "center", borderRadius: 14, paddingHorizontal: 16, backgroundColor: pressed ? colors.inkDeep : colors.foreground })}
       >
         <Text className="font-nunito-bold text-sm text-white">
           {blocked ? "Abrir configurações" : result.status === "denied" ? "Permitir localização" : "Tentar de novo"}

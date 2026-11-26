@@ -53,8 +53,20 @@ describe("botões (contraste AA)", () => {
   });
 
   it("o laranja da marca leva texto escuro (branco nele fica em 2,3:1)", () => {
-    expect(buttonColors("primary")).toEqual({ background: colors.primary, pressed: colors.primaryDeep, text: colors.foreground });
+    expect(buttonColors("primary")).toMatchObject({ background: colors.primary, pressed: colors.primaryDeep, text: colors.foreground });
     expect(buttonColors("accent").text).toBe(colors.white);
+  });
+
+  it("o botão principal é grafite (cor do texto do app) com texto branco, e é a primeira variante", () => {
+    expect(BUTTON_VARIANTS[0]).toBe("ink");
+    expect(buttonColors("ink")).toEqual({ background: colors.foreground, hover: colors.inkSoft, pressed: colors.inkDeep, text: colors.white });
+  });
+
+  it("toda variante tem um tom para o mouse em cima, diferente do normal", () => {
+    for (const variant of BUTTON_VARIANTS) {
+      const { background, hover } = buttonColors(variant);
+      expect(hover).not.toBe(background);
+    }
   });
 
   it("o tom pressionado é diferente do normal", () => {

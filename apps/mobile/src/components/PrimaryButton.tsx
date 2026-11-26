@@ -5,7 +5,7 @@ import { buttonColors, elevation, type ButtonVariant } from "@miaucha/shared";
 type Props = {
   title: string;
   onPress: () => void;
-  /** `accent` (azul): ação principal. `primary` (laranja, texto escuro): destaque da marca. */
+  /** `ink` (grafite): ação principal. `primary` (laranja, texto escuro): destaque da marca. `outline`: secundária. */
   variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
@@ -13,7 +13,10 @@ type Props = {
   className?: string;
 };
 
-export function PrimaryButton({ title, onPress, variant = "accent", disabled, loading, icon, className }: Props) {
+/** Estado do Pressable; `hovered` e `focused` só existem na web. */
+type PressState = { pressed: boolean; hovered?: boolean; focused?: boolean };
+
+export function PrimaryButton({ title, onPress, variant = "ink", disabled, loading, icon, className }: Props) {
   const c = buttonColors(variant);
   const inactive = !!(disabled || loading);
   const outline = variant === "outline";
@@ -25,30 +28,31 @@ export function PrimaryButton({ title, onPress, variant = "accent", disabled, lo
         accessibilityState={{ disabled: inactive, busy: !!loading }}
         disabled={inactive}
         onPress={onPress}
-        style={({ pressed }) => [
+        style={({ pressed, hovered }: PressState) => [
           {
             width: "100%",
-            minHeight: 52,
-            paddingHorizontal: 20,
+            minHeight: 54,
+            paddingHorizontal: 22,
             borderRadius: 16,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: pressed ? c.pressed : c.background,
-            borderWidth: outline ? 1 : 0,
+            backgroundColor: pressed ? c.pressed : hovered ? c.hover : c.background,
+            borderWidth: outline ? 1.5 : 0,
             borderColor: c.pressed,
-            opacity: inactive && !loading ? 0.5 : 1,
-            transform: [{ scale: pressed ? 0.98 : 1 }],
+            opacity: inactive && !loading ? 0.45 : 1,
+            transform: [{ translateY: hovered && !pressed ? -1 : 0 }, { scale: pressed ? 0.985 : 1 }],
           },
-          outline || inactive ? null : elevation.card,
+          // Sombra: nenhuma no contorno e no desabilitado; mais alta com o mouse em cima.
+          outline || inactive ? null : hovered && !pressed ? elevation.floating : elevation.raised,
         ]}
       >
         {loading ? (
           <ActivityIndicator testID="button-loading" color={c.text} />
         ) : (
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-2.5">
             {icon}
-            <Text className="font-nunito-bold text-base" style={{ color: c.text }}>
+            <Text className="font-nunito-black text-base tracking-wide" style={{ color: c.text }}>
               {title}
             </Text>
           </View>

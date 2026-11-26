@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { AlertTriangle, ChevronRight, CloudOff, Map as MapIcon, Plus, SearchX } from "lucide-react-native";
 import { SEARCH_RADIUS_OPTIONS_KM, colors, elevation, withAlpha, type PublicOccurrence } from "@miaucha/shared";
 import { cn } from "@/lib/cn";
@@ -132,25 +133,21 @@ export function HomeScreen({ userName, getLocation, client, onOpen, onRegister, 
         accessibilityRole="button"
         accessibilityLabel="Registrar ocorrência"
         onPress={onRegister}
-        style={({ pressed }) => [
-          {
-            position: "absolute",
-            bottom: 16,
-            right: 20,
-            minHeight: 52,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            borderRadius: 18,
-            paddingHorizontal: 18,
-            backgroundColor: pressed ? colors.accentDeep : colors.accent,
-            transform: [{ scale: pressed ? 0.97 : 1 }],
-          },
+        style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+          { position: "absolute", bottom: 20, right: 20, borderRadius: 20, transform: [{ translateY: hovered && !pressed ? -2 : 0 }, { scale: pressed ? 0.97 : 1 }] },
           elevation.floating,
         ]}
       >
-        <Plus size={20} color={colors.white} strokeWidth={2.6} />
-        <Text className="font-nunito-black text-base text-white">Registrar ocorrência</Text>
+        {/* Laranja da marca com texto escuro (branco sobre ele não tem contraste). */}
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDeep]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ minHeight: 56, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 20, paddingHorizontal: 22 }}
+        >
+          <Plus size={20} color={colors.foreground} strokeWidth={2.8} />
+          <Text className="font-nunito-black text-base text-foreground">Registrar ocorrência</Text>
+        </LinearGradient>
       </Pressable>
     </View>
   );

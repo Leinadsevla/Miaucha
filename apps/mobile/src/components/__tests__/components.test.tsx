@@ -185,20 +185,21 @@ describe("AppLogo", () => {
 });
 
 describe("PrimaryButton (acabamento)", () => {
-  it("botão laranja usa texto escuro (contraste AA) e o azul, texto branco", async () => {
+  it("o padrão é grafite com texto branco; o laranja usa texto escuro (contraste AA)", async () => {
     await render(
       <>
         <PrimaryButton title="Laranja" variant="primary" onPress={() => {}} />
-        <PrimaryButton title="Azul" onPress={() => {}} />
+        <PrimaryButton title="Principal" onPress={() => {}} />
       </>,
     );
     expect(screen.getByText("Laranja")).toHaveStyle({ color: colors.foreground });
-    expect(screen.getByText("Azul")).toHaveStyle({ color: colors.white });
+    expect(screen.getByText("Principal")).toHaveStyle({ color: colors.white });
+    expect(screen.getByRole("button", { name: "Principal" })).toHaveStyle({ backgroundColor: colors.foreground });
   });
 
-  it("tem pelo menos 52 px de altura", async () => {
+  it("tem 54 px de altura mínima (acima dos 44 px de alvo de toque)", async () => {
     await render(<PrimaryButton title="Entrar" onPress={() => {}} />);
-    expect(screen.getByRole("button", { name: "Entrar" })).toHaveStyle({ minHeight: 52 });
+    expect(screen.getByRole("button", { name: "Entrar" })).toHaveStyle({ minHeight: 54 });
   });
 });
 
