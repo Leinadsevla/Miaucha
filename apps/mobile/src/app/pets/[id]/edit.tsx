@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet, type PetInput } from "@miaucha/shared";
-import { KeyboardScreen } from "@/components";
+import { type MyPet, type PetInput } from "@miaucha/shared";
+import { KeyboardScreen, ScreenHeader } from "@/components";
 import { PetForm, createPhotoPicker, updatePet, usePetsClient, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
 
@@ -40,20 +39,7 @@ export default function EditPet() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-xl bg-muted"
-        >
-          <ChevronLeft size={20} color={colors.foreground} />
-        </Pressable>
-        <View>
-          <Text className="font-nunito-black text-base text-foreground">Editar pet</Text>
-          <Text className="font-sans text-xs text-muted-foreground">{pet?.name ?? "Carregando..."}</Text>
-        </View>
-      </View>
+      <ScreenHeader title={"Editar pet"} subtitle={pet?.name ?? "Carregando..."} onBack={() => router.back()} />
       {pet ? (
         <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
           <PetForm

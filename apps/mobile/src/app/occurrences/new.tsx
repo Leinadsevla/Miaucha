@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
-import { KeyboardScreen, PrimaryButton } from "@/components";
+import { type MyPet, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
+import { KeyboardScreen, PrimaryButton, ScreenHeader } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
@@ -80,20 +79,7 @@ export default function NewOccurrence() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-xl bg-muted"
-        >
-          <ChevronLeft size={20} color={colors.foreground} />
-        </Pressable>
-        <View>
-          <Text className="font-nunito-black text-base text-foreground">Registrar ocorrência</Text>
-          <Text className="font-sans text-xs text-muted-foreground">Avise quem está perto</Text>
-        </View>
-      </View>
+      <ScreenHeader title={"Registrar ocorrência"} subtitle={"Avise quem está perto"} onBack={() => router.back()} />
       {lostError ? (
         <View className="gap-3 p-5">
           <Text className="text-center font-sans text-sm text-muted-foreground">
