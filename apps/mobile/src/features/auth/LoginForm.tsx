@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
-import { PrimaryButton, TextField } from "@/components";
+import { PrimaryButton, TextField, TextLink } from "@/components";
 import { cn } from "@/lib/cn";
 
 /**
@@ -104,6 +104,8 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
           onChangeText={setPassword}
           secureTextEntry
           autoComplete={tab === "login" ? "current-password" : "new-password"}
+          returnKeyType={tab === "login" ? "go" : "next"}
+          onSubmitEditing={tab === "login" ? submit : undefined}
           error={errors.password}
         />
         {tab === "register" ? (
@@ -114,17 +116,19 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
             onChangeText={setConfirmPassword}
             secureTextEntry
             autoComplete="new-password"
+            returnKeyType="go"
+            onSubmitEditing={submit}
             error={errors.confirmPassword}
           />
         ) : null}
         {tab === "login" && onForgotPassword ? (
-          <Pressable accessibilityRole="button" onPress={onForgotPassword} className="self-end">
-            <Text className="font-nunito-semibold text-xs text-primary">Esqueci minha senha</Text>
-          </Pressable>
+          <View className="-my-2 self-end">
+            <TextLink label="Esqueci minha senha" tone="primary" onPress={onForgotPassword} />
+          </View>
         ) : null}
 
         {serverError ? (
-          <Text accessibilityRole="alert" className="text-center font-nunito-semibold text-xs text-lost">
+          <Text accessibilityRole="alert" className="text-center font-nunito-semibold text-sm text-lost">
             {serverError}
           </Text>
         ) : null}

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, type PetInput } from "@miaucha/shared";
 import { KeyboardScreen } from "@/components";
 import { PetForm, createPhotoPicker, savePet, usePetsClient, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
 
 const pickPhotos = createPhotoPicker();
 
@@ -21,7 +22,7 @@ export default function NewPet() {
     try {
       const { failedPhotos } = await savePet(client, input, photos);
       if (failedPhotos > 0) {
-        Alert.alert("Pet salvo", `${failedPhotos === 1 ? "Uma foto não foi enviada" : `${failedPhotos} fotos não foram enviadas`}. Tente adicionar de novo mais tarde.`);
+        showAlert("Pet salvo", `${failedPhotos === 1 ? "Uma foto não foi enviada" : `${failedPhotos} fotos não foram enviadas`}. Tente adicionar de novo mais tarde.`);
       }
       router.back();
     } catch (e) {

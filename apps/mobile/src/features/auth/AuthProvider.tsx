@@ -23,6 +23,8 @@ type AuthContextValue = {
   state: AuthState;
   busy: boolean;
   error?: string;
+  /** Apaga o erro (ao abrir outra tela de entrada, o erro da anterior não deve aparecer). */
+  clearError(): void;
   restore(): Promise<void>;
   login(input: LoginInput): Promise<void>;
   signUp(input: SignUpInput): Promise<void>;
@@ -67,6 +69,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
       state,
       busy,
       error,
+      clearError: () => setError(undefined),
       restore: () => run(async () => dispatch({ type: "restored", user: await client.restore() })),
       login: (input) => run(async () => dispatch({ type: "signedIn", user: await client.login(input) })),
       signUp: (input) =>

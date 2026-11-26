@@ -1,8 +1,9 @@
-import { Alert, View } from "react-native";
+import { View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardScreen, ScreenHeader } from "@/components";
 import { AlertPreferencesForm, useAlerts } from "@/features/alerts";
+import { showAlert } from "@/lib/dialog";
 
 export default function AlertPreferencesScreen() {
   const insets = useSafeAreaInsets();
@@ -10,7 +11,7 @@ export default function AlertPreferencesScreen() {
 
   async function enable() {
     const ok = await enableGeofencing();
-    Alert.alert(
+    showAlert(
       ok ? "Alertas com o app fechado ativados" : "Não foi possível ativar",
       ok ? "Você será avisado ao passar perto de um pet perdido." : "Libere a localização \"sempre\" para o Miaucha nas configurações do aparelho.",
     );

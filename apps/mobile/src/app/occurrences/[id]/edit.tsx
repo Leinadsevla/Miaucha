@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +8,7 @@ import { KeyboardScreen } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, occurrenceTitle, updateOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
 
 const pickPhotos = createPhotoPicker();
 
@@ -37,7 +38,7 @@ export default function EditOccurrence() {
     setError(undefined);
     try {
       const { failedPhotos } = await updateOccurrence(client, id, update, photos, removedPhotoIds);
-      if (failedPhotos > 0) Alert.alert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
+      if (failedPhotos > 0) showAlert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
       router.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");

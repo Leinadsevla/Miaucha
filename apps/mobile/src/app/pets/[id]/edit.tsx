@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, type MyPet, type PetInput } from "@miaucha/shared";
 import { KeyboardScreen } from "@/components";
 import { PetForm, createPhotoPicker, updatePet, usePetsClient, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
 
 const pickPhotos = createPhotoPicker();
 
@@ -27,7 +28,7 @@ export default function EditPet() {
     try {
       const { failedPhotos } = await updatePet(client, id, input, photos, removedPhotoIds);
       if (failedPhotos > 0) {
-        Alert.alert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
+        showAlert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
       }
       router.back();
     } catch (e) {

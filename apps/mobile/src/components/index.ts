@@ -13,3 +13,4 @@ export * from "./GradientHeader";
 export * from "./IconButton";
 export * from "./Skeleton";
 export * from "./WebFrame";
+export * from "./TextLink";

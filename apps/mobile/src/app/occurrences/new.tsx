@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +8,7 @@ import { KeyboardScreen, PrimaryButton } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
 
 const pickPhotos = createPhotoPicker();
 
@@ -63,7 +64,7 @@ export default function NewOccurrence() {
     try {
       const { occurrence, failedPhotos } = await saveOccurrence(client, input, photos);
       if (failedPhotos > 0) {
-        Alert.alert(
+        showAlert(
           "Alerta emitido",
           `${failedPhotos === 1 ? "Uma foto não foi enviada" : `${failedPhotos} fotos não foram enviadas`}. O alerta já está valendo.`,
         );

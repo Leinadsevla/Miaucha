@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from "react";
-import { Alert, Linking, Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { getCurrentLocation } from "@/features/location";
 import { MapScreen, mapCache } from "@/features/map";
 import { createDeviceDirections, useOccurrencesClient } from "@/features/occurrences";
+import { showAlert } from "@/lib/dialog";
 
-const showDirections = createDeviceDirections({ Linking, Alert, Platform });
+const showDirections = createDeviceDirections({ Linking, Alert: { alert: showAlert }, Platform });
 
 export default function MapTab() {
   const client = useOccurrencesClient();
