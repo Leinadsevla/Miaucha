@@ -30,7 +30,8 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
             accessibilityLabel={r.label}
             accessibilityState={{ selected: reason === r.value }}
             onPress={() => setReason(r.value)}
-            className={cn("rounded-xl border px-3 py-2", reason === r.value ? "border-primary bg-primary-soft" : "border-border bg-white")}
+            className={cn("justify-center rounded-xl border-2 px-3", reason === r.value ? "border-primary bg-primary-soft" : "border-border bg-white")}
+            style={{ minHeight: 44 }}
           >
             <Text className="font-nunito-semibold text-sm text-foreground">{r.label}</Text>
           </Pressable>
@@ -74,7 +75,7 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
 
 function Option({ icon, label, onPress }: { icon: React.ReactNode; label: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="flex-row items-center gap-3 rounded-xl px-2 py-2.5 active:bg-muted">
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="flex-row items-center gap-3 rounded-xl px-2 active:bg-muted" style={{ minHeight: 48 }}>
       {icon}
       <Text className="font-nunito-semibold text-sm text-foreground">{label}</Text>
     </Pressable>

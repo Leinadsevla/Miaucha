@@ -1,5 +1,5 @@
 import type { ChatConversation, ChatMessage } from "@miaucha/shared";
-import { applyCatchUp, applyIncoming, applyRead, catchUpMessages, formatMessageTime, lastMessagePreview, mergeMessages, upsertConversation } from "../chatState";
+import { applyCatchUp, applyIncoming, applyRead, catchUpMessages, formatMessageTime, lastMessagePreview, mergeMessages, upsertConversation, sendsOnKey } from "../chatState";
 
 const msg = (id: string, createdAt: string, data: Partial<ChatMessage> = {}): ChatMessage => ({
   id,
@@ -161,5 +161,18 @@ describe("applyCatchUp", () => {
 
   it("com reset descarta o que é mais antigo que o buraco, mas mantém o que chegou pelo socket durante a busca", () => {
     expect(applyCatchUp([live, old], { messages: [p2, p1], reset: true, nextCursor: "p1" }).map((m) => m.id)).toEqual(["live", "p2", "p1"]);
+  });
+});
+
+describe("sendsOnKey (Enter no campo de mensagem)", () => {
+  it("no navegador, Enter envia e Shift+Enter quebra a linha", () => {
+    expect(sendsOnKey("web", "Enter", false)).toBe(true);
+    expect(sendsOnKey("web", "Enter", true)).toBe(false);
+    expect(sendsOnKey("web", "a", false)).toBe(false);
+  });
+
+  it("no aparelho, Enter sempre quebra a linha (o botão Enviar é que envia)", () => {
+    expect(sendsOnKey("android", "Enter", false)).toBe(false);
+    expect(sendsOnKey("ios", "Enter", false)).toBe(false);
   });
 });

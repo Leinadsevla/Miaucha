@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
-import { Image } from "expo-image";
+import { ScrollView, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { CheckCircle2, ChevronLeft, Clock, Eye, MapPin, Pencil, MessageCircle, Navigation, Palette, PawPrint, UserRound } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, speciesLabel, formatTimeAgo, occurrenceStyle, type LatLng, type PublicOccurrence } from "@miaucha/shared";
-import { Card, PrimaryButton, SectionLabel, SpeciesIcon, StatusBadge } from "@/components";
+import { colors, elevation, speciesLabel, formatTimeAgo, occurrenceStyle, withAlpha, type LatLng, type PublicOccurrence } from "@miaucha/shared";
+import { Card, IconButton, PhotoCarousel, PrimaryButton, SectionLabel, SpeciesIcon, StatusBadge } from "@/components";
 
-const PHOTO_HEIGHT = 288;
-const OVERLAY = "rgba(0, 0, 0, 0.35)";
+const PHOTO_HEIGHT = 320;
 const NOT_INFORMED = "Não informado";
 
 type Props = {
@@ -37,8 +36,8 @@ export function occurrenceTitle(o: Pick<PublicOccurrence, "petName" | "species" 
 
 function Info({ icon, label, value }: { icon: ReactNode; label: string; value: string | null }) {
   return (
-    <Card className="w-[48%] gap-1 p-3">
-      {icon}
+    <Card className="w-[48%] gap-1 p-3.5">
+      <View className="mb-1 h-9 w-9 items-center justify-center rounded-xl bg-primary-soft">{icon}</View>
       <Text className="font-sans text-xs text-muted-foreground">{label}</Text>
       <Text className="font-nunito-bold text-sm text-foreground">{value || NOT_INFORMED}</Text>
     </Card>
@@ -60,7 +59,6 @@ export function OccurrenceDetails({
   chatError,
   now = new Date(),
 }: Props) {
-  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const title = occurrenceTitle(o);
   const subtitle = [o.breed, o.color].filter(Boolean).join(" · ");
@@ -72,48 +70,33 @@ export function OccurrenceDetails({
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={{ height: PHOTO_HEIGHT }} className="bg-muted">
           {o.photoUrls.length > 0 ? (
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-              {o.photoUrls.map((url, i) => (
-                <Image
-                  key={url}
-                  accessibilityLabel={`Foto ${i + 1} de ${o.photoUrls.length} de ${title}`}
-                  source={{ uri: url }}
-                  contentFit="cover"
-                  style={{ width, height: PHOTO_HEIGHT }}
-                />
-              ))}
-            </ScrollView>
+            <PhotoCarousel urls={o.photoUrls} label={title} height={PHOTO_HEIGHT} />
           ) : (
             <View accessibilityLabel={`${title} ainda não tem foto`} className="flex-1 items-center justify-center">
               <SpeciesIcon species={o.species} size={72} color={colors.mutedForeground} />
             </View>
           )}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            onPress={onBack}
-            style={{ top: insets.top + 12, backgroundColor: OVERLAY }}
-            className="absolute left-4 h-10 w-10 items-center justify-center rounded-2xl"
+          <LinearGradient
+            pointerEvents="none"
+            colors={[withAlpha(colors.foreground, 0), withAlpha(colors.foreground, 0.8)]}
+            style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingBottom: 20, paddingTop: 48, gap: 6 }}
           >
-            <ChevronLeft size={20} color={colors.white} />
-          </Pressable>
-
-          <View pointerEvents="none" style={{ backgroundColor: OVERLAY }} className="absolute bottom-0 left-0 right-0 gap-1 px-5 pb-4 pt-3">
-            <View className="self-start rounded-full bg-white">
-              <StatusBadge type={o.type} />
-            </View>
-            <Text accessibilityRole="header" className="font-nunito-black text-2xl text-white">
+            <StatusBadge type={o.type} size="lg" />
+            <Text accessibilityRole="header" className="font-nunito-black text-[28px] leading-9 text-white">
               {title}
             </Text>
-            {subtitle ? <Text className="font-sans text-sm text-white">{subtitle}</Text> : null}
-            {o.photoUrls.length > 1 ? <Text className="font-sans text-xs text-white">Deslize para ver as {o.photoUrls.length} fotos</Text> : null}
+            {subtitle ? <Text className="font-nunito-semibold text-sm text-white">{subtitle}</Text> : null}
+          </LinearGradient>
+
+          <View className="absolute left-4" style={{ top: insets.top + 12 }}>
+            <IconButton label="Voltar" tone="overlay" icon={<ChevronLeft size={22} color={colors.white} />} onPress={onBack} />
           </View>
         </View>
 
-        <View className="gap-3 px-5 pt-4">
+        <View className="gap-4 px-5 pt-5">
           {resolved ? (
-            <View className="flex-row items-center gap-2 rounded-2xl p-3" style={{ backgroundColor: `${colors.found}1F` }}>
+            <View className="flex-row items-center gap-2 rounded-2xl p-3.5" style={{ backgroundColor: withAlpha(colors.found, 0.15) }}>
               <CheckCircle2 size={18} color={colors.found} />
               <Text className="font-nunito-bold text-sm text-foreground">Este caso foi resolvido</Text>
             </View>
@@ -121,35 +104,35 @@ export function OccurrenceDetails({
 
           <Card className="flex-row items-center gap-3">
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary-soft">
-              <UserRound size={22} color={colors.primary} />
+              <UserRound size={22} color={colors.primaryDeep} />
             </View>
             <View className="flex-1">
               <Text className="font-sans text-xs text-muted-foreground">Registrado por</Text>
-              <Text className="font-nunito-bold text-sm text-foreground">{o.authorPseudonym}</Text>
+              <Text className="font-nunito-black text-base text-foreground">{o.authorPseudonym}</Text>
               <View className="mt-0.5 flex-row items-center gap-1">
-                <Clock size={11} color={colors.accent} />
+                <Clock size={13} color={colors.accent} />
                 <Text className="font-sans text-xs text-muted-foreground">{timeAgo}</Text>
               </View>
             </View>
           </Card>
 
           <View className="flex-row flex-wrap justify-between gap-y-3">
-            <Info icon={<SpeciesIcon species={o.species} size={18} color={colors.primary} />} label="Espécie" value={speciesLabel(o.species)} />
-            <Info icon={<PawPrint size={18} color={colors.primary} />} label="Raça" value={o.breed} />
-            <Info icon={<Palette size={18} color={colors.primary} />} label="Cor" value={o.color} />
-            <Info icon={<Clock size={18} color={colors.primary} />} label="Registrado" value={timeAgo} />
+            <Info icon={<SpeciesIcon species={o.species} size={18} color={colors.primaryDeep} />} label="Espécie" value={speciesLabel(o.species)} />
+            <Info icon={<PawPrint size={18} color={colors.primaryDeep} />} label="Raça" value={o.breed} />
+            <Info icon={<Palette size={18} color={colors.primaryDeep} />} label="Cor" value={o.color} />
+            <Info icon={<Clock size={18} color={colors.primaryDeep} />} label="Registrado" value={timeAgo} />
           </View>
 
           {o.description ? (
             <Card>
               <SectionLabel>Descrição</SectionLabel>
-              <Text className="font-sans text-sm text-foreground">{o.description}</Text>
+              <Text className="font-sans text-base leading-6 text-foreground">{o.description}</Text>
             </Card>
           ) : null}
 
           <Card className="gap-3">
             <View className="flex-row items-start gap-2">
-              <MapPin size={14} color={colors.accent} />
+              <MapPin size={18} color={colors.accent} />
               <View className="flex-1">
                 <Text className="font-nunito-bold text-xs uppercase text-muted-foreground">
                   {o.type === "lost" ? "Último local visto" : "Onde foi"}
@@ -173,7 +156,7 @@ export function OccurrenceDetails({
               title="Vi este pet"
               variant="primary"
               onPress={onReportSighting}
-              icon={<Eye size={16} color={colors.white} />}
+              icon={<Eye size={18} color={colors.foreground} />}
             />
           ) : null}
 
@@ -189,21 +172,21 @@ export function OccurrenceDetails({
                 variant="primary"
                 onPress={onResolve}
                 loading={resolving}
-                icon={<CheckCircle2 size={16} color={colors.white} />}
+                icon={<CheckCircle2 size={18} color={colors.foreground} />}
               />
             </>
           ) : null}
         </View>
       </ScrollView>
 
-      <View className="gap-1 border-t border-border bg-white px-5 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
+      <View className="gap-1.5 border-t border-border bg-white px-5 pt-3" style={[{ paddingBottom: insets.bottom + 12 }, elevation.raised]}>
         {chatError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{chatError}</Text> : null}
         <PrimaryButton
           title="Conversar"
           onPress={onChat}
           disabled={o.isMine}
           loading={chatLoading}
-          icon={<MessageCircle size={16} color={colors.white} />}
+          icon={<MessageCircle size={18} color={colors.white} />}
         />
         <Text className="text-center font-sans text-xs text-muted-foreground">
           {o.isMine ? "Esta ocorrência é sua: as conversas aparecem na aba Chat" : `Converse com ${o.authorPseudonym} sem expor seu contato`}

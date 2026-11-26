@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useImperativeHandle, useRef, useS
 import { createPortal } from "react-dom";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import { Map as MapLibreMap, Marker } from "maplibre-gl";
-import { colors, type LatLng } from "@miaucha/shared";
+import { colors, withAlpha, type LatLng } from "@miaucha/shared";
 import { boundsToRegion, regionToBounds, type Region } from "./region";
 
 export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
@@ -37,6 +37,13 @@ function userDot(): HTMLElement {
     boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
   });
   dot.setAttribute("aria-label", "Sua localização");
+  // Anel que pulsa em volta do ponto (desligado se o sistema pede menos movimento).
+  if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    dot.animate(
+      [{ boxShadow: `0 0 0 0 ${withAlpha(colors.accent, 0.45)}` }, { boxShadow: `0 0 0 14px ${withAlpha(colors.accent, 0)}` }],
+      { duration: 1600, iterations: Infinity },
+    );
+  }
   return dot;
 }
 

@@ -16,3 +16,4 @@ export * from "./WebFrame";
 export * from "./TextLink";
 export * from "./FilterChips";
 export * from "./TabHeader";
+export * from "./PhotoCarousel";

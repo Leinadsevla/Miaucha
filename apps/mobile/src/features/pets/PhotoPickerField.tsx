@@ -33,29 +33,31 @@ export function PhotoPickerField({ photos, onChange, onPickPhotos, max, existing
       <View className="flex-row flex-wrap gap-3">
         {existing.map((photo, i) => (
           <View key={photo.id} className="relative">
-            <Image accessibilityLabel={`Foto salva ${i + 1}`} source={{ uri: photo.url }} style={{ width: 72, height: 72, borderRadius: 16 }} />
+            <Image accessibilityLabel={`Foto salva ${i + 1}`} source={{ uri: photo.url }} style={{ width: 88, height: 88, borderRadius: 18 }} />
             {onRemoveExisting ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Remover foto salva ${i + 1}`}
                 onPress={() => onRemoveExisting(photo.id)}
-                className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full bg-lost"
+                hitSlop={8}
+                className="absolute -right-2 -top-2 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-foreground active:opacity-80"
               >
-                <X size={14} color={colors.white} />
+                <X size={16} color={colors.white} />
               </Pressable>
             ) : null}
           </View>
         ))}
         {photos.map((photo, i) => (
           <View key={photo.uri} className="relative">
-            <Image accessibilityLabel={`Foto ${i + 1}`} source={{ uri: photo.uri }} style={{ width: 72, height: 72, borderRadius: 16 }} />
+            <Image accessibilityLabel={`Foto ${i + 1}`} source={{ uri: photo.uri }} style={{ width: 88, height: 88, borderRadius: 18 }} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Remover foto ${i + 1}`}
               onPress={() => onChange(photos.filter((_, j) => j !== i))}
-              className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full bg-lost"
+              hitSlop={8}
+              className="absolute -right-2 -top-2 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-foreground active:opacity-80"
             >
-              <X size={14} color={colors.white} />
+              <X size={16} color={colors.white} />
             </Pressable>
           </View>
         ))}
@@ -64,14 +66,14 @@ export function PhotoPickerField({ photos, onChange, onPickPhotos, max, existing
             accessibilityRole="button"
             accessibilityLabel="Adicionar foto"
             onPress={addPhotos}
-            className="h-[72px] w-[72px] items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5"
+            className="h-[88px] w-[88px] items-center justify-center gap-1 rounded-[18px] border-2 border-dashed border-primary bg-primary-soft active:opacity-80"
           >
-            <Camera size={20} color={colors.primary} />
-            <Text className="font-nunito-bold text-[10px] text-primary">Adicionar</Text>
+            <Camera size={24} color={colors.primaryDeep} />
+            <Text className="font-nunito-bold text-xs text-foreground">Adicionar</Text>
           </Pressable>
         ) : null}
       </View>
-      <Text className="mt-2 font-sans text-[10px] text-muted-foreground">JPG, PNG ou WebP, até 10 MB, no máximo {max} fotos</Text>
+      <Text className="mt-2 font-sans text-xs text-muted-foreground">JPG, PNG ou WebP, até 10 MB, no máximo {max} fotos</Text>
       {photoError ? <Text className="mt-1 font-nunito-semibold text-xs text-lost">{photoError}</Text> : null}
     </View>
   );

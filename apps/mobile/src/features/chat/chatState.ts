@@ -97,3 +97,8 @@ export function lastMessagePreview(message: ChatMessage | null): string {
   const body = message.kind === "photo" ? "Foto" : message.kind === "location" ? "Localização aproximada" : (message.text ?? "");
   return message.mine ? `Você: ${body}` : body;
 }
+
+/** Enter envia a mensagem só no navegador (teclado físico); Shift+Enter quebra a linha. No aparelho, Enter é quebra de linha. */
+export function sendsOnKey(os: string, key: string, shift: boolean): boolean {
+  return os === "web" && key === "Enter" && !shift;
+}

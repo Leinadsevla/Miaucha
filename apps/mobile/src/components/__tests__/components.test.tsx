@@ -288,3 +288,16 @@ describe("WebFrame", () => {
     expect(screen.getByTestId("web-frame")).toHaveStyle({ maxWidth: 480, width: "100%" });
   });
 });
+
+describe("StatusBadge (acabamento)", () => {
+  it("o selo grande de Perdido tem o ponto que pulsa; os outros e o pequeno não", async () => {
+    await render(
+      <>
+        <StatusBadge type="lost" size="lg" />
+        <StatusBadge type="lost" />
+        <StatusBadge type="seen" size="lg" />
+      </>,
+    );
+    expect(screen.getAllByTestId("status-pulse")).toHaveLength(1);
+  });
+});
