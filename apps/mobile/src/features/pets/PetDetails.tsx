@@ -43,8 +43,8 @@ export function PetDetails({
         {pet.photos.length > 0 ? (
           <PhotoCarousel urls={pet.photos.map((p) => p.url)} label={pet.name} height={PHOTO_HEIGHT} />
         ) : (
-          <View accessibilityLabel={`${pet.name} ainda não tem foto`} className="flex-1 items-center justify-center">
-            <SpeciesIcon species={pet.species} size={72} color={colors.mutedForeground} />
+          <View accessibilityLabel={`${pet.name} ainda não tem foto`} className="flex-1 items-center bg-primary-soft" style={{ paddingTop: 72 }}>
+            <SpeciesIcon species={pet.species} size={96} color={colors.primaryDeep} />
           </View>
         )}
 

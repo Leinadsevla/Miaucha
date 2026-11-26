@@ -72,8 +72,8 @@ export function OccurrenceDetails({
           {o.photoUrls.length > 0 ? (
             <PhotoCarousel urls={o.photoUrls} label={title} height={PHOTO_HEIGHT} />
           ) : (
-            <View accessibilityLabel={`${title} ainda não tem foto`} className="flex-1 items-center justify-center">
-              <SpeciesIcon species={o.species} size={72} color={colors.mutedForeground} />
+            <View accessibilityLabel={`${title} ainda não tem foto`} className="flex-1 items-center bg-primary-soft" style={{ paddingTop: 72 }}>
+              <SpeciesIcon species={o.species} size={96} color={colors.primaryDeep} />
             </View>
           )}
 
