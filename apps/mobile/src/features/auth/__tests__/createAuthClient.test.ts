@@ -1,4 +1,4 @@
-import { chooseApiUrl, chooseAuthClient } from "../createAuthClient";
+import { chooseApiUrl, chooseAuthClient, googleSignInFor } from "../createAuthClient";
 
 describe("chooseAuthClient", () => {
   it("com a URL da API → cliente HTTP", () => {
@@ -37,5 +37,21 @@ describe("chooseApiUrl", () => {
   it("no aparelho, a variável da web é ignorada", () => {
     expect(chooseApiUrl({ os: "android", apiUrl: render, webApiUrl: local })).toBe(render);
     expect(chooseApiUrl({ os: "ios", apiUrl: undefined, webApiUrl: local })).toBeUndefined();
+  });
+});
+
+describe("googleSignInFor", () => {
+  it("na web com o Client ID configurado → login com Google de verdade", () => {
+    const factory = jest.fn(() => ({ getIdToken: async () => "t" }));
+    expect(googleSignInFor({ os: "web", webClientId: " abc.apps.googleusercontent.com ", create: factory })).toBeDefined();
+    expect(factory).toHaveBeenCalledWith("abc.apps.googleusercontent.com");
+  });
+
+  it("sem Client ID, ou fora da web (o aparelho precisa do login nativo) → indisponível", () => {
+    const factory = jest.fn(() => ({ getIdToken: async () => "t" }));
+    expect(googleSignInFor({ os: "web", webClientId: undefined, create: factory })).toBeUndefined();
+    expect(googleSignInFor({ os: "web", webClientId: "  ", create: factory })).toBeUndefined();
+    expect(googleSignInFor({ os: "android", webClientId: "abc", create: factory })).toBeUndefined();
+    expect(factory).not.toHaveBeenCalled();
   });
 });

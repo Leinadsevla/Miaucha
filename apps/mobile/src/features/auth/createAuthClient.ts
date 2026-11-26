@@ -9,7 +9,8 @@ import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/f
 import { createHttpProfileClient, createMockProfileClient, type ProfileClient } from "@/features/profile/profileClient";
 import type { AuthClient } from "./AuthProvider";
 import { createApiSession } from "./apiSession";
-import { createHttpAuthClient } from "./httpAuthClient";
+import { createBrowserGoogleSignIn } from "./googleWeb";
+import { createHttpAuthClient, type GoogleSignIn } from "./httpAuthClient";
 import { createMockAuthClient } from "./mockAuthClient";
 import { createSecureSessionStorage } from "./sessionStorage";
 
@@ -32,6 +33,24 @@ export function chooseAuthClient({ apiUrl, isDev, demo = false }: { apiUrl: stri
  */
 export function chooseApiUrl({ os, apiUrl, webApiUrl }: { os: string; apiUrl: string | undefined; webApiUrl: string | undefined }): string | undefined {
   return os === "web" && webApiUrl?.trim() ? webApiUrl.trim() : apiUrl;
+}
+
+/**
+ * Login com Google de verdade. Na web, com `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Client ID do tipo
+ * "Aplicativo da Web", que também precisa estar em `GOOGLE_CLIENT_IDS` na API). No aparelho ainda falta
+ * o login nativo (`@react-native-google-signin`, com development build): lá fica indisponível.
+ */
+export function googleSignInFor({
+  os,
+  webClientId,
+  create = createBrowserGoogleSignIn,
+}: {
+  os: string;
+  webClientId: string | undefined;
+  create?: (clientId: string) => GoogleSignIn;
+}): GoogleSignIn | undefined {
+  const clientId = webClientId?.trim();
+  return os === "web" && clientId ? create(clientId) : undefined;
 }
 
 export type AppClients = {
@@ -72,7 +91,12 @@ export function createClients(): AppClients {
   const session = createApiSession({ baseUrl: apiUrl!, storage });
   const upload = createFileUploader();
   return {
-    auth: createHttpAuthClient({ baseUrl: apiUrl!, storage, session }),
+    auth: createHttpAuthClient({
+      baseUrl: apiUrl!,
+      storage,
+      session,
+      google: googleSignInFor({ os: Platform.OS, webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }),
+    }),
     pets: createHttpPetsClient({ session, upload }),
     occurrences: createHttpOccurrencesClient({ session, upload }),
     alerts: createHttpAlertsClient({ session }),
