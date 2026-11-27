@@ -1,8 +1,9 @@
-import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceType, type PublicOccurrence, type Species, type SpeciesFilter } from "@miaucha/shared";
+import { distanceMeters, publicPoint, type OccurrenceInput, type OccurrenceUpdate, type OccurrenceType, type PublicOccurrence, type Species, type SpeciesFilter } from "@miaucha/shared";
 import type { ApiSession } from "@/features/auth/apiSession";
 import { bboxParam, type BBox } from "@/features/map/region";
 import { uploadPhotoVia, type Uploader } from "@/features/pets/petsClient";
 import { checkPhoto, type PickedPhoto } from "@/features/pets/photos";
+import { demoPhotoUri, type DemoPhoto } from "@/features/demo/demoPhotos";
 
 export type NearbyQuery = { lat: number; lng: number; radiusKm: number };
 /** Filtros aceitos pelas buscas da API (MP-05). */
@@ -21,6 +22,9 @@ export type OccurrencesClient = {
   create(input: OccurrenceInput): Promise<PublicOccurrence>;
   addPhoto(id: string, photo: PickedPhoto): Promise<OccurrencePhoto>;
   resolve(id: string): Promise<PublicOccurrence>;
+  /** Edição pelo autor; `location` só quando há um local novo. */
+  update(id: string, input: OccurrenceUpdate): Promise<PublicOccurrence>;
+  removePhoto(id: string, photoId: string): Promise<void>;
 };
 
 export function createHttpOccurrencesClient({ session, upload }: { session: ApiSession; upload: Uploader }): OccurrencesClient {
@@ -39,6 +43,10 @@ export function createHttpOccurrencesClient({ session, upload }: { session: ApiS
     create: (input) => session.authed<PublicOccurrence>("POST", "/occurrences", input),
     addPhoto: (id, photo) => uploadPhotoVia(session, upload, `/occurrences/${encodeURIComponent(id)}`, photo),
     resolve: (id) => session.authed<PublicOccurrence>("POST", `/occurrences/${encodeURIComponent(id)}/resolve`),
+    update: (id, { location, ...data }) =>
+      session.authed<PublicOccurrence>("PATCH", `/occurrences/${encodeURIComponent(id)}`, { ...data, ...(location ?? {}) }),
+    removePhoto: async (id, photoId) =>
+      void (await session.authed("DELETE", `/occurrences/${encodeURIComponent(id)}/photos/${encodeURIComponent(photoId)}`)),
   };
 }
 
@@ -57,26 +65,58 @@ export async function saveOccurrence(client: OccurrencesClient, input: Occurrenc
   return { occurrence: { ...occurrence, photoUrls: [...occurrence.photoUrls, ...uploaded] }, failedPhotos };
 }
 
+/** Salva a edição, remove as fotos marcadas e envia as novas. Uma foto que falha não desfaz o resto. */
+export async function updateOccurrence(
+  client: OccurrencesClient,
+  id: string,
+  input: OccurrenceUpdate,
+  newPhotos: PickedPhoto[],
+  removedPhotoIds: string[],
+) {
+  await client.update(id, input);
+  let failedPhotos = 0;
+  for (const photoId of removedPhotoIds) {
+    try {
+      await client.removePhoto(id, photoId);
+    } catch {
+      failedPhotos++;
+    }
+  }
+  for (const photo of newPhotos) {
+    try {
+      await client.addPhoto(id, photo);
+    } catch {
+      failedPhotos++;
+    }
+  }
+  return { failedPhotos };
+}
+
 const DAY = 24 * 3600 * 1000;
 
-/** Exemplos para o modo sem API: aparecem em volta do primeiro ponto buscado. */
-function sampleOccurrences(lat: number, lng: number): PublicOccurrence[] {
-  const base = { breed: null, color: null, description: null, photoUrls: [], status: "open" as const, isMine: false };
+type PhotoOf = (photo: DemoPhoto) => string;
+
+/** Exemplos para o modo sem API: aparecem em volta do primeiro ponto buscado, cada um com a sua foto. */
+function sampleOccurrences(lat: number, lng: number, photo: PhotoOf): PublicOccurrence[] {
+  const base = { breed: null, color: null, description: null, status: "open" as const, isMine: false };
   const at = (north: number, east: number) => ({ lat: lat + north / 111_195, lng: lng + east / (111_195 * Math.cos((lat * Math.PI) / 180)) });
+  const photos = (key: DemoPhoto) => [photo(key)].filter(Boolean);
+  const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
   return [
-    { ...base, id: "exemplo-1", type: "lost", species: "dog", petName: "Thor", breed: "Golden Retriever", publicLocation: at(300, 200), approxAddress: "Perto da praça", authorPseudonym: "Tutor Laranja 42", createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString() },
-    { ...base, id: "exemplo-2", type: "seen", species: "cat", petName: null, color: "Preto", publicLocation: at(-800, 500), approxAddress: "Rua das Flores", authorPseudonym: "Vizinho Azul 7", createdAt: new Date(Date.now() - DAY).toISOString() },
-    { ...base, id: "exemplo-3", type: "found", species: "dog", petName: null, publicLocation: at(1500, -900), approxAddress: null, authorPseudonym: "Amigo Verde 15", createdAt: new Date(Date.now() - 3 * DAY).toISOString() },
+    { ...base, id: "exemplo-1", type: "lost", species: "dog", petName: "Thor", breed: "Golden Retriever", color: "Dourado", description: "Fugiu pelo portão no fim da tarde. É dócil e atende pelo nome.", photoUrls: photos("goldenDog"), publicLocation: at(300, 200), approxAddress: "Perto da praça", authorPseudonym: "Tutor Laranja 42", createdAt: ago(2 * 3600 * 1000) },
+    { ...base, id: "exemplo-4", type: "lost", species: "cat", petName: "Mia", breed: "Sem raça definida", color: "Laranja", description: "Usa coleira azul. Some quando ouve barulho alto.", photoUrls: photos("orangeCat"), publicLocation: at(-450, -350), approxAddress: "Vila Nova", authorPseudonym: "Tutora Lilás 3", createdAt: ago(5 * 3600 * 1000) },
+    { ...base, id: "exemplo-2", type: "seen", species: "cat", petName: null, color: "Preto e branco", description: "Estava em cima do muro, parecia assustado.", photoUrls: photos("blackWhiteCat"), publicLocation: at(-800, 500), approxAddress: "Rua das Flores", authorPseudonym: "Vizinho Azul 7", createdAt: ago(DAY) },
+    { ...base, id: "exemplo-3", type: "found", species: "dog", petName: null, breed: "Beagle", color: "Tricolor", description: "Está comigo, bem cuidado. Sem plaquinha.", photoUrls: photos("beagle"), publicLocation: at(1500, -900), approxAddress: "Jardim das Acácias", authorPseudonym: "Amigo Verde 15", createdAt: ago(3 * DAY) },
   ];
 }
 
-/** Ocorrências em memória para desenvolver as telas sem a API. */
-export function createMockOccurrencesClient({ seed = true }: { seed?: boolean } = {}): OccurrencesClient {
+/** Ocorrências em memória para desenvolver as telas sem a API. `photo`: de onde vêm as fotos dos exemplos. */
+export function createMockOccurrencesClient({ seed = true, photo = demoPhotoUri }: { seed?: boolean; photo?: PhotoOf } = {}): OccurrencesClient {
   const items: PublicOccurrence[] = [];
   let seeded = !seed;
   const seedAround = (lat: number, lng: number) => {
     if (seeded) return;
-    items.push(...sampleOccurrences(lat, lng));
+    items.push(...sampleOccurrences(lat, lng, photo));
     seeded = true;
   };
   const find = (id: string) => {
@@ -134,6 +174,24 @@ export function createMockOccurrencesClient({ seed = true }: { seed?: boolean } 
     async resolve(id) {
       find(id).status = "resolved";
       return find(id);
+    },
+    async update(id, { location, ...data }) {
+      const o = find(id);
+      Object.assign(o, {
+        species: data.species,
+        petName: data.petName.trim() || null,
+        breed: data.breed.trim() || null,
+        color: data.color.trim() || null,
+        description: data.description.trim() || null,
+        approxAddress: data.approxAddress.trim() || null,
+      });
+      if (location) o.publicLocation = publicPoint(location.lat, location.lng);
+      return o;
+    },
+    async removePhoto(id, photoId) {
+      const o = find(id);
+      const index = Number(photoId.split("-").pop()) - 1;
+      o.photoUrls = o.photoUrls.filter((_, i) => i !== index);
     },
   };
 }

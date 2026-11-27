@@ -94,6 +94,62 @@ describe("AlertsProvider", () => {
     expect(s.deps.getLocation).toHaveBeenCalledTimes(2);
   });
 
+  it("push que falhou (ex.: API acordando) tenta de novo ao voltar para o primeiro plano", async () => {
+    const s = setup();
+    s.registerPushToken.mockRejectedValueOnce(new Error("tempo esgotado"));
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    expect(await screen.findByText(/Não foi possível salvar este aparelho/)).toBeOnTheScreen();
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(await screen.findByText("Notificações ativas neste aparelho.")).toBeOnTheScreen();
+    expect(s.registerPushToken).toHaveBeenCalledTimes(2);
+  });
+
+  it("push negado não pergunta de novo ao voltar; se liberou nas configurações, registra", async () => {
+    const s = setup();
+    let granted = false;
+    s.notifications.getPermissionsAsync = async () => ({ granted, canAskAgain: true });
+    const request = jest.fn(async () => ({ granted: false, canAskAgain: true }));
+    s.notifications.requestPermissionsAsync = request;
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    expect(await screen.findByText(/As notificações estão bloqueadas/)).toBeOnTheScreen();
+
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(request).toHaveBeenCalledTimes(1);
+
+    granted = true;
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(await screen.findByText("Notificações ativas neste aparelho.")).toBeOnTheScreen();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("se a primeira tentativa falhou antes de chegar à permissão, a próxima ainda pergunta", async () => {
+    const s = setup();
+    let channelFails = true;
+    s.notifications.setNotificationChannelAsync = async () => {
+      if (channelFails) throw new Error("canal indisponível");
+      return null;
+    };
+    s.notifications.getPermissionsAsync = async () => ({ granted: false, canAskAgain: true });
+    const request = jest.fn(async () => ({ granted: true, canAskAgain: true }));
+    s.notifications.requestPermissionsAsync = request;
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    expect(await screen.findByText(/O aparelho não gerou o token/)).toBeOnTheScreen();
+    expect(request).not.toHaveBeenCalled();
+
+    channelFails = false;
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Notificações ativas neste aparelho.")).toBeOnTheScreen();
+  });
+
+  it("push já registrado não registra de novo ao voltar para o primeiro plano", async () => {
+    const s = setup();
+    await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);
+    await screen.findByText("Notificações ativas neste aparelho.");
+    await act(async () => s.appStateListeners.forEach((l) => l("active")));
+    expect(s.registerPushToken).toHaveBeenCalledTimes(1);
+  });
+
   it("AL-08: tocar na notificação abre a ocorrência e marca o alerta como visto", async () => {
     const s = setup();
     await render(<AlertsProvider client={s.client} active deps={s.deps} onOpenOccurrence={s.onOpenOccurrence}><PushStatus /></AlertsProvider>);

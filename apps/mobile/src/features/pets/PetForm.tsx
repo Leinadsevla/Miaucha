@@ -85,8 +85,8 @@ export function PetForm({ onSubmit, onPickPhotos, loading, serverError, initial,
         ))}
       </Card>
 
-      {serverError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{serverError}</Text> : null}
-      <PrimaryButton title={submitLabel} variant="primary" onPress={submit} loading={loading} />
+      {serverError ? <Text className="text-center font-ui-semibold text-sm text-lost">{serverError}</Text> : null}
+      <PrimaryButton title={submitLabel} variant="soft" onPress={submit} loading={loading} />
     </View>
   );
 }

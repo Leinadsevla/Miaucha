@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "982947098152",
+    "project_id": "miaucha-e1f9e",
+    "storage_bucket": "miaucha-e1f9e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:982947098152:android:0eedd894fab7a35c9d0f1d",
+        "android_client_info": {
+          "package_name": "br.tcc.miaucha"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtH7XjfYxrfhIiDUoc8JP27zeqNypInFI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,5 @@
 import "../../global.css";
+import "@/lib/webStyles";
 import { useEffect, useState, type ReactNode } from "react";
 import { Stack, router, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -6,26 +7,33 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   useFonts,
-  Nunito_400Regular,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_900Black,
-} from "@expo-google-fonts/nunito";
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from "@expo-google-fonts/plus-jakarta-sans";
 import { AlertsProvider } from "@/features/alerts";
 import { createAlertsRuntimeDeps } from "@/features/alerts/runtime";
-import { AuthProvider, createClients, redirectTarget, routeFor, useAuth, type AppClients } from "@/features/auth";
+import { AuthProvider, DemoBadge, DemoInfoProvider, createClients, redirectTarget, routeFor, useAuth, withDemoGoogle, type AppClients } from "@/features/auth";
 import { SessionChatProvider } from "@/features/chat";
 import { OccurrencesClientProvider } from "@/features/occurrences";
 import { onboardingStore, shouldShowOnboarding } from "@/features/onboarding";
 import { PetsClientProvider } from "@/features/pets";
+import { statusBarStyleFor } from "@/lib/statusBar";
 import { ProfileClientProvider } from "@/features/profile";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_900Black });
+  const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
   // API real quando EXPO_PUBLIC_API_URL existe (ver apps/mobile/.env.example); senão, clientes falsos em dev.
-  const [clients] = useState(createClients);
+  // `generation` muda quando o botão do Google (sem credenciais, em dev) entra ou sai da demonstração:
+  // o app inteiro remonta com os clientes novos e restaura a sessão deles.
+  const [{ clients, generation }, setSession] = useState(() => {
+    const swap = (next: AppClients) => setSession((current) => ({ clients: next, generation: current.generation + 1 }));
+    return { clients: withDemoGoogle(createClients(), { isDev: __DEV__, swap }), generation: 0 };
+  });
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
@@ -35,14 +43,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider client={clients.auth}>
+      <DemoInfoProvider value={{ demo: clients.demo, googleIsDemo: !!clients.googleIsDemo }}>
+      <AuthProvider key={generation} client={clients.auth}>
         <PetsClientProvider client={clients.pets}>
           <OccurrencesClientProvider client={clients.occurrences}>
             <ProfileClientProvider client={clients.profile}>
               <AlertsLayer clients={clients}>
                 <SessionChatProvider client={clients.chat} realtime={clients.chatRealtime}>
-                  <StatusBar style="light" />
+                  <RouteStatusBar />
                   <AuthGate />
+                  <DemoBadge />
                   <Stack screenOptions={{ headerShown: false }} />
                 </SessionChatProvider>
               </AlertsLayer>
@@ -50,8 +60,14 @@ export default function RootLayout() {
           </OccurrencesClientProvider>
         </PetsClientProvider>
       </AuthProvider>
+      </DemoInfoProvider>
     </SafeAreaProvider>
   );
+}
+
+/** Ícones da barra de status claros sobre foto, escuros sobre telas brancas. */
+function RouteStatusBar() {
+  return <StatusBar style={statusBarStyleFor(usePathname())} />;
 }
 
 /** Mantém o usuário na tela certa para o estado da sessão (login → código → consentimento → app). */
@@ -81,7 +97,7 @@ function AuthGate() {
 /** Alertas (S5) só com sessão e consentimento: região aproximada, push e toque na notificação (AL-08). */
 function AlertsLayer({ clients, children }: { clients: AppClients; children: ReactNode }) {
   const { state } = useAuth();
-  const [deps] = useState(() => createAlertsRuntimeDeps(clients.occurrences));
+  const [deps] = useState(() => createAlertsRuntimeDeps(clients.occurrences, clients.alerts));
   return (
     <AlertsProvider
       client={clients.alerts}

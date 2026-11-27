@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { Camera, ChevronLeft, ChevronRight, Mail, MapPin, MoreVertical, Send, ShieldAlert, UserRound } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CHAT_MESSAGE_MAX_LENGTH, colors, type ChatConversation, type ChatMessage, type ChatReportReason, type LatLng } from "@miaucha/shared";
-import { KEYBOARD_AVOIDING_BEHAVIOR, PrimaryButton } from "@/components";
+import { CHAT_MESSAGE_MAX_LENGTH, colors, elevation, withAlpha, type ChatConversation, type ChatMessage, type ChatReportReason, type LatLng } from "@miaucha/shared";
+import { IconButton, KEYBOARD_AVOIDING_BEHAVIOR, PrimaryButton } from "@/components";
 import type { GetLocation } from "@/features/location/currentLocation";
 import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { PickedPhoto } from "@/features/pets/photos";
 import type { ChatClient } from "./chatClient";
 import type { ChatRealtime } from "./chatRealtime";
-import { applyRead, mergeMessages } from "./chatState";
+import { applyCatchUp, applyRead, catchUpMessages, mergeMessages, newestCreatedAt, sendsOnKey } from "./chatState";
 import { ConversationOptions } from "./ConversationOptions";
 import { MessageBubble } from "./MessageBubble";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 type Props = {
   conversationId: string;
@@ -45,6 +46,9 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
   const [showOptions, setShowOptions] = useState(false);
   const [busy, setBusy] = useState(false);
   const active = useRef(true);
+  // Hora da mensagem mais nova que veio do servidor (carga, socket, recuperação). As enviadas por este aparelho
+  // não contam: depois de uma queda, a recuperação busca até aqui, e não até a última mensagem na tela.
+  const syncedAtRef = useRef<string | null>(null);
 
   const markRead = useCallback(() => {
     client.markRead(conversationId).catch(() => undefined);
@@ -53,6 +57,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
   const loadLatest = useCallback(async () => {
     try {
       const [found, page] = await Promise.all([client.get(conversationId), client.messages(conversationId)]);
+      syncedAtRef.current = newestCreatedAt(syncedAtRef.current, page.messages);
       if (!active.current) return;
       setConversation(found);
       setMessages((current) => mergeMessages(current, page.messages));
@@ -75,6 +80,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
     const offs = [
       realtime.on("message:new", ({ conversationId: id, message: m }) => {
         if (id !== conversationId) return;
+        syncedAtRef.current = newestCreatedAt(syncedAtRef.current, [m]);
         setMessages((current) => mergeMessages(current, [m]));
         if (!m.mine) markRead();
       }),
@@ -85,7 +91,14 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
         if (c.id === conversationId) setConversation(c);
       }),
       // Depois de cair, busca o que chegou enquanto estava desconectado.
-      realtime.onConnect(() => void client.messages(conversationId).then((page) => setMessages((current) => mergeMessages(current, page.messages)), () => undefined)),
+      realtime.onConnect(() => {
+        catchUpMessages(syncedAtRef.current, (before) => client.messages(conversationId, before)).then((result) => {
+          if (!active.current) return;
+          syncedAtRef.current = newestCreatedAt(syncedAtRef.current, result.messages);
+          setMessages((current) => applyCatchUp(current, result));
+          if (result.reset) setNextCursor(result.nextCursor);
+        }, () => undefined);
+      }),
     ];
     return () => offs.forEach((off) => off());
   }, [realtime, client, conversationId, markRead]);
@@ -190,7 +203,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
             <PrimaryButton title="Voltar" variant="outline" onPress={onBack} />
           </>
         ) : (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.brand} />
         )}
       </View>
     );
@@ -201,27 +214,20 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
 
   return (
     <KeyboardAvoidingView className="flex-1 bg-background" behavior={KEYBOARD_AVOIDING_BEHAVIOR}>
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={onBack} className="h-9 w-9 items-center justify-center rounded-xl bg-muted">
-          <ChevronLeft size={20} color={colors.foreground} />
-        </Pressable>
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-primary-soft">
-          <UserRound size={18} color={colors.primary} />
+      <View className="border-b border-border bg-white px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
+        <View className="flex-row items-center gap-3" style={centered(READING_MAX_WIDTH)}>
+        <IconButton label="Voltar" icon={<ChevronLeft size={22} color={colors.foreground} />} onPress={onBack} />
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-brand-soft">
+          <UserRound size={20} color={colors.brand} />
         </View>
         <View className="flex-1">
-          <Text accessibilityRole="header" numberOfLines={1} className="font-nunito-black text-sm text-foreground">
+          <Text accessibilityRole="header" numberOfLines={1} className="font-ui-extrabold text-base text-foreground">
             {c.otherPseudonym}
           </Text>
           <Text className="font-sans text-xs text-muted-foreground">{c.iAmAuthor ? "Quer ajudar no seu caso" : "Registrou esta ocorrência"}</Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Opções da conversa"
-          onPress={() => setShowOptions((v) => !v)}
-          className="h-9 w-9 items-center justify-center rounded-xl bg-muted"
-        >
-          <MoreVertical size={18} color={colors.foreground} />
-        </Pressable>
+        <IconButton label="Opções da conversa" icon={<MoreVertical size={20} color={colors.foreground} />} onPress={() => setShowOptions((v) => !v)} />
+        </View>
       </View>
 
       {showOptions ? (
@@ -234,9 +240,9 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
         />
       ) : null}
 
-      <View className="gap-2 px-4 pt-3">
-        <View className="flex-row items-start gap-2 rounded-2xl p-3" style={{ backgroundColor: `${colors.seen}1F` }}>
-          <ShieldAlert size={16} color={colors.seen} />
+      <View className="gap-2 px-4 pt-3" style={centered(READING_MAX_WIDTH)}>
+        <View className="flex-row items-start gap-2 rounded-2xl border p-3" style={{ backgroundColor: withAlpha(colors.seen, 0.1), borderColor: withAlpha(colors.seen, 0.35) }}>
+          <ShieldAlert size={18} color={colors.foreground} />
           <Text className="flex-1 font-sans text-xs text-foreground">
             Nunca pague para reaver um pet nem passe códigos ou dados bancários. Denuncie pedidos de dinheiro.
           </Text>
@@ -246,62 +252,48 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
           accessibilityRole="button"
           accessibilityLabel={`Ver a ocorrência de ${title}`}
           onPress={() => onOpenOccurrence(c.occurrence.id)}
-          className="flex-row items-center gap-3 rounded-2xl bg-primary-soft p-3 active:opacity-80"
+          className="flex-row items-center gap-3 rounded-2xl bg-brand-soft p-3 active:opacity-80"
+          style={{ minHeight: 48 }}
         >
           <View className="flex-1">
-            <Text className="font-nunito-bold text-xs text-primary">Sobre o pet: {title}</Text>
+            <Text className="font-ui-bold text-sm text-foreground">Sobre o pet: {title}</Text>
             {c.occurrence.status === "resolved" ? <Text className="font-sans text-xs text-muted-foreground">Caso resolvido</Text> : null}
           </View>
-          <ChevronRight size={14} color={colors.primary} />
+          <ChevronRight size={18} color={colors.brand} />
         </Pressable>
 
         <ContactBanner conversation={c} busy={busy} onAccept={() => void update(() => client.setContactConsent(conversationId, true))} />
-        {notice ? <Text className="text-center font-nunito-semibold text-xs text-found">{notice}</Text> : null}
+        {notice ? <Text className="text-center font-ui-semibold text-sm text-foreground">{notice}</Text> : null}
       </View>
 
       <FlatList
         inverted
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: 16, gap: 12 }}
+        contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 16, gap: 12 }}
         renderItem={({ item }) => <MessageBubble message={item} now={now} onOpenLocation={onOpenLocation} />}
         onEndReached={() => void loadOlder()}
         onEndReachedThreshold={0.3}
         ListFooterComponent={
           nextCursor ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Carregar mensagens anteriores" onPress={() => void loadOlder()} className="items-center py-2">
+            <Pressable accessibilityRole="button" accessibilityLabel="Carregar mensagens anteriores" onPress={() => void loadOlder()} className="items-center justify-center" style={{ minHeight: 44 }}>
               {loadingOlder ? (
-                <ActivityIndicator color={colors.primary} />
+                <ActivityIndicator color={colors.brand} />
               ) : (
-                <Text className="font-nunito-semibold text-xs text-primary">Carregar mensagens anteriores</Text>
+                <Text className="font-ui-bold text-sm text-brand">Carregar mensagens anteriores</Text>
               )}
             </Pressable>
           ) : undefined
         }
       />
 
-      {error ? <Text className="px-4 pb-1 text-center font-nunito-semibold text-xs text-lost">{error}</Text> : null}
+      {error ? <Text className="px-4 pb-1 text-center font-ui-semibold text-xs text-lost">{error}</Text> : null}
 
       {c.canSend ? (
-        <View className="flex-row items-end gap-2 border-t border-border bg-white px-4 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Enviar foto"
-            disabled={sending}
-            onPress={() => void sendPhoto()}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-muted"
-          >
-            <Camera size={16} color={colors.mutedForeground} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Enviar minha localização aproximada"
-            disabled={sending}
-            onPress={() => void sendLocation()}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-muted"
-          >
-            <MapPin size={16} color={colors.mutedForeground} />
-          </Pressable>
+        <View className="border-t border-border bg-white px-3 pt-3" style={[{ paddingBottom: insets.bottom + 12 }, elevation.raised]}>
+          <View className="flex-row items-end gap-2" style={centered(READING_MAX_WIDTH)}>
+          <IconButton label="Enviar foto" icon={<Camera size={20} color={colors.foreground} />} onPress={() => void sendPhoto()} disabled={sending} />
+          <IconButton label="Enviar minha localização aproximada" icon={<MapPin size={20} color={colors.foreground} />} onPress={() => void sendLocation()} disabled={sending} />
           <TextInput
             accessibilityLabel="Mensagem"
             placeholder="Mensagem..."
@@ -310,19 +302,18 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
             onChangeText={setText}
             maxLength={CHAT_MESSAGE_MAX_LENGTH}
             multiline
-            className="max-h-28 min-h-10 flex-1 rounded-2xl bg-muted px-4 py-2.5 font-sans text-sm text-foreground"
+            onKeyPress={(e) => {
+              const key = e.nativeEvent as unknown as { key: string; shiftKey?: boolean };
+              if (sendsOnKey(Platform.OS, key.key, !!key.shiftKey)) {
+                (e as unknown as { preventDefault?: () => void }).preventDefault?.();
+                if (!sending && text.trim()) sendText();
+              }
+            }}
+            className="max-h-28 flex-1 rounded-2xl bg-muted px-4 py-3 font-sans text-base text-foreground"
+            style={{ minHeight: 44 }}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Enviar"
-            accessibilityState={{ disabled: sending || !text.trim() }}
-            disabled={sending || !text.trim()}
-            onPress={sendText}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-primary"
-            style={{ opacity: sending || !text.trim() ? 0.5 : 1 }}
-          >
-            <Send size={16} color={colors.white} />
-          </Pressable>
+          <IconButton label="Enviar" tone="brand" icon={<Send size={18} color={colors.white} />} onPress={sendText} disabled={sending || !text.trim()} />
+          </View>
         </View>
       ) : (
         <View className="border-t border-border bg-white px-4 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
@@ -340,10 +331,10 @@ function ContactBanner({ conversation: c, busy, onAccept }: { conversation: Chat
   if (c.contact.otherEmail) {
     return (
       <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-white p-3">
-        <Mail size={16} color={colors.primary} />
+        <Mail size={16} color={colors.brand} />
         <View className="flex-1">
           <Text className="font-sans text-xs text-muted-foreground">Contato de {c.otherPseudonym}</Text>
-          <Text selectable className="font-nunito-bold text-sm text-foreground">
+          <Text selectable className="font-ui-bold text-sm text-foreground">
             {c.contact.otherEmail}
           </Text>
         </View>

@@ -34,6 +34,30 @@ describe("AuthProvider", () => {
     expect(result.current.state).toMatchObject({ status: "signedIn", user: { hasConsent: true } });
   });
 
+  it("sessão expirada no meio do uso (refresh recusado) → volta para signedOut", async () => {
+    const client = createMockAuthClient();
+    let expire!: () => void;
+    client.onSessionExpired = (listener) => {
+      expire = listener;
+      return () => undefined;
+    };
+    const { result } = await setup(client);
+    await settle(result.current.login({ email: "ana@exemplo.com", password: "segura123" }));
+    expect(result.current.state.status).toBe("signedIn");
+
+    await act(async () => expire());
+    expect(result.current.state).toEqual({ status: "signedOut" });
+  });
+
+  it("clearError apaga o erro (para o erro do login não aparecer em Esqueci minha senha)", async () => {
+    const { result } = await setup();
+    await settle(result.current.restore());
+    await settle(result.current.login({ email: "ana@exemplo.com", password: "errada123" }));
+    expect(result.current.error).toBe("E-mail ou senha incorretos");
+    await act(async () => result.current.clearError());
+    expect(result.current.error).toBeUndefined();
+  });
+
   it("erro da API aparece em error e a sessão não muda", async () => {
     const { result } = await setup();
     await settle(result.current.restore());

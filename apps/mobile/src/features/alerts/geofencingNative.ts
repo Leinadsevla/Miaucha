@@ -25,6 +25,7 @@ const MAX_NOTIFIED = 200;
 type NearbyLoader = (here: LatLng) => Promise<{ id: string; publicLocation: LatLng }[]>;
 let loadNearby: NearbyLoader | null = null;
 let lastCenter: LatLng | null = null;
+let monitoredIds: string[] | undefined;
 
 async function readNotified(): Promise<string[]> {
   try {
@@ -43,10 +44,12 @@ async function recalculate(here: LatLng, force = false) {
     here,
     lastCenter: force ? null : lastCenter,
     os: process.env.EXPO_OS === "ios" ? "ios" : "android",
+    previousIds: monitoredIds,
   });
   if (!plan.recalculate) return;
   await Location.startGeofencingAsync(GEOFENCING_TASK, plan.regions);
   lastCenter = here;
+  monitoredIds = plan.regions.map((r) => r.identifier).filter((id) => id !== RECALC_REGION_ID);
 }
 
 type GeofenceEvent = { eventType: Location.LocationGeofencingEventType; region: { identifier?: string; latitude: number; longitude: number } };

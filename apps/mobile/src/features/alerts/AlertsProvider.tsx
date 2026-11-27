@@ -114,8 +114,8 @@ export function AlertsProvider({
     let notifications: NotificationsRuntime;
     try {
       notifications = loadNotifications();
-    } catch {
-      setPush({ kind: "error" });
+    } catch (error) {
+      setPush({ kind: "error", step: "token", detail: error instanceof Error ? error.message : String(error) });
       return;
     }
     notifications.setNotificationHandler({
@@ -133,10 +133,39 @@ export function AlertsProvider({
     };
     const subscription = notifications.addNotificationResponseReceivedListener(handle);
     handle(notifications.getLastNotificationResponse());
-    void registerForPush({ env, notifications, register: (token) => client.registerPushToken(token) }).then((s) => !cancelled && setPush(s));
+
+    // Se falhou (API acordando, permissão liberada depois nas configurações...), tenta de novo
+    // sempre que o app volta para o primeiro plano, até registrar.
+    let registered = false;
+    let inFlight = false;
+    // Só a primeira tentativa que chega à permissão abre o diálogo; as outras só conferem se foi liberada.
+    // (Uma falha antes dessa etapa não conta: a pessoa ainda não foi perguntada.)
+    let asked = false;
+    const register = () => {
+      if (registered || inFlight) return;
+      inFlight = true;
+      void registerForPush({
+        env,
+        notifications,
+        register: (token) => client.registerPushToken(token),
+        ask: !asked,
+        onPermissionStep: () => {
+          asked = true;
+        },
+      }).then((s) => {
+        inFlight = false;
+        registered = s.kind === "registered";
+        if (!cancelled) setPush(s);
+      });
+    };
+    register();
+    const appState = AppState.addEventListener("change", (state) => {
+      if (state === "active") register();
+    });
     return () => {
       cancelled = true;
       subscription.remove();
+      appState.remove();
     };
   }, [active, client]);
 

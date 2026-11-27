@@ -120,6 +120,16 @@ describe("createMapLoader (MP-02)", () => {
     expect(last()).toMatchObject({ occurrences: [cat], offline: true });
   });
 
+  it("offline, buscar de novo ou outro erro não perde a região do mapa salvo", async () => {
+    const snapshot = { region: { ...sp, latitude: -22.9 }, occurrences: [], savedAt: "x" };
+    const { loader, states } = setup({ replies: [new ApiError("sem rede", 0), new ApiError("Erro no servidor", 500)], snapshot });
+    await loader.loadNow(sp);
+    await loader.refresh();
+    const offline = states.filter((s) => s.offline);
+    expect(offline.length).toBeGreaterThan(1);
+    for (const s of offline) expect(s.offlineRegion).toEqual(snapshot.region);
+  });
+
   it("sem internet e sem cache, avisa", async () => {
     const { loader, last } = setup({ replies: [new ApiError("sem rede", 0)] });
     await loader.loadNow(sp);

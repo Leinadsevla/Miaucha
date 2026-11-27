@@ -17,9 +17,19 @@ export type OccurrenceInput = {
   lng: number;
   /** Pet do próprio autor ("registrar meu pet como perdido"): a API completa os dados que faltarem. */
   petId?: string;
+  /** "Vi este pet": o avistamento (tipo `seen`) aponta para a ocorrência de pet perdido de outra pessoa. */
+  sightingOf?: string;
 };
 
-export type OccurrenceErrors = Partial<Record<Exclude<keyof OccurrenceInput, "lat" | "lng" | "petId"> | "location", string>>;
+/**
+ * Edição pelo autor. O tipo não muda. `location` só vem quando o autor escolheu um local novo: o app
+ * conhece só o ponto público, e reenviá-lo trocaria o ponto exato por um já deslocado.
+ */
+export type OccurrenceUpdate = Pick<OccurrenceInput, "species" | "petName" | "breed" | "color" | "description" | "approxAddress"> & {
+  location?: { lat: number; lng: number };
+};
+
+export type OccurrenceErrors = Partial<Record<Exclude<keyof OccurrenceInput, "lat" | "lng" | "petId" | "sightingOf"> | "location", string>>;
 
 export const MAX_OCCURRENCE_PHOTOS = MAX_PET_PHOTOS;
 /** NF-03: ocorrência sem atualização por este tempo deixa de aparecer nas buscas. */

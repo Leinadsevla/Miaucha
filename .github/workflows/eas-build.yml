@@ -1,0 +1,41 @@
+# Build nativo na nuvem do Expo. Tag v* gera o build de produção; "Run workflow" escolhe o perfil.
+# Use quando mudar algo nativo (pacote com código nativo, app.json, ícone); o resto chega pelo deploy.yml.
+name: EAS Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Perfil do eas.json
+        type: choice
+        options: [preview, production, development]
+        default: preview
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build Android
+        working-directory: apps/mobile
+        env:
+          PROFILE: ${{ inputs.profile || 'production' }}
+        # --no-wait: o build continua na fila do Expo; o link aparece no log e em expo.dev.
+        run: eas build --platform android --profile "$PROFILE" --non-interactive --no-wait

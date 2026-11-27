@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import { Marker } from "react-native-maps";
 import { colors, occurrenceStyle, type OccurrenceType, type PublicOccurrence, type Species } from "@miaucha/shared";
 import { SpeciesIcon } from "@/components";
 import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 import type { ClusterItem } from "./clusters";
+import { MapPoint } from "./MapCanvas";
 
 /** MP-01: cor pelo tipo (perdido, avistado, encontrado) e ícone pela espécie. */
 export function OccurrencePin({ type, species, selected = false }: { type: OccurrenceType; species: Species; selected?: boolean }) {
@@ -32,62 +31,26 @@ export function ClusterBubble({ count }: { count: number }) {
   return (
     <View
       accessibilityLabel={`${count} ocorrências agrupadas. Toque para aproximar`}
-      className="items-center justify-center rounded-full border-4 border-white bg-primary"
+      className="items-center justify-center rounded-full border-4 border-white bg-brand"
       style={{ width: size, height: size }}
     >
-      <Text className="font-nunito-black text-sm text-white">{count}</Text>
+      <Text className="font-ui-extrabold text-sm text-white">{count}</Text>
     </View>
   );
 }
 
-/**
- * Marcadores com view própria ficam lentos se o mapa redesenhar a view a todo instante. Redesenha
- * só por um momento depois de montar ou de mudar a aparência (no Android, desligar de cara deixa o
- * marcador em branco).
- */
-function useTracksViewChanges(appearanceKey: string) {
-  const [tracks, setTracks] = useState(true);
-  useEffect(() => {
-    setTracks(true);
-    const timer = setTimeout(() => setTracks(false), 500);
-    return () => clearTimeout(timer);
-  }, [appearanceKey]);
-  return tracks;
-}
-
 export function OccurrenceMarker({ occurrence: o, selected, onPress }: { occurrence: PublicOccurrence; selected: boolean; onPress: () => void }) {
-  const tracksViewChanges = useTracksViewChanges(`${o.type}-${o.species}-${selected}`);
   return (
-    <Marker
-      testID={`marker-${o.id}`}
-      coordinate={{ latitude: o.publicLocation.lat, longitude: o.publicLocation.lng }}
-      anchor={{ x: 0.5, y: 1 }}
-      tracksViewChanges={tracksViewChanges}
-      zIndex={selected ? 2 : 1}
-      onPress={(e) => {
-        e?.stopPropagation?.();
-        onPress();
-      }}
-    >
+    <MapPoint testID={`marker-${o.id}`} coordinate={o.publicLocation} anchor="bottom" onPress={onPress}>
       <OccurrencePin type={o.type} species={o.species} selected={selected} />
-    </Marker>
+    </MapPoint>
   );
 }
 
 export function ClusterMarker({ cluster, onPress }: { cluster: ClusterItem; onPress: () => void }) {
-  const tracksViewChanges = useTracksViewChanges(String(cluster.count));
   return (
-    <Marker
-      testID={`cluster-${cluster.count}`}
-      coordinate={{ latitude: cluster.coordinate.lat, longitude: cluster.coordinate.lng }}
-      anchor={{ x: 0.5, y: 0.5 }}
-      tracksViewChanges={tracksViewChanges}
-      onPress={(e) => {
-        e?.stopPropagation?.();
-        onPress();
-      }}
-    >
+    <MapPoint testID={`cluster-${cluster.count}`} coordinate={cluster.coordinate} onPress={onPress}>
       <ClusterBubble count={cluster.count} />
-    </Marker>
+    </MapPoint>
   );
 }

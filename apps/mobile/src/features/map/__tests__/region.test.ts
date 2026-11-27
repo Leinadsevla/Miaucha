@@ -2,8 +2,10 @@ import {
   DEFAULT_REGION,
   bboxContains,
   bboxParam,
+  boundsToRegion,
   regionAround,
   regionToBBox,
+  regionToBounds,
   regionToZoom,
   shouldRefetch,
   zoomInto,
@@ -106,5 +108,29 @@ describe("regiões iniciais", () => {
   it("a região padrão (sem localização) é válida", () => {
     expect(Math.abs(DEFAULT_REGION.latitude)).toBeLessThan(90);
     expect(DEFAULT_REGION.latitudeDelta).toBeGreaterThan(0);
+  });
+});
+
+describe("conversão para o MapLibre (limites [oeste, sul, leste, norte])", () => {
+  it("regionToBounds devolve a área visível na ordem do MapLibre", () => {
+    const [west, south, east, north] = regionToBounds(sp);
+    expect(west).toBeCloseTo(-46.65);
+    expect(south).toBeCloseTo(-23.56);
+    expect(east).toBeCloseTo(-46.61);
+    expect(north).toBeCloseTo(-23.54);
+  });
+
+  it("boundsToRegion volta para centro + deltas", () => {
+    const r = boundsToRegion([-46.65, -23.56, -46.61, -23.54]);
+    expect(r.latitude).toBeCloseTo(-23.55);
+    expect(r.longitude).toBeCloseTo(-46.63);
+    expect(r.latitudeDelta).toBeCloseTo(0.02);
+    expect(r.longitudeDelta).toBeCloseTo(0.04);
+  });
+
+  it("ida e volta preserva a região", () => {
+    const r = boundsToRegion(regionToBounds(sp));
+    expect(r.latitude).toBeCloseTo(sp.latitude, 10);
+    expect(r.longitudeDelta).toBeCloseTo(sp.longitudeDelta, 10);
   });
 });

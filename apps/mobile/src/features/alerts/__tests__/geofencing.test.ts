@@ -1,4 +1,5 @@
-import { geofencingAvailability, geofenceNotification, planGeofences } from "../geofencing";
+import { ALERT_GEOHASH_PRECISION, decodeGeohash, encodeGeohash } from "@miaucha/shared";
+import { geofencingAvailability, geofenceNotification, nearbyGeofenceCandidates, planGeofences } from "../geofencing";
 
 describe("geofencingAvailability (AL-02, desligado por padrão)", () => {
   it("só liga num development build com a flag EXPO_PUBLIC_GEOFENCING=1", () => {
@@ -52,5 +53,44 @@ describe("geofenceNotification", () => {
     });
     expect(geofenceNotification("o1", ["o1"])).toBeNull();
     expect(geofenceNotification("recalc", [])).toBeNull();
+  });
+});
+
+describe("nearbyGeofenceCandidates (AL-02)", () => {
+  const here = { lat: -23.55, lng: -46.63 };
+  const at = { lat: -23.551, lng: -46.631 };
+  const occ = (id: string, type: "lost" | "seen" | "found", isMine = false) => ({ id, type, isMine, publicLocation: at });
+  const prefs = { enabled: true, radiusKm: 3 as const, quietHours: null };
+
+  it("só pets perdidos de outras pessoas, no raio escolhido nas preferências", async () => {
+    const nearby = jest.fn(async () => [occ("a", "lost"), occ("b", "seen"), occ("c", "found"), occ("meu", "lost", true)]);
+    const list = await nearbyGeofenceCandidates({ here, nearby, getPreferences: async () => prefs });
+    expect(list.map((o) => o.id)).toEqual(["a"]);
+    // AL-06: a API só vê o centro do geohash de ~1 km, nunca a posição exata.
+    const cell = decodeGeohash(encodeGeohash(here.lat, here.lng, ALERT_GEOHASH_PRECISION)).center;
+    expect(nearby).toHaveBeenCalledWith({ ...cell, radiusKm: 3 });
+    expect(cell).not.toEqual(here);
+  });
+
+  it("alertas desligados → nenhuma região (nem consulta as ocorrências)", async () => {
+    const nearby = jest.fn(async () => [occ("a", "lost")]);
+    const list = await nearbyGeofenceCandidates({ here, nearby, getPreferences: async () => ({ ...prefs, enabled: false }) });
+    expect(list).toEqual([]);
+    expect(nearby).not.toHaveBeenCalled();
+  });
+});
+
+describe("planGeofences: lista de ocorrências mudou sem a pessoa se mexer", () => {
+  const here = { lat: -23.55, lng: -46.63 };
+  const a = { id: "a", publicLocation: { lat: -23.551, lng: -46.63 } };
+
+  it("alertas desligados (lista vazia) tiram as regiões antigas mesmo parado", () => {
+    const plan = planGeofences({ occurrences: [], here, lastCenter: here, os: "android", previousIds: ["a"] });
+    expect(plan.recalculate).toBe(true);
+    if (plan.recalculate) expect(plan.regions.map((r) => r.identifier)).toEqual(["recalc"]);
+  });
+
+  it("mesmas ocorrências e parado → não recalcula", () => {
+    expect(planGeofences({ occurrences: [a], here, lastCenter: here, os: "android", previousIds: ["a"] })).toEqual({ recalculate: false });
   });
 });

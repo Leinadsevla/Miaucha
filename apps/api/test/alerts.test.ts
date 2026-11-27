@@ -336,6 +336,7 @@ describe("GET /me/alerts e POST /me/alerts/:id/seen", () => {
       id: expect.any(String),
       occurrenceId: first.id,
       distanceMeters: expect.any(Number),
+      sighting: false,
       createdAt: expect.any(String),
       seenAt: null,
       occurrence: {
@@ -379,5 +380,125 @@ describe("GET /me/alerts e POST /me/alerts/:id/seen", () => {
   it("sem alertas → lista vazia", async () => {
     const t = await tutor();
     expect(await t.alerts()).toEqual([]);
+  });
+});
+
+describe("\"Vi este pet\": avistamento ligado a um pet perdido", () => {
+  const sight = (t: Awaited<ReturnType<typeof tutor>>, p: LatLng, data: object) =>
+    ctx.http.post("/occurrences").set(t.auth).send({ type: "seen", species: "dog", ...p, ...data });
+
+  it("avisa o tutor na hora, em qualquer distância, com push próprio que abre o avistamento", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.registerPush(); // o tutor nem precisa ter região salva
+    const lost = await owner.create(home, { approxAddress: "Vila Mariana" });
+    await queue.onIdle();
+
+    const res = await sight(witness, offset(home, 15_000), { sightingOf: lost.id, approxAddress: "Perto do metrô" }).expect(201);
+    await queue.onIdle();
+
+    const alerts = await owner.alerts();
+    expect(alerts.map((a) => a.occurrenceId)).toEqual([res.body.id]);
+    expect(alerts[0].sighting).toBe(true);
+    expect(pushesTo(owner.pushToken)).toEqual([
+      {
+        to: owner.pushToken,
+        title: "Alguém viu o Thor!",
+        body: expect.stringMatching(/^Avistado a ~1[45],?\d* km de onde sumiu · Perto do metrô$/),
+        data: { occurrenceId: res.body.id, alertId: alerts[0].id },
+      },
+    ]);
+    expectNoPrivateData(ctx.push.sent, witness.email);
+  });
+
+  it("tutor perto do avistamento recebe só o push do avistamento (sem o alerta genérico repetido)", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.at(home);
+    await owner.registerPush();
+    const lost = await owner.create(home);
+    await queue.onIdle();
+
+    await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+
+    expect(pushesTo(owner.pushToken).map((m) => m.title)).toEqual(["Alguém viu o Thor!"]);
+    expect(await owner.alerts()).toHaveLength(1);
+  });
+
+  it("tutor que bloqueou quem avistou não recebe o alerta nem o push", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.at(home); // perto: nem o alerta genérico de proximidade pode chegar
+    await owner.registerPush();
+    const lost = await owner.create(home);
+    await queue.onIdle();
+    await ctx.pool.query(
+      `insert into chat_blocks (blocker_id, blocked_id)
+       select o.id, w.id from users o, users w where o.email = $1 and w.email = $2`,
+      [owner.email, witness.email],
+    );
+
+    await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+
+    expect(await owner.alerts()).toEqual([]);
+    expect(pushesTo(owner.pushToken)).toEqual([]);
+  });
+
+  it("alerta comum de proximidade não vem marcado como avistamento, mesmo apontando para o pet do tutor", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.at(home);
+    const lost = await owner.create(home);
+    await queue.onIdle();
+    const res = await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+    expect((await owner.alerts()).find((a) => a.occurrenceId === res.body.id)?.sighting).toBe(true);
+
+    // O pet foi reencontrado antes do disparo: o tutor recebe só o alerta comum (distância da casa dele).
+    await ctx.pool.query("delete from alerts where user_id = $1 and occurrence_id = $2", [owner.user.id, res.body.id]);
+    await ctx.pool.query("update occurrences set status = 'resolved' where id = $1", [lost.id]);
+    await ctx.app.get(AlertsService).dispatchForOccurrence(res.body.id);
+    const generic = (await owner.alerts()).find((a) => a.occurrenceId === res.body.id);
+    expect(generic).toBeDefined();
+    expect(generic!.sighting).toBe(false);
+  });
+
+  it("tutor com alertas desligados vê o avistamento na lista, mas sem push", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    await owner.registerPush();
+    await owner.prefs({ enabled: false, radiusKm: 3, quietHours: null }).expect(200);
+    const lost = await owner.create(home);
+    await queue.onIdle();
+
+    const res = await sight(witness, offset(home, 200), { sightingOf: lost.id }).expect(201);
+    await queue.onIdle();
+
+    expect((await owner.alerts()).map((a) => a.occurrenceId)).toEqual([res.body.id]);
+    expect(pushesTo(owner.pushToken)).toEqual([]);
+  });
+
+  it("recusa: tipo diferente de avistado, o próprio pet, ocorrência que não é de perdido ou que não existe", async () => {
+    const owner = await tutor();
+    const witness = await tutor();
+    const home = uniqueSpot();
+    const lost = await owner.create(home);
+    const seen = await owner.create(home, { type: "seen" });
+
+    await ctx.http.post("/occurrences").set(witness.auth).send({ type: "found", species: "dog", ...home, sightingOf: lost.id }).expect(400);
+    await sight(owner, home, { sightingOf: lost.id }).expect(400);
+    await sight(witness, home, { sightingOf: seen.id }).expect(404);
+    await sight(witness, home, { sightingOf: "00000000-0000-4000-8000-000000000000" }).expect(404);
+    await sight(witness, home, { sightingOf: "nao-e-uuid" }).expect(404);
+    // Pet já reencontrado: não aceita mais avistamento.
+    await ctx.http.post(`/occurrences/${lost.id}/resolve`).set(owner.auth).expect(200);
+    await sight(witness, home, { sightingOf: lost.id }).expect(404);
   });
 });

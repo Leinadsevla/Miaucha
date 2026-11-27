@@ -17,6 +17,11 @@ export type AppConfig = {
   refreshTokenTtlDays: number;
   /** Client IDs do Google aceitos como `aud` do ID token (Android, iOS, web). */
   googleClientIds: string[];
+  /**
+   * Origens (ex.: `http://localhost:8081`) que podem chamar a API pelo navegador: o app web.
+   * Vazio (o padrão) deixa o CORS desligado; o app nativo não precisa dele.
+   */
+  corsOrigins: string[];
   /** Rate limit das rotas de autenticação (NF-04). */
   throttle: { ttlMs: number; limit: number };
   /** Limite de mensagens do chat, por usuário (NF-04). Sem ele, 30 por minuto. */
@@ -29,6 +34,8 @@ export type AppConfig = {
   storage: StorageConfig;
   /** Access token do Expo Push (opcional; só se o projeto exigir "enhanced security" no painel do Expo). */
   expoAccessToken?: string;
+  /** Commit em produção (o Render preenche RENDER_GIT_COMMIT): o `/health` mostra, e o CI/CD espera por ele. */
+  gitCommit?: string;
   /** Quantos proxies ficam na frente da API (Render: 1). Com 0, o `X-Forwarded-For` é ignorado. */
   trustProxy: number;
   /** E-mail pelo Resend; sem `RESEND_API_KEY`, os códigos só aparecem no log (desenvolvimento). */
@@ -58,6 +65,14 @@ function secret(env: Env, key: string): string {
 function int(env: Env, key: string, fallback: number): number {
   const value = env[key];
   return value ? Number.parseInt(value, 10) : fallback;
+}
+
+/** Lista separada por vírgula, sem itens vazios. */
+function list(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 /** Remove espaços, quebras de linha e aspas em volta: valores colados no painel do Render costumam vir assim. */
@@ -94,10 +109,8 @@ export function loadConfig(env: Env): AppConfig {
     codeSecret: secret(env, "CODE_SECRET"),
     accessTokenTtlSeconds: 900,
     refreshTokenTtlDays: 30,
-    googleClientIds: (env.GOOGLE_CLIENT_IDS ?? "")
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean),
+    googleClientIds: list(env.GOOGLE_CLIENT_IDS),
+    corsOrigins: list(env.CORS_ORIGINS),
     throttle: { ttlMs: int(env, "THROTTLE_TTL_MS", 60_000), limit: int(env, "THROTTLE_LIMIT", 10) },
     chatThrottle: {
       ttlMs: int(env, "CHAT_THROTTLE_TTL_MS", DEFAULT_CHAT_THROTTLE.ttlMs),
@@ -112,6 +125,7 @@ export function loadConfig(env: Env): AppConfig {
       secretAccessKey: required(env, "STORAGE_SECRET_ACCESS_KEY"),
     },
     expoAccessToken: env.EXPO_ACCESS_TOKEN || undefined,
+    gitCommit: env.RENDER_GIT_COMMIT || undefined,
     trustProxy: int(env, "TRUST_PROXY", 0),
     // Sem domínio verificado, o remetente de teste do Resend só entrega para o e-mail do dono da conta.
     gmail: gmailConfig(env),

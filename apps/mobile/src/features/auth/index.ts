@@ -10,3 +10,4 @@ export * from "./createAuthClient";
 export * from "./session";
 export * from "./guard";
 export * from "./ForgotPasswordForm";
+export * from "./DemoInfo";

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View, useWindowDimensions } from "react-native";
-import MapView from "react-native-maps";
+import { ActivityIndicator, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { CloudOff, LocateFixed, MapPinOff, SlidersHorizontal, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { OCCURRENCE_TYPES, colors, occurrenceStyle, type LatLng } from "@miaucha/shared";
+import { OCCURRENCE_TYPES, colors, elevation, occurrenceStyle, type LatLng } from "@miaucha/shared";
+import { WEB_LOCATION_HELP } from "@/lib/settings";
 import type { GetLocation, LocationResult } from "@/features/location/currentLocation";
 import type { OccurrencesClient } from "@/features/occurrences/occurrencesClient";
 import { createClusterIndex, expansionRegion } from "./clusters";
@@ -11,9 +11,11 @@ import { activeFilterCount, type MapFilters } from "./filters";
 import type { MapCache } from "./mapCache";
 import { createMapLoader, type MapDataState } from "./mapLoader";
 import { MapFiltersSheet } from "./MapFiltersSheet";
+import { MapCanvas, type MapCanvasRef } from "./MapCanvas";
 import { ClusterMarker, OccurrenceMarker } from "./MapMarkers";
 import { OccurrenceCard } from "./OccurrenceCard";
 import { DEFAULT_REGION, bboxContains, regionAround, regionToBBox, type Region } from "./region";
+import { useLayout } from "@/lib/layout";
 
 export const OFFLINE_NOTICE = "Sem conexão: mostrando o último mapa carregado";
 
@@ -37,13 +39,15 @@ function countLabel(count: number) {
   return count === 1 ? "1 ocorrência nesta área" : `${count} ocorrências nesta área`;
 }
 
-const FLOATING = { elevation: 4, shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } };
+/** Elementos que flutuam sobre o mapa. */
+const FLOATING = elevation.floating;
 
 /** Aba Mapa (MapScreen do protótipo): ocorrências da área visível, agrupadas, com filtros e cache offline. */
 export function MapScreen({ getLocation, client, cache, onOpen, onDirections, onOpenSettings, refreshSignal, now }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const mapRef = useRef<MapView>(null);
+  const { wide } = useLayout();
+  const mapRef = useRef<MapCanvasRef>(null);
   const [start, setStart] = useState<Start | null>(null);
   const [location, setLocation] = useState<LocationResult | null>(null);
   const [noticeDismissed, setNoticeDismissed] = useState(false);
@@ -120,7 +124,7 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
   if (!start || !region) {
     return (
       <View className="flex-1 items-center justify-center gap-3 bg-background">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.brand} />
         <Text className="font-sans text-sm text-muted-foreground">Procurando sua localização...</Text>
       </View>
     );
@@ -130,15 +134,10 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
 
   return (
     <View className="flex-1 bg-background">
-      <MapView
+      <MapCanvas
         ref={mapRef}
-        style={{ flex: 1 }}
         initialRegion={start.region}
         showsUserLocation={location?.status === "ok"}
-        showsMyLocationButton={false}
-        toolbarEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
         onRegionChangeComplete={onRegionChangeComplete}
         onPress={() => setSelectedId(null)}
       >
@@ -158,13 +157,13 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
             />
           ),
         )}
-      </MapView>
+      </MapCanvas>
 
-      <View pointerEvents="box-none" className="absolute left-0 right-0 top-0 gap-2 px-4" style={{ paddingTop: insets.top + 12 }}>
+      <View pointerEvents="box-none" className="absolute left-0 right-0 top-0 gap-2 px-4" style={{ paddingTop: insets.top + 12, maxWidth: wide ? 560 : undefined }}>
         <View pointerEvents="box-none" className="flex-row items-center gap-2">
           <View className="flex-1 flex-row items-center gap-2 rounded-2xl bg-white px-4 py-3" style={FLOATING}>
-            {data.loading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-            <Text className="flex-1 font-nunito-bold text-sm text-foreground">
+            {data.loading ? <ActivityIndicator size="small" color={colors.brand} /> : null}
+            <Text className="flex-1 font-ui-bold text-sm text-foreground">
               {data.loading && data.occurrences.length === 0 ? "Carregando ocorrências..." : countLabel(data.occurrences.length)}
             </Text>
           </View>
@@ -172,13 +171,13 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
             accessibilityRole="button"
             accessibilityLabel={activeFilters > 0 ? `Filtros (${activeFilters} ${activeFilters === 1 ? "ativo" : "ativos"})` : "Filtros"}
             onPress={() => setFiltersOpen(true)}
-            className="h-12 w-12 items-center justify-center rounded-2xl bg-white"
+            className="h-12 w-12 items-center justify-center rounded-2xl bg-white active:bg-muted"
             style={FLOATING}
           >
             <SlidersHorizontal size={18} color={colors.foreground} />
             {activeFilters > 0 ? (
-              <View className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
-                <Text className="font-nunito-black text-[10px] text-white">{activeFilters}</Text>
+              <View className="absolute -right-1.5 -top-1.5 h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-brand">
+                <Text className="font-ui-extrabold text-xs text-white">{activeFilters}</Text>
               </View>
             ) : null}
           </Pressable>
@@ -187,15 +186,20 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
         {data.offline ? (
           <View className="flex-row items-center gap-2 rounded-2xl bg-foreground px-4 py-3" style={FLOATING}>
             <CloudOff size={16} color={colors.white} />
-            <Text className="flex-1 font-nunito-semibold text-xs text-white">{OFFLINE_NOTICE}</Text>
+            <Text className="flex-1 font-ui-semibold text-sm text-white">{OFFLINE_NOTICE}</Text>
           </View>
         ) : null}
 
         {data.error ? (
           <View className="flex-row items-center gap-2 rounded-2xl bg-white px-4 py-3" style={FLOATING}>
-            <Text className="flex-1 font-nunito-semibold text-xs text-lost">{data.error}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Tentar de novo" onPress={() => void loader.refresh()} hitSlop={8}>
-              <Text className="font-nunito-bold text-xs text-primary">Tentar de novo</Text>
+            <Text className="flex-1 font-ui-semibold text-sm text-lost">{data.error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Tentar de novo"
+              onPress={() => void loader.refresh()}
+              style={({ pressed }) => ({ minHeight: 44, justifyContent: "center", paddingHorizontal: 8, opacity: pressed ? 0.6 : 1 })}
+            >
+              <Text className="font-ui-bold text-sm text-brand">Tentar de novo</Text>
             </Pressable>
           </View>
         ) : null}
@@ -210,8 +214,15 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
           />
         ) : null}
 
-        <Legend />
+        {wide ? null : <Legend />}
       </View>
+
+      {/* Tela larga: a legenda fica no canto direito, longe dos controles da esquerda. */}
+      {wide ? (
+        <View pointerEvents="box-none" className="absolute right-4" style={{ top: insets.top + 12 }}>
+          <Legend />
+        </View>
+      ) : null}
 
       <View pointerEvents="box-none" className="absolute bottom-4 left-4 right-4 gap-3">
         {location?.status === "ok" ? (
@@ -219,14 +230,16 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
             accessibilityRole="button"
             accessibilityLabel="Minha localização"
             onPress={() => void locate()}
-            className="h-12 w-12 items-center justify-center self-end rounded-2xl bg-white"
+            className="h-12 w-12 items-center justify-center self-end rounded-2xl bg-white active:bg-muted"
             style={FLOATING}
           >
-            <LocateFixed size={20} color={colors.accent} />
+            <LocateFixed size={20} color={colors.brand} />
           </Pressable>
         ) : null}
         {selected ? (
-          <OccurrenceCard occurrence={selected} now={now} onOpen={onOpen} onDirections={onDirections} onClose={() => setSelectedId(null)} />
+          <View style={{ width: "100%", maxWidth: 460 }}>
+            <OccurrenceCard occurrence={selected} now={now} onOpen={onOpen} onDirections={onDirections} onClose={() => setSelectedId(null)} />
+          </View>
         ) : null}
       </View>
 
@@ -238,13 +251,13 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
 /** Legenda das cores (MP-01): o ícone dentro do marcador diz a espécie. */
 function Legend() {
   return (
-    <View className="gap-1.5 self-end rounded-2xl bg-white p-3" style={FLOATING}>
+    <View className="gap-2 self-end rounded-2xl bg-white px-3.5 py-3" style={FLOATING}>
       {OCCURRENCE_TYPES.map((type) => {
         const { color, label } = occurrenceStyle(type);
         return (
           <View key={type} className="flex-row items-center gap-2">
-            <View className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-            <Text className="font-nunito-semibold text-xs text-foreground">{label}</Text>
+            <View className="h-3.5 w-3.5 rounded-full border-2 border-white" style={{ backgroundColor: color }} />
+            <Text className="font-ui-bold text-xs text-foreground">{label}</Text>
           </View>
         );
       })}
@@ -272,21 +285,28 @@ function LocationNotice({
       ? `Sem acesso à sua localização: mostrando ${where}. Arraste o mapa até a sua região.`
       : `Não achamos sua localização: mostrando ${where}. Confira se o GPS está ligado.`;
   return (
-    <View className="gap-2 rounded-2xl bg-white p-4" style={FLOATING}>
+    <View className="gap-3 rounded-2xl bg-white p-4" style={FLOATING}>
       <View className="flex-row items-start gap-2">
-        <MapPinOff size={16} color={colors.primary} />
-        <Text className="flex-1 font-sans text-xs text-foreground">{message}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fechar aviso" onPress={onDismiss} hitSlop={12}>
-          <X size={14} color={colors.mutedForeground} />
+        <MapPinOff size={18} color={colors.brand} />
+        <Text className="flex-1 font-sans text-sm leading-5 text-foreground">{message}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Fechar aviso"
+          onPress={onDismiss}
+          hitSlop={10}
+          style={({ pressed }) => ({ width: 28, height: 28, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: pressed ? colors.muted : "transparent" })}
+        >
+          <X size={16} color={colors.mutedForeground} />
         </Pressable>
       </View>
+      {Platform.OS === "web" && result.status === "denied" ? <Text className="font-sans text-xs text-muted-foreground">{WEB_LOCATION_HELP}</Text> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={blocked ? "Abrir configurações" : result.status === "denied" ? "Permitir localização" : "Tentar de novo"}
         onPress={blocked ? onOpenSettings : onAllow}
-        className="self-start rounded-xl bg-primary px-3 py-2"
+        style={({ pressed }) => ({ minHeight: 44, alignSelf: "flex-start", justifyContent: "center", borderRadius: 14, paddingHorizontal: 16, backgroundColor: pressed ? colors.inkDeep : colors.foreground })}
       >
-        <Text className="font-nunito-bold text-xs text-white">
+        <Text className="font-ui-bold text-sm text-white">
           {blocked ? "Abrir configurações" : result.status === "denied" ? "Permitir localização" : "Tentar de novo"}
         </Text>
       </Pressable>

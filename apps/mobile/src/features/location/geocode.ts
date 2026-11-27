@@ -1,4 +1,6 @@
+import { Platform } from "react-native";
 import * as Location from "expo-location";
+import { createPhotonGeocodeApi } from "./photon";
 import { distanceMeters, type LatLng } from "@miaucha/shared";
 
 /** Endereço procurado só vale até esta distância de quem procura: a busca fica nas cidades próximas. */
@@ -60,4 +62,5 @@ export function createGeocoder(api: GeocodeApi = Location) {
   };
 }
 
-export const geocodeAddress = createGeocoder();
+/** No navegador o expo-location não geocodifica (devolve sempre vazio): lá a busca usa o Photon. */
+export const geocodeAddress = createGeocoder(Platform.OS === "web" ? createPhotonGeocodeApi() : Location);

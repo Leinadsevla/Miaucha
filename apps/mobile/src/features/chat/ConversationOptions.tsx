@@ -22,7 +22,7 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
   if (reporting) {
     return (
       <View className="gap-2 border-b border-border bg-white px-4 py-3">
-        <Text className="font-nunito-bold text-sm text-foreground">Por que você quer denunciar?</Text>
+        <Text className="font-ui-bold text-sm text-foreground">Por que você quer denunciar?</Text>
         {CHAT_REPORT_REASONS.map((r) => (
           <Pressable
             key={r.value}
@@ -30,9 +30,10 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
             accessibilityLabel={r.label}
             accessibilityState={{ selected: reason === r.value }}
             onPress={() => setReason(r.value)}
-            className={cn("rounded-xl border px-3 py-2", reason === r.value ? "border-primary bg-primary-soft" : "border-border bg-white")}
+            className={cn("justify-center rounded-xl border-2 px-3", reason === r.value ? "border-brand bg-brand-soft" : "border-border bg-white")}
+            style={{ minHeight: 44 }}
           >
-            <Text className="font-nunito-semibold text-sm text-foreground">{r.label}</Text>
+            <Text className="font-ui-semibold text-sm text-foreground">{r.label}</Text>
           </Pressable>
         ))}
         <TextInput
@@ -47,7 +48,7 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
         />
         <PrimaryButton
           title="Enviar denúncia"
-          variant="primary"
+          variant="soft"
           disabled={!reason}
           loading={busy}
           onPress={async () => {
@@ -62,7 +63,7 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
   return (
     <View className="gap-1 border-b border-border bg-white px-4 py-2">
       <Option
-        icon={<Share2 size={16} color={colors.primary} />}
+        icon={<Share2 size={16} color={colors.brand} />}
         label={c.contact.mine ? "Parar de compartilhar contato" : "Compartilhar meu contato"}
         onPress={onToggleContact}
       />
@@ -74,9 +75,9 @@ export function ConversationOptions({ conversation: c, busy, onToggleContact, on
 
 function Option({ icon, label, onPress }: { icon: React.ReactNode; label: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="flex-row items-center gap-3 rounded-xl px-2 py-2.5 active:bg-muted">
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="flex-row items-center gap-3 rounded-xl px-2 active:bg-muted" style={{ minHeight: 48 }}>
       {icon}
-      <Text className="font-nunito-semibold text-sm text-foreground">{label}</Text>
+      <Text className="font-ui-semibold text-sm text-foreground">{label}</Text>
     </Pressable>
   );
 }

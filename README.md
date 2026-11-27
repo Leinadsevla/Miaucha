@@ -6,7 +6,7 @@ App para reencontrar pets perdidos. Plano completo em [Miaucha — Plano de Exec
 
 | Pasta | O que tem |
 | --- | --- |
-| `apps/mobile` | App Expo (SDK 58) com Expo Router, NativeWind e fonte Nunito |
+| `apps/mobile` | App Expo (SDK 58) com Expo Router, NativeWind e fonte Plus Jakarta Sans |
 | `packages/shared` | Tokens de cor, tipos e regras compartilhadas entre app e API |
 | `apps/api` | API NestJS (ainda não criada) |
 

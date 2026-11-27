@@ -1,4 +1,7 @@
-import { distanceMeters, type LatLng, type PublicOccurrence } from "@miaucha/shared";
+import { distanceMeters, encodeGeohash, type LatLng, type PublicOccurrence } from "@miaucha/shared";
+import type { Pool } from "pg";
+import type { AlertQueue } from "../src/alerts/alert-queue";
+import { ALERT_QUEUE, PG_POOL } from "../src/tokens";
 import { closeTestApp, createTestApp, expectNoPrivateData, signUpVerified, type TestContext } from "./helpers";
 
 let ctx: TestContext;
@@ -44,6 +47,8 @@ async function tutor() {
     get: (id: string) => ctx.http.get(`/occurrences/${id}`).set(auth),
     mine: async () => (await ctx.http.get("/me/occurrences").set(auth).expect(200)).body as PublicOccurrence[],
     resolve: (id: string) => ctx.http.post(`/occurrences/${id}/resolve`).set(auth).send(),
+    edit: (id: string, data: object) => ctx.http.patch(`/occurrences/${id}`).set(auth).send(data),
+    removePhoto: (id: string, photoId: string) => ctx.http.delete(`/occurrences/${id}/photos/${photoId}`).set(auth),
     requestUpload: (id: string, contentType = "image/jpeg") => ctx.http.post(`/occurrences/${id}/photos`).set(auth).send({ contentType }),
     confirm: (id: string, photoId: string) => ctx.http.post(`/occurrences/${id}/photos/${photoId}/confirm`).set(auth).send(),
   };
@@ -108,6 +113,7 @@ describe("POST /occurrences", () => {
       description: "Coleira azul",
       approxAddress: "Av. Paulista, perto do MASP",
       photoUrls: [],
+      photos: [],
       publicLocation: { lat: expect.any(Number), lng: expect.any(Number) },
       authorPseudonym: t.user.pseudonym,
       status: "open",
@@ -382,7 +388,9 @@ describe("GET /occurrences/:id", () => {
     const o = await ana.create(real, { description: "Muito dócil" });
 
     const res = await bia.get(o.id).expect(200);
-    expect(res.body).toEqual({ ...o, isMine: false });
+    // Quem não é o autor não recebe o id das fotos.
+    const { photos: _photos, ...publicView } = o;
+    expect(res.body).toEqual({ ...publicView, isMine: false });
     expectNoPrivateData(res.body, ana.email);
     expectExactPointHidden(res.body, real);
     expect((await ana.get(o.id).expect(200)).body.isMine).toBe(true);
@@ -455,5 +463,134 @@ describe("outras espécies além de cão e gato", () => {
     const pet = (await ctx.http.post("/pets").set(t.auth).send({ name: "Tuca", species: "reptile" }).expect(201)).body;
     const res = await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", petId: pet.id, ...uniqueSpot() }).expect(201);
     expect(res.body.species).toBe("reptile");
+  });
+});
+
+describe("PATCH /occurrences/:id (editar)", () => {
+  const editable = { species: "cat", petName: "Mia", breed: "Persa", color: "Branca", description: "Coleira rosa", approxAddress: "Praça central" };
+
+  it("o autor muda os dados; o tipo e o local continuam os mesmos quando o local não vem", async () => {
+    const t = await tutor();
+    const real = uniqueSpot();
+    const o = await t.create(real);
+    const res = await t.edit(o.id, editable).expect(200);
+    expect(res.body).toMatchObject({ ...editable, id: o.id, type: "lost", publicLocation: o.publicLocation, status: "open" });
+    expect((await t.get(o.id).expect(200)).body).toMatchObject(editable);
+  });
+
+  it("local novo: grava o ponto exato e mostra só um ponto deslocado perto dele (MP-07)", async () => {
+    const t = await tutor();
+    const o = await t.create(uniqueSpot());
+    const moved = uniqueSpot();
+    const res = await t.edit(o.id, { ...editable, ...moved }).expect(200);
+    expect(distanceMeters(res.body.publicLocation, moved)).toBeLessThan(400);
+    expectExactPointHidden(res.body, moved);
+    const { rows } = await ctx.pool.query(
+      "select st_y(location::geometry) as lat, st_x(location::geometry) as lng from occurrences where id = $1",
+      [o.id],
+    );
+    expect(rows[0]).toEqual(moved);
+  });
+
+  it("dados inválidos → 400 com os erros; local pela metade → 400", async () => {
+    const t = await tutor();
+    const o = await t.create(uniqueSpot());
+    const res = await t.edit(o.id, { ...editable, petName: "" }).expect(400);
+    expect(res.body.errors).toEqual({ petName: "Informe o nome do pet" });
+    await t.edit(o.id, { ...editable, lat: -23.5 }).expect(400);
+  });
+
+  it("outra pessoa, inexistente ou id inválido → 404; resolvida → 400", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const o = await ana.create(uniqueSpot());
+    await bia.edit(o.id, editable).expect(404);
+    await bia.edit("00000000-0000-4000-8000-000000000000", editable).expect(404);
+    await bia.edit("nao-e-uuid", editable).expect(404);
+    await ana.resolve(o.id).expect(200);
+    expect((await ana.edit(o.id, editable).expect(400)).body.message).toBe("Ocorrência resolvida não pode mais ser editada");
+  });
+});
+
+describe("PATCH /occurrences/:id: casos de borda", () => {
+  it("resolvida entre a leitura e a gravação → 400 e nada muda", async () => {
+    const t = await tutor();
+    const o = await t.create(uniqueSpot());
+    // Resolve logo depois do SELECT da edição (simula o "Marcar como resolvido" em outro aparelho).
+    const pool = ctx.app.get<Pool>(PG_POOL);
+    const original = pool.query.bind(pool) as (...args: unknown[]) => Promise<unknown>;
+    const spy = jest.spyOn(pool, "query").mockImplementation((async (...args: unknown[]) => {
+      const result = await original(...args);
+      if (typeof args[0] === "string" && args[0].startsWith("select type, status from occurrences")) {
+        await ctx.pool.query("update occurrences set status = 'resolved' where id = $1", [o.id]);
+      }
+      return result;
+    }) as never);
+    try {
+      const res = await t.edit(o.id, { species: "cat", petName: "Mia", breed: "", color: "", description: "", approxAddress: "" }).expect(400);
+      expect(res.body.message).toBe("Ocorrência resolvida não pode mais ser editada");
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await t.get(o.id).expect(200)).body).toMatchObject({ petName: "Thor", species: "dog" });
+  });
+
+  it("local novo avisa quem está perto do ponto novo (AL-01), sem repetir para quem já recebeu", async () => {
+    const author = await tutor();
+    const neighbor = await tutor();
+    const wrong = uniqueSpot();
+    const right = uniqueSpot();
+    await ctx.http.put("/me/location").set(neighbor.auth).send({ geohash: encodeGeohash(right.lat, right.lng, 6) }).expect(204);
+    const o = await author.create(wrong);
+    const queue = ctx.app.get<AlertQueue>(ALERT_QUEUE);
+    await queue.onIdle();
+    const alertsOf = async () => (await ctx.pool.query("select 1 from alerts where user_id = $1 and occurrence_id = $2", [neighbor.user.id, o.id])).rowCount;
+    expect(await alertsOf()).toBe(0);
+
+    await author.edit(o.id, { species: "dog", petName: "Thor", breed: "", color: "", description: "", approxAddress: "", ...right }).expect(200);
+    await queue.onIdle();
+    expect(await alertsOf()).toBe(1);
+
+    // Editar de novo (mesmo lugar) não cria outro alerta.
+    await author.edit(o.id, { species: "dog", petName: "Thor", breed: "", color: "", description: "x", approxAddress: "", ...right }).expect(200);
+    await queue.onIdle();
+    expect(await alertsOf()).toBe(1);
+  });
+});
+
+describe("fotos na edição", () => {
+  it("só o autor vê o id de cada foto; o autor remove uma foto", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const o = await ana.create(uniqueSpot());
+    await addPhoto(ana, o.id);
+    await addPhoto(ana, o.id);
+
+    const mine = (await ana.get(o.id).expect(200)).body as PublicOccurrence;
+    expect(mine.photos).toHaveLength(2);
+    expect(mine.photos!.map((p) => p.url)).toEqual(mine.photoUrls);
+    const theirs = (await bia.get(o.id).expect(200)).body as PublicOccurrence;
+    expect(theirs.photos).toBeUndefined();
+    expect(theirs.photoUrls).toHaveLength(2);
+
+    await bia.removePhoto(o.id, mine.photos![0].id).expect(404);
+    await ana.removePhoto(o.id, mine.photos![0].id).expect(204);
+    await ana.removePhoto(o.id, mine.photos![0].id).expect(404);
+    expect((await ana.get(o.id).expect(200)).body.photos).toHaveLength(1);
+  });
+
+  it("remover da ocorrência uma foto que veio do pet não apaga a foto do pet", async () => {
+    const t = await tutor();
+    const pet = (await ctx.http.post("/pets").set(t.auth).send({ name: "Mia", species: "cat" }).expect(201)).body;
+    const req = await ctx.http.post(`/pets/${pet.id}/photos`).set(t.auth).send({ contentType: "image/jpeg" }).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    await ctx.http.post(`/pets/${pet.id}/photos/${req.body.photoId}/confirm`).set(t.auth).send().expect(200);
+    const o = (await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", petId: pet.id, ...uniqueSpot() }).expect(201))
+      .body as PublicOccurrence;
+
+    await t.removePhoto(o.id, o.photos![0].id).expect(204);
+    const petNow = (await ctx.http.get(`/pets/${pet.id}`).set(t.auth).expect(200)).body;
+    const download = await fetch(petNow.photos[0].url);
+    expect(Buffer.from(await download.arrayBuffer())).toEqual(jpeg);
   });
 });

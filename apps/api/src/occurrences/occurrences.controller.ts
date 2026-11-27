@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { SkipThrottle, ThrottlerGuard } from "@nestjs/throttler";
 import type { OccurrenceType, Species } from "@miaucha/shared";
 import { AccessTokenGuard, CurrentUserId } from "../auth/access-token.guard";
@@ -25,7 +25,29 @@ export class OccurrencesController {
       lat: num(body, "lat"),
       lng: num(body, "lng"),
       petId: str(body, "petId") || undefined,
+      sightingOf: str(body, "sightingOf") || undefined,
     });
+  }
+
+  @Patch("occurrences/:id")
+  update(@CurrentUserId() userId: string, @Param("id") id: string, @Body() body: unknown) {
+    const has = (key: string) => (body as Record<string, unknown> | undefined)?.[key] !== undefined;
+    return this.occurrences.update(userId, id, {
+      species: str(body, "species") as Species,
+      petName: str(body, "petName"),
+      breed: str(body, "breed"),
+      color: str(body, "color"),
+      description: str(body, "description"),
+      approxAddress: str(body, "approxAddress"),
+      // Local pela metade vira NaN e cai na validação.
+      location: has("lat") || has("lng") ? { lat: num(body, "lat"), lng: num(body, "lng") } : undefined,
+    });
+  }
+
+  @Delete("occurrences/:id/photos/:photoId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removePhoto(@CurrentUserId() userId: string, @Param("id") id: string, @Param("photoId") photoId: string) {
+    await this.occurrences.removePhoto(userId, id, photoId);
   }
 
   @Get("occurrences")

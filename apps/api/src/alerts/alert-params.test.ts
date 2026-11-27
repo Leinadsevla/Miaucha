@@ -1,4 +1,4 @@
-import { buildAlertPush, parseLocationBody, parsePreferencesBody } from "./alert-params";
+import { buildAlertPush, buildSightingPush, parseLocationBody, parsePreferencesBody } from "./alert-params";
 
 describe("parseLocationBody (AL-06: só geohash de precisão 6)", () => {
   it("aceita exatamente { geohash } com 6 caracteres", () => {
@@ -73,5 +73,24 @@ describe("buildAlertPush", () => {
     );
     expect(buildAlertPush({ ...base, type: "found", distanceMeters: 2_340 }, "t").title).toBe("Pet encontrado perto de você");
     expect(buildAlertPush({ ...base, type: "found", distanceMeters: 2_340 }, "t").body).toContain("a 2,3 km");
+  });
+});
+
+describe("buildSightingPush (\"Vi este pet\")", () => {
+  const base = { occurrenceId: "s1", alertId: "a1", petName: "Thor", species: "dog" as const, approxAddress: "Perto do metrô", distanceMeters: 2_300 };
+
+  it("título com o nome do pet; corpo com a distância de onde sumiu e o endereço; abre o avistamento", () => {
+    expect(buildSightingPush(base, "ExponentPushToken[x]")).toEqual({
+      to: "ExponentPushToken[x]",
+      title: "Alguém viu o Thor!",
+      body: "Avistado a ~2,3 km de onde sumiu · Perto do metrô",
+      data: { occurrenceId: "s1", alertId: "a1" },
+    });
+  });
+
+  it("sem nome nem endereço", () => {
+    const push = buildSightingPush({ ...base, petName: null, species: "cat", approxAddress: null, distanceMeters: 300 }, "t");
+    expect(push.title).toBe("Alguém viu o seu gato!");
+    expect(push.body).toBe("Avistado a ~300 m de onde sumiu");
   });
 });

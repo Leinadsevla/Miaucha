@@ -3,10 +3,14 @@ import type { PublicOccurrence } from "@miaucha/shared";
 import { ApiError } from "@/features/auth/apiSession";
 import type { LocationResult } from "@/features/location/currentLocation";
 import type { AreaQuery } from "@/features/occurrences/occurrencesClient";
-import { mapCommands } from "@/test-utils/reactNativeMapsMock";
+import { cameraCommands, mapEvents } from "@/test-utils/maplibreMock";
 import type { MapCache, MapSnapshot } from "../mapCache";
 import { MapScreen } from "../MapScreen";
-import { DEFAULT_REGION } from "../region";
+import { DEFAULT_REGION, boundsToRegion, regionToBounds } from "../region";
+
+/** Região com que o mapa abriu (a câmera recebe os limites). */
+const initialBounds = () => screen.getByTestId("map-camera").props.initialViewState.bounds;
+const showsUser = () => screen.queryByTestId("map-user-location") !== null;
 
 const now = new Date("2026-11-20T12:00:00Z");
 const here = { lat: -23.55, lng: -46.63 };
@@ -54,7 +58,7 @@ async function setup({ location = { status: "ok", coords: here }, inArea = async
   return { props, client, cache };
 }
 
-beforeEach(() => mapCommands.animateToRegion.mockClear());
+beforeEach(() => cameraCommands.fitBounds.mockClear());
 
 // A primeira renderização carrega mapa, ícones e imagens; com a suíte inteira em paralelo passa de 5 s.
 jest.setTimeout(15_000);
@@ -63,13 +67,14 @@ describe("MapScreen", () => {
   it("começa na localização atual e busca só a área visível (MP-02)", async () => {
     const { client } = await setup();
     await waitFor(() => expect(client.inArea).toHaveBeenCalled());
-    const map = screen.getByTestId("map-view");
-    expect(map.props.initialRegion).toMatchObject({ latitude: here.lat, longitude: here.lng });
+    const start = boundsToRegion(initialBounds());
+    expect(start.latitude).toBeCloseTo(here.lat);
+    expect(start.longitude).toBeCloseTo(here.lng);
     const { bbox } = client.inArea.mock.calls[0][0];
     expect(bbox.minLat).toBeLessThan(here.lat);
     expect(bbox.maxLat).toBeGreaterThan(here.lat);
     expect(bbox.maxLat - bbox.minLat).toBeLessThan(0.1);
-    expect(map.props.showsUserLocation).toBe(true);
+    expect(showsUser()).toBe(true);
   });
 
   it("desenha um marcador por ocorrência e mostra quantas há na área", async () => {
@@ -96,7 +101,7 @@ describe("MapScreen", () => {
   it("tocar no mapa fecha o card", async () => {
     await setup();
     await fireEvent.press(await screen.findByTestId("marker-Thor"));
-    await fireEvent.press(screen.getByTestId("map-view"));
+    await fireEvent.press(screen.getByTestId("map-view"), mapEvents.at(-23.6, -46.7));
     expect(screen.queryByRole("button", { name: "Ver detalhes" })).toBeNull();
   });
 
@@ -104,12 +109,11 @@ describe("MapScreen", () => {
     await setup({ inArea: async () => group });
     await screen.findByTestId("cluster-3");
     // aproxima: o mapa avisa a região nova e os pontos se separam
-    await fireEvent(screen.getByTestId("map-view"), "regionChangeComplete", {
-      latitude: -23.57,
-      longitude: -46.65,
-      latitudeDelta: 0.002,
-      longitudeDelta: 0.002,
-    });
+    await fireEvent(
+      screen.getByTestId("map-view"),
+      "regionDidChange",
+      mapEvents.region({ latitude: -23.57, longitude: -46.65, latitudeDelta: 0.002, longitudeDelta: 0.002 }),
+    );
     expect(screen.queryByTestId("cluster-3")).toBeNull();
     expect(screen.getByTestId("marker-A")).toBeOnTheScreen();
   });
@@ -117,8 +121,8 @@ describe("MapScreen", () => {
   it("tocar no grupo anima o mapa até ele se separar", async () => {
     await setup({ inArea: async () => group });
     await fireEvent.press(await screen.findByTestId("cluster-3"));
-    expect(mapCommands.animateToRegion).toHaveBeenCalledTimes(1);
-    const [region] = mapCommands.animateToRegion.mock.calls[0];
+    expect(cameraCommands.fitBounds).toHaveBeenCalledTimes(1);
+    const region = boundsToRegion(cameraCommands.fitBounds.mock.calls[0][0]);
     expect(region.latitude).toBeCloseTo(-23.57, 2);
     expect(region.longitudeDelta).toBeLessThan(0.03);
   });
@@ -138,8 +142,8 @@ describe("MapScreen", () => {
   it("sem permissão de localização, usa a região padrão e explica", async () => {
     const { client } = await setup({ location: { status: "denied", canAskAgain: true } });
     await waitFor(() => expect(client.inArea).toHaveBeenCalled());
-    expect(screen.getByTestId("map-view").props.initialRegion).toEqual(DEFAULT_REGION);
-    expect(screen.getByTestId("map-view").props.showsUserLocation).toBe(false);
+    expect(initialBounds()).toEqual(regionToBounds(DEFAULT_REGION));
+    expect(showsUser()).toBe(false);
     expect(screen.getByText(/Sem acesso à sua localização/)).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Permitir localização" })).toBeOnTheScreen();
   });
@@ -161,13 +165,13 @@ describe("MapScreen", () => {
     const region = { latitude: -22.9, longitude: -43.2, latitudeDelta: 0.03, longitudeDelta: 0.03 };
     await setup({ inArea: async () => Promise.reject(new ApiError("sem rede", 0)), snapshot: { region, occurrences: [], savedAt: "x" } });
     await screen.findByText("Sem conexão: mostrando o último mapa carregado");
-    expect(mapCommands.animateToRegion).toHaveBeenCalledWith(region, 500);
+    expect(cameraCommands.fitBounds).toHaveBeenCalledWith(regionToBounds(region), { duration: 500 });
   });
 
   it("sem permissão e com mapa salvo, começa no mapa salvo", async () => {
     const region = { latitude: -22.9, longitude: -43.2, latitudeDelta: 0.03, longitudeDelta: 0.03 };
     await setup({ location: { status: "denied", canAskAgain: true }, snapshot: { region, occurrences: [], savedAt: "x" } });
-    await waitFor(() => expect(screen.getByTestId("map-view").props.initialRegion).toEqual(region));
+    await waitFor(() => expect(initialBounds()).toEqual(regionToBounds(region)));
   });
 
   it("erro da API aparece com 'Tentar de novo'", async () => {

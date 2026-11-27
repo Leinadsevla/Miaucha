@@ -280,6 +280,14 @@ describe("foto e localização (CH-05)", () => {
     expect(distanceMeters(real, rows[0])).toBeGreaterThan(50);
   });
 
+  it("localização enviada várias vezes do mesmo lugar dá sempre o mesmo ponto (a média não revela o real)", async () => {
+    const { other, conversation } = await conversationPair(ctx);
+    const real = uniqueSpot();
+    const first = (await other.send(conversation.id, { location: real }).expect(201)).body as ChatMessage;
+    const second = (await other.send(conversation.id, { location: real }).expect(201)).body as ChatMessage;
+    expect(second.location).toEqual(first.location);
+  });
+
   it("localização inválida → 400", async () => {
     const { other, conversation } = await conversationPair(ctx);
     await other.send(conversation.id, { location: { lat: 200, lng: 0 } }).expect(400);

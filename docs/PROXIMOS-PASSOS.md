@@ -9,7 +9,7 @@ Sprint 1 (Fundação), parte do app pronta:
 | Item da S1 | Situação |
 | --- | --- |
 | Monorepo (`apps/mobile`, `apps/api`, `packages/shared`) | Pronto |
-| Design system (tokens, Nunito, componentes base) | Pronto |
+| Design system (tokens, Plus Jakarta Sans, componentes base) | Pronto |
 | Telas de splash, login/cadastro, código de e-mail, consentimento, política | Prontas, com login **falso** (`createMockAuthClient`) |
 | Abas (Início, Mapa, Alertas, Chat, Perfil) | Todas prontas: Início (S2), Mapa (S3), Chat (S4), Alertas (S5) e Perfil |
 | Docker Compose (PostGIS + Redis) | Falta |
@@ -145,7 +145,7 @@ Pendências:
 
 Feito em TDD, criado a partir da `feat/ocorrencias`. Só o app mudou (a API da S2 já tinha a busca por bbox com filtros); nenhuma migração.
 
-**Dependências:** `react-native-maps` 1.29.11 (vem no Expo Go; sem chave do Google em desenvolvimento) e `supercluster` 9 (JS puro, traz os próprios tipos). Os dois são ESM e entraram no `transformIgnorePatterns` do Jest (com o `kdbush`). No Jest o mapa é um mock (`src/test-utils/reactNativeMapsMock.tsx`, ligado no `jest.setup.ts`).
+**Dependências:** o mapa era `react-native-maps`; em `feat/eas-build` virou MapLibre (`@maplibre/maplibre-react-native` 11, mapas gratuitos do OpenFreeMap, sem chave do Google). `supercluster` 9 (JS puro, traz os próprios tipos). Os dois são ESM e entraram no `transformIgnorePatterns` do Jest (com o `kdbush`). No Jest o mapa é um mock (`src/test-utils/maplibreMock.tsx`, ligado no `jest.setup.ts`).
 
 **Regras puras (`apps/mobile/src/features/map`):**
 
@@ -165,8 +165,8 @@ Pendências:
 
 - [x] `PinPicker` ligado no `OccurrenceForm`: começa na localização atual ou no endereço encontrado; procurar outro endereço recoloca o pino.
 - [x] Atalho "Ver no mapa" na aba Início.
-- [ ] **Development build / produção no Android:** fora do Expo Go, o Google Maps precisa de chave (`android.config.googleMaps.apiKey` no `app.json` ou o plugin do `react-native-maps`). No iOS usa o Apple Maps, sem chave.
-- [ ] Testar no aparelho: arrastar e dar zoom (debounce, clusters se separando), marcadores customizados no Android (usam `tracksViewChanges` só por 500 ms depois de mudar), "Como chegar" pelo card, modo avião (MP-08) e o `PinPicker` arrastando o marcador.
+- [x] **Mapa sem chave do Google:** trocado para MapLibre + OpenFreeMap (`features/map/MapCanvas.tsx`). Exige development build: não roda no Expo Go.
+- [ ] Testar no aparelho: arrastar e dar zoom (debounce, clusters se separando), marcadores customizados no Android e no iOS (`Marker` do MapLibre), tocar num marcador não pode fechar o card logo em seguida (o toque não pode chegar também ao mapa), "Como chegar" pelo card, modo avião (MP-08) e o `PinPicker` arrastando o marcador.
 - [ ] Apagar o cache do mapa ao sair da conta (`mapCache.clear()` existe; não foi ligado ao logout para não mexer no `AuthProvider`). Só guarda dados públicos.
 - [ ] Fotos no modo offline: as URLs são assinadas e expiram em 1 h; sem internet, o card mostra a foto só se o `expo-image` já a tiver em cache.
 - [ ] Teste de carga do MP-02 com k6 (continua pendente da S2).
@@ -310,3 +310,9 @@ O grupo criou o projeto `ermdracdakmacpwsalfu` no Supabase para o Postgres. Os t
 ## Para começar uma sessão nova com o Claude
 
 > Leia `CLAUDE.md` e `docs/PROXIMOS-PASSOS.md`. Vamos fazer o passo N em TDD, numa branch nova.
+
+### "Vi este pet" (`feat/vi-este-pet`)
+
+- [x] Botão "Vi este pet" no detalhe de um pet perdido (aberto, de outra pessoa): abre o registro já como avistado, com espécie, nome, raça e cor do pet.
+- [x] API: `POST /occurrences` aceita `sightingOf` (só para `seen`, apontando para um `lost` aberto de outra pessoa; migração `009_sightings.sql`). O disparo avisa o tutor em qualquer distância e mesmo no horário de silêncio, com o push "Alguém viu o Thor!"; o alerta genérico de proximidade não repete para ele.
+- [ ] Testar no aparelho com duas contas.

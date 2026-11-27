@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet, type PetInput } from "@miaucha/shared";
-import { KeyboardScreen } from "@/components";
+import { type MyPet, type PetInput } from "@miaucha/shared";
+import { KeyboardScreen, ScreenHeader } from "@/components";
 import { PetForm, createPhotoPicker, updatePet, usePetsClient, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -27,7 +28,7 @@ export default function EditPet() {
     try {
       const { failedPhotos } = await updatePet(client, id, input, photos, removedPhotoIds);
       if (failedPhotos > 0) {
-        Alert.alert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
+        showAlert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
       }
       router.back();
     } catch (e) {
@@ -39,22 +40,9 @@ export default function EditPet() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-xl bg-muted"
-        >
-          <ChevronLeft size={20} color={colors.foreground} />
-        </Pressable>
-        <View>
-          <Text className="font-nunito-black text-base text-foreground">Editar pet</Text>
-          <Text className="font-sans text-xs text-muted-foreground">{pet?.name ?? "Carregando..."}</Text>
-        </View>
-      </View>
+      <ScreenHeader title={"Editar pet"} subtitle={pet?.name ?? "Carregando..."} onBack={() => router.back()} />
       {pet ? (
-        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
           <PetForm
             initial={{ name: pet.name, species: pet.species, breed: pet.breed ?? "", color: pet.color ?? "", approxAge: pet.approxAge ?? "" }}
             existingPhotos={pet.photos}

@@ -14,7 +14,7 @@ O Miaucha entrega um MVP mobile em 6 sprints de 2 semanas (cerca de 12 semanas),
 | --- | --- | --- |
 | App mobile | Expo (React Native) + Expo Router + TypeScript | Geofencing e push nativos; mesma linguagem do backend |
 | Estilo | NativeWind v4 + lucide-react-native + fonte Nunito | Reaproveita as classes Tailwind do protótipo `design.tsx` |
-| Mapa | react-native-maps ou MapLibre + supercluster | Marcadores nativos com clustering |
+| Mapa | MapLibre (OpenFreeMap) + supercluster | Marcadores nativos com clustering |
 | API | NestJS (Node + TypeScript) | Módulos por domínio, WebSocket integrado |
 | Banco | PostgreSQL + PostGIS | Consultas por raio e bbox com índice GiST |
 | Tempo real e filas | Redis + Socket.IO + BullMQ | Chat, presença, envio de alertas em lote |

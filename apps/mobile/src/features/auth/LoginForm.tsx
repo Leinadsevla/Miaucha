@@ -1,15 +1,10 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
-import { PrimaryButton, TextField } from "@/components";
+import { Lock, Mail, User } from "lucide-react-native";
+import { colors, elevation, validateLogin, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
+import { PrimaryButton, TextField, TextLink } from "@/components";
 import { cn } from "@/lib/cn";
-
-/**
- * Sombra da aba selecionada pelo `style`, não por `shadow-sm` condicional: no NativeWind 4 isso
- * adiciona variáveis CSS depois da primeira renderização e quebra no Expo Router (ver nativewind-rules.test.ts).
- */
-const SELECTED_TAB_SHADOW = { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 };
 
 type Tab = "login" | "register";
 type Errors = Partial<Record<keyof SignUpInput | "confirmPassword", string>>;
@@ -17,13 +12,16 @@ type Errors = Partial<Record<keyof SignUpInput | "confirmPassword", string>>;
 type Props = {
   onLogin: (input: LoginInput) => void;
   onSignUp: (input: SignUpInput) => void;
-  onGoogle: () => void;
+  /** Sem ele (login com Google não configurado), o botão não aparece. */
+  onGoogle?: () => void;
+  /** Aviso pequeno abaixo do botão do Google (ex.: quando ele entra em modo demonstração). */
+  googleNote?: string;
   onForgotPassword?: () => void;
   loading?: boolean;
   serverError?: string;
 };
 
-export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loading, serverError }: Props) {
+export function LoginForm({ onLogin, onSignUp, onGoogle, googleNote, onForgotPassword, loading, serverError }: Props) {
   const [tab, setTab] = useState<Tab>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,7 +52,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
 
   return (
     <View className="gap-5">
-      <View accessibilityRole="tablist" className="flex-row rounded-2xl bg-muted p-1">
+      <View accessibilityRole="tablist" className="flex-row rounded-[14px] bg-muted p-1">
         {(["login", "register"] as const).map((t) => {
           const selected = tab === t;
           const label = t === "login" ? "Entrar" : "Cadastrar";
@@ -65,10 +63,10 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
               accessibilityLabel={label}
               accessibilityState={{ selected }}
               onPress={() => switchTab(t)}
-              className={cn("flex-1 items-center rounded-xl py-2", selected && "bg-white")}
-              style={selected ? SELECTED_TAB_SHADOW : undefined}
+              className={cn("flex-1 items-center justify-center rounded-[10px]", selected && "bg-white")}
+              style={[{ minHeight: 44 }, selected ? elevation.card : null]}
             >
-              <Text className={cn("font-nunito-bold text-sm", selected ? "text-primary" : "text-muted-foreground")}>
+              <Text className={cn("text-sm", selected ? "font-ui-bold text-foreground" : "font-ui-semibold text-muted-foreground")}>
                 {label}
               </Text>
             </Pressable>
@@ -76,7 +74,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
         })}
       </View>
 
-      <View className="gap-3">
+      <View className="gap-4">
         {tab === "register" ? (
           <TextField
             label="Nome completo"
@@ -84,6 +82,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
             value={name}
             onChangeText={setName}
             autoComplete="name"
+            icon={<User size={18} color={colors.mutedForeground} />}
             error={errors.name}
           />
         ) : null}
@@ -95,6 +94,7 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
+          icon={<Mail size={18} color={colors.mutedForeground} />}
           error={errors.email}
         />
         <TextField
@@ -104,6 +104,9 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
           onChangeText={setPassword}
           secureTextEntry
           autoComplete={tab === "login" ? "current-password" : "new-password"}
+          returnKeyType={tab === "login" ? "go" : "next"}
+          onSubmitEditing={tab === "login" ? submit : undefined}
+          icon={<Lock size={18} color={colors.mutedForeground} />}
           error={errors.password}
         />
         {tab === "register" ? (
@@ -114,17 +117,20 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
             onChangeText={setConfirmPassword}
             secureTextEntry
             autoComplete="new-password"
+            returnKeyType="go"
+            onSubmitEditing={submit}
+            icon={<Lock size={18} color={colors.mutedForeground} />}
             error={errors.confirmPassword}
           />
         ) : null}
         {tab === "login" && onForgotPassword ? (
-          <Pressable accessibilityRole="button" onPress={onForgotPassword} className="self-end">
-            <Text className="font-nunito-semibold text-xs text-primary">Esqueci minha senha</Text>
-          </Pressable>
+          <View className="-my-3 self-end">
+            <TextLink label="Esqueci minha senha" tone="brand" onPress={onForgotPassword} />
+          </View>
         ) : null}
 
         {serverError ? (
-          <Text accessibilityRole="alert" className="text-center font-nunito-semibold text-xs text-lost">
+          <Text accessibilityRole="alert" className="rounded-xl bg-lost-soft px-3 py-2.5 text-center font-ui-semibold text-sm text-foreground">
             {serverError}
           </Text>
         ) : null}
@@ -133,22 +139,28 @@ export function LoginForm({ onLogin, onSignUp, onGoogle, onForgotPassword, loadi
           title={tab === "login" ? "Entrar" : "Criar conta"}
           onPress={submit}
           loading={loading}
-          className="mt-2"
+          arrow
+          className="mt-1"
         />
 
-        <View className="my-1 flex-row items-center gap-3">
-          <View className="h-px flex-1 bg-border" />
-          <Text className="font-nunito-semibold text-xs text-muted-foreground">ou</Text>
-          <View className="h-px flex-1 bg-border" />
-        </View>
+        {onGoogle ? (
+          <>
+            <View className="my-1 flex-row items-center gap-3">
+              <View className="h-px flex-1 bg-border" />
+              <Text className="font-ui-semibold text-xs text-muted-foreground">ou</Text>
+              <View className="h-px flex-1 bg-border" />
+            </View>
 
-        <PrimaryButton
-          title="Continuar com Google"
-          variant="outline"
-          onPress={onGoogle}
-          disabled={loading}
-          icon={<GoogleLogo />}
-        />
+            <PrimaryButton
+              title="Continuar com Google"
+              variant="outline"
+              onPress={onGoogle}
+              disabled={loading}
+              icon={<GoogleLogo />}
+            />
+            {googleNote ? <Text className="text-center font-sans text-xs leading-4 text-muted-foreground">{googleNote}</Text> : null}
+          </>
+        ) : null}
       </View>
     </View>
   );

@@ -30,12 +30,13 @@ export function SpeciesSelector({ value, onChange, error }: { value: Species; on
               accessibilityState={{ selected }}
               onPress={() => onChange(option.value === "others" ? (isOther(value) ? value : "other") : option.value)}
               className={cn(
-                "flex-1 flex-row items-center justify-center gap-2 rounded-2xl border-2 py-3",
-                selected ? "border-primary bg-primary" : "border-border",
+                "flex-1 flex-row items-center justify-center gap-2 rounded-2xl border-2",
+                selected ? "border-brand bg-brand-soft" : "border-border bg-white",
               )}
+              style={{ minHeight: 52 }}
             >
-              <SpeciesIcon species={option.icon} size={18} color={selected ? colors.white : colors.mutedForeground} />
-              <Text className={cn("font-nunito-bold text-sm", selected ? "text-white" : "text-muted-foreground")}>{option.label}</Text>
+              <SpeciesIcon species={option.icon} size={20} color={selected ? colors.brand : colors.mutedForeground} />
+              <Text className={cn("text-sm", selected ? "font-ui-extrabold text-foreground" : "font-ui-bold text-muted-foreground")}>{option.label}</Text>
             </Pressable>
           );
         })}
@@ -52,17 +53,18 @@ export function SpeciesSelector({ value, onChange, error }: { value: Species; on
                 accessibilityLabel={speciesLabel(species)}
                 accessibilityState={{ selected }}
                 onPress={() => onChange(species)}
-                className={cn("flex-row items-center gap-1.5 rounded-xl border-2 px-3 py-2", selected ? "border-primary bg-primary-soft" : "border-border")}
+                className={cn("flex-row items-center gap-1.5 rounded-full border-2 px-4", selected ? "border-brand bg-brand-soft" : "border-border bg-white")}
+                style={{ minHeight: 44 }}
               >
-                <SpeciesIcon species={species} size={16} color={selected ? colors.primary : colors.mutedForeground} />
-                <Text className={cn("font-nunito-bold text-xs", selected ? "text-primary" : "text-muted-foreground")}>{speciesLabel(species)}</Text>
+                <SpeciesIcon species={species} size={16} color={selected ? colors.brand : colors.mutedForeground} />
+                <Text className={cn("text-sm", selected ? "font-ui-extrabold text-foreground" : "font-ui-bold text-muted-foreground")}>{speciesLabel(species)}</Text>
               </Pressable>
             );
           })}
         </View>
       ) : null}
 
-      {error ? <Text className="font-nunito-semibold text-xs text-lost">{error}</Text> : null}
+      {error ? <Text className="font-ui-semibold text-xs text-lost">{error}</Text> : null}
     </View>
   );
 }

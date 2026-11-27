@@ -1,7 +1,8 @@
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PrimaryButton } from "@/components";
+import { Card, ScreenHeader } from "@/components";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 // Rascunho para a S1. O texto final da política entra no checklist LGPD (NF-01).
 const SECTIONS = [
@@ -14,18 +15,18 @@ const SECTIONS = [
 export default function Privacy() {
   const insets = useSafeAreaInsets();
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{ padding: 20, paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20, gap: 16 }}
-    >
-      <Text className="font-nunito-black text-2xl text-foreground">Política de privacidade</Text>
-      {SECTIONS.map(([title, body]) => (
-        <View key={title} className="rounded-3xl border border-border bg-card p-4">
-          <Text className="mb-1 font-nunito-bold text-sm text-foreground">{title}</Text>
-          <Text className="font-sans text-sm leading-5 text-muted-foreground">{body}</Text>
-        </View>
-      ))}
-      <PrimaryButton title="Voltar" variant="primary" onPress={() => router.back()} />
-    </ScrollView>
+    <>
+      <ScreenHeader title="Política de privacidade" subtitle="Como cuidamos dos seus dados" onBack={() => router.back()} />
+      <ScrollView className="flex-1 bg-background" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24, gap: 12 }}>
+        {SECTIONS.map(([title, body]) => (
+          <Card key={title}>
+            <Text accessibilityRole="header" className="mb-1 font-ui-extrabold text-base text-foreground">
+              {title}
+            </Text>
+            <Text className="font-sans text-sm leading-5 text-muted-foreground">{body}</Text>
+          </Card>
+        ))}
+      </ScrollView>
+    </>
   );
 }

@@ -9,6 +9,7 @@ const item = (id: string, data: Partial<AlertItem> = {}, occurrence: Partial<Ale
   id,
   occurrenceId: `occ-${id}`,
   distanceMeters: 800,
+  sighting: false,
   createdAt: "2026-11-20T11:00:00Z",
   seenAt: null,
   ...data,
@@ -44,6 +45,22 @@ describe("filterAlerts", () => {
   });
 });
 
+describe("alerta de avistamento do meu pet", () => {
+  const sighting = item("s", { distanceMeters: 12_000, sighting: true }, { type: "seen" });
+
+  it("aparece em qualquer filtro (a distância é de onde o pet sumiu, não de mim)", () => {
+    for (const filter of ["all", "under1", "1to3", "3to5"] as const) {
+      expect(filterAlerts([sighting], filter).map((a) => a.id)).toEqual(["s"]);
+    }
+  });
+
+  it("o card diz que a distância é de onde sumiu", async () => {
+    const { props } = setup(async () => [sighting]);
+    await render(<AlertsScreen {...props} />);
+    expect(await screen.findByText("~12 km de onde sumiu")).toBeOnTheScreen();
+  });
+});
+
 describe("AlertsScreen (aba Alertas)", () => {
   it("lista os alertas com tipo, nome, distância aproximada e tempo", async () => {
     const { props } = setup();
@@ -59,6 +76,16 @@ describe("AlertsScreen (aba Alertas)", () => {
     expect(screen.getAllByText("Vira-lata · Caramelo")).toHaveLength(2);
     // Só o não visto tem a marca de novo.
     expect(screen.getAllByText("Novo")).toHaveLength(1);
+  });
+
+  it("altura padrão: sem raça, cor e região, as linhas continuam lá com a espécie e o aviso", async () => {
+    const { props } = setup(async () => [item("1", {}, { breed: null, color: null, approxAddress: null })]);
+    await render(<AlertsScreen {...props} />);
+    expect(await screen.findByText("Cão")).toBeOnTheScreen();
+    expect(screen.getByText("Região não informada")).toBeOnTheScreen();
+    for (const id of ["alert-card-details", "alert-card-address"]) {
+      expect(screen.getByTestId(id).props.numberOfLines).toBe(1);
+    }
   });
 
   it("tocar abre o detalhe da ocorrência (AL-08) e marca como visto", async () => {
@@ -96,6 +123,8 @@ describe("AlertsScreen (aba Alertas)", () => {
     const { props } = setup(async () => []);
     await render(<AlertsScreen {...props} />);
     expect(await screen.findByText(/Nenhum alerta por enquanto/)).toBeOnTheScreen();
+    expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
+    expect(screen.queryByText("🐾")).toBeNull();
   });
 
   it("carregando", async () => {

@@ -46,6 +46,9 @@ export function createMapLoader({ client, cache, onChange, debounceMs = REGION_D
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest = 0;
 
+  /** Mantém a região do mapa salvo enquanto continuar offline. */
+  const keepOffline = () => (state.offline ? { offline: true, offlineRegion: state.offlineRegion } : { offline: false });
+
   const emit = (next: MapDataState) => {
     state = next;
     onChange(state);
@@ -55,7 +58,7 @@ export function createMapLoader({ client, cache, onChange, debounceMs = REGION_D
     const request = ++latest;
     const bbox = regionToBBox(target, FETCH_PADDING);
     const requestFilters = filters;
-    emit({ occurrences: state.occurrences, loading: true, offline: state.offline });
+    emit({ occurrences: state.occurrences, loading: true, ...keepOffline() });
     try {
       const occurrences = await client.inArea({ bbox, ...filtersToQuery(requestFilters) });
       if (request !== latest) return;
@@ -78,7 +81,7 @@ export function createMapLoader({ client, cache, onChange, debounceMs = REGION_D
         return;
       }
       const message = error instanceof Error ? error.message : "Não foi possível carregar o mapa";
-      emit({ occurrences: state.occurrences, loading: false, offline: state.offline, error: message });
+      emit({ occurrences: state.occurrences, loading: false, ...keepOffline(), error: message });
     }
   }
 

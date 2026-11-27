@@ -1,5 +1,6 @@
 import { createHttpAuthClient, type FetchLike } from "../httpAuthClient";
 import type { SessionStorage, StoredSession } from "../sessionStorage";
+import { createMockAuthClient } from "../mockAuthClient";
 
 type Call = { method: string; path: string; body: unknown; authorization?: string };
 type Reply = { status: number; body?: unknown } | "network-error";
@@ -235,6 +236,32 @@ describe("createHttpAuthClient", () => {
       expect(storage.current).toBeNull();
     });
 
+    it("refresh recusado avisa quem escuta onSessionExpired (a tela volta ao login)", async () => {
+      const { client } = setup(
+        { "POST /me/consent": () => ({ status: 401 }), "POST /auth/refresh": () => ({ status: 401 }) },
+        stored,
+      );
+      const expired = jest.fn();
+      const stop = client.onSessionExpired!(expired);
+      await expect(client.saveConsent(consent)).rejects.toThrow("Sua sessão expirou. Entre de novo.");
+      expect(expired).toHaveBeenCalledTimes(1);
+
+      stop();
+      await expect(client.saveConsent(consent)).rejects.toThrow();
+      expect(expired).toHaveBeenCalledTimes(1);
+    });
+
+    it("refresh sem rede não derruba a sessão", async () => {
+      const { client } = setup(
+        { "POST /me/consent": () => ({ status: 401 }), "POST /auth/refresh": () => "network-error" },
+        stored,
+      );
+      const expired = jest.fn();
+      client.onSessionExpired!(expired);
+      await expect(client.saveConsent(consent)).rejects.toThrow();
+      expect(expired).not.toHaveBeenCalled();
+    });
+
     it("sem sessão salva → pede para entrar de novo, sem chamar a API", async () => {
       const { client, api } = setup({});
       await expect(client.saveConsent(consent)).rejects.toThrow("Sua sessão expirou. Entre de novo.");
@@ -278,5 +305,14 @@ describe("createHttpAuthClient", () => {
       await client.logout();
       expect(storage.current).toBeNull();
     });
+  });
+});
+
+describe("supportsGoogle", () => {
+  it("só com um GoogleSignIn de verdade; o padrão (indisponível) não conta", () => {
+    const storage = { load: async () => null, save: async () => {}, clear: async () => {} };
+    expect(createHttpAuthClient({ baseUrl: "http://x", storage }).supportsGoogle).toBe(false);
+    expect(createHttpAuthClient({ baseUrl: "http://x", storage, google: { getIdToken: async () => "t" } }).supportsGoogle).toBe(true);
+    expect(createMockAuthClient().supportsGoogle).toBe(true);
   });
 });

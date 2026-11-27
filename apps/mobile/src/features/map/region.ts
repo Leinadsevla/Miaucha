@@ -1,6 +1,6 @@
 import { OCCURRENCE_SEARCH_LIMIT, type LatLng } from "@miaucha/shared";
 
-/** Mesmo formato da `Region` do react-native-maps (centro + tamanho da área visível em graus). */
+/** Área visível do mapa: centro + tamanho em graus (o MapLibre usa limites; ver `regionToBounds`). */
 export type Region = { latitude: number; longitude: number; latitudeDelta: number; longitudeDelta: number };
 
 /** Área retangular no formato da API: `?bbox=minLng,minLat,maxLng,maxLat`. */
@@ -40,6 +40,18 @@ export function regionToBBox(region: Region, padding = 0): BBox {
     maxLng: clamp(region.longitude + halfLng, -180, 180),
     maxLat: clamp(region.latitude + halfLat, -90, 90),
   };
+}
+
+/** Limites no formato do MapLibre: `[oeste, sul, leste, norte]`. */
+export type LngLatBounds = [west: number, south: number, east: number, north: number];
+
+export function regionToBounds(region: Region): LngLatBounds {
+  const { minLng, minLat, maxLng, maxLat } = regionToBBox(region);
+  return [minLng, minLat, maxLng, maxLat];
+}
+
+export function boundsToRegion([west, south, east, north]: LngLatBounds): Region {
+  return { latitude: (south + north) / 2, longitude: (west + east) / 2, latitudeDelta: north - south, longitudeDelta: east - west };
 }
 
 export function bboxParam({ minLng, minLat, maxLng, maxLat }: BBox): string {

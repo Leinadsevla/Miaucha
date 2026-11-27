@@ -1,4 +1,4 @@
-import { createFileUploader, type StartUpload } from "../fileUploader";
+import { createBrowserUpload, createFileUploader, type StartUpload } from "../fileUploader";
 
 describe("createFileUploader", () => {
   it("envia o arquivo local com PUT e o Content-Type assinado", async () => {
@@ -20,5 +20,36 @@ describe("createFileUploader", () => {
       throw new Error("File not found");
     });
     await expect(upload("u", { uri: "file:///sumiu.jpg" }, "image/jpeg")).rejects.toThrow("Não foi possível enviar a foto. Tente de novo.");
+  });
+});
+
+describe("createBrowserUpload (app web)", () => {
+  it("lê a foto escolhida (blob: do navegador) e envia os bytes por PUT com os cabeçalhos assinados", async () => {
+    const photo = { size: 3 } as Blob;
+    const fetchFn = jest.fn(async (input: string, _init?: RequestInit) =>
+      input.startsWith("blob:") ? ({ blob: async () => photo } as Response) : ({ status: 200, text: async () => "" } as Response),
+    );
+    const start = createBrowserUpload(fetchFn as unknown as typeof fetch);
+
+    const result = await start("blob:http://localhost:8081/abc", "https://storage/assinada", {
+      httpMethod: "PUT",
+      headers: { "Content-Type": "image/png" },
+    });
+
+    expect(result).toEqual({ status: 200, body: "" });
+    expect(fetchFn).toHaveBeenNthCalledWith(1, "blob:http://localhost:8081/abc");
+    expect(fetchFn).toHaveBeenNthCalledWith(2, "https://storage/assinada", {
+      method: "PUT",
+      headers: { "Content-Type": "image/png" },
+      body: photo,
+    });
+  });
+
+  it("devolve o status de erro do storage para o createFileUploader transformar em mensagem", async () => {
+    const fetchFn = jest.fn(async (input: string) =>
+      input.startsWith("blob:") ? ({ blob: async () => ({}) as Blob } as Response) : ({ status: 403, text: async () => "<Error/>" } as Response),
+    );
+    const upload = createFileUploader(createBrowserUpload(fetchFn as unknown as typeof fetch));
+    await expect(upload("https://storage/assinada", { uri: "blob:x" }, "image/png")).rejects.toThrow("Não foi possível enviar a foto. Tente de novo.");
   });
 });

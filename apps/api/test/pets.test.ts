@@ -1,3 +1,6 @@
+import type { Pool } from "pg";
+import type { PhotoStorage } from "../src/storage/photo-storage";
+import { PG_POOL, PHOTO_STORAGE } from "../src/tokens";
 import { S3PhotoStorage } from "../src/storage/s3-photo-storage";
 import { closeTestApp, createTestApp, expectNoPrivateData, signUpVerified, storageConfigFromEnv, type TestContext } from "./helpers";
 
@@ -141,6 +144,67 @@ describe("fotos do pet (upload por URL assinada)", () => {
     const key = new URL(req.body.uploadUrl).pathname.split("/").slice(2).join("/");
     expect(await storage.stat(key)).toBeNull();
     await t.confirm(pet.id, req.body.photoId).expect(404);
+  });
+
+  it("enviar de novo pela mesma URL depois de confirmar não troca a foto já conferida", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    await t.confirm(pet.id, req.body.photoId).expect(200);
+
+    await put(req.body.uploadUrl, Buffer.from("File not found"));
+    await t.confirm(pet.id, req.body.photoId).expect(200);
+
+    const [listed] = await t.myPets();
+    const download = await fetch(listed.photos[0].url);
+    expect(Buffer.from(await download.arrayBuffer())).toEqual(jpeg);
+  });
+
+  it("confirmar de novo depois de uma falha no meio (cópia feita, pendente já apagado) → 200", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    const pending = new URL(req.body.uploadUrl).pathname.split("/").slice(2).join("/");
+    await storage.copy(pending, pending.replace(/^pending\//, ""));
+    await storage.delete(pending);
+
+    await t.confirm(pet.id, req.body.photoId).expect(200);
+    expect((await t.myPets())[0].photos).toEqual([{ id: req.body.photoId, url: expect.any(String) }]);
+  });
+
+  it("a conferência no storage não segura conexão do banco (o pool pequeno do Supabase não esgota)", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    const pool = ctx.app.get<Pool>(PG_POOL);
+    const storage = ctx.app.get<PhotoStorage>(PHOTO_STORAGE);
+    const busy: number[] = [];
+    for (const method of ["stat", "copy", "readHead", "delete"] as const) {
+      const original = storage[method].bind(storage) as (...args: unknown[]) => Promise<unknown>;
+      jest.spyOn(storage, method).mockImplementation((async (...args: unknown[]) => {
+        busy.push(pool.totalCount - pool.idleCount);
+        return original(...args);
+      }) as never);
+    }
+    try {
+      await t.confirm(pet.id, req.body.photoId).expect(200);
+    } finally {
+      jest.restoreAllMocks();
+    }
+    expect(busy.length).toBeGreaterThan(0);
+    expect(Math.max(...busy)).toBe(0);
+  });
+
+  it("dois confirms ao mesmo tempo → os dois 200", async () => {
+    const t = await tutor();
+    const pet = await t.createPet();
+    const req = await t.requestUpload(pet.id).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    const [a, b] = await Promise.all([t.confirm(pet.id, req.body.photoId), t.confirm(pet.id, req.body.photoId)]);
+    expect([a.status, b.status]).toEqual([200, 200]);
   });
 
   it("no máximo 5 fotos por pet", async () => {

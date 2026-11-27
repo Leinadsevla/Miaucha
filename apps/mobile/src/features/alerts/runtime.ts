@@ -4,7 +4,8 @@ import Constants from "expo-constants";
 import { getLocationIfAllowed } from "@/features/location/currentLocation";
 import type { OccurrencesClient } from "@/features/occurrences/occurrencesClient";
 import type { AlertsRuntimeDeps, NotificationsRuntime } from "./AlertsProvider";
-import { geofencingAvailability } from "./geofencing";
+import type { AlertsClient } from "./alertsClient";
+import { geofencingAvailability, nearbyGeofenceCandidates } from "./geofencing";
 import type { PushEnvironment } from "./push";
 
 /** Liga as peças testadas às APIs reais do Expo. Sem lógica própria. */
@@ -24,7 +25,7 @@ const geofencing = geofencingAvailability({ os: Platform.OS, isExpoGo, flag: pro
 // No Expo Go e sem a flag, o módulo nativo nem é carregado.
 if (geofencing === "enabled") require("./geofencingNative");
 
-export function createAlertsRuntimeDeps(occurrences: OccurrencesClient): AlertsRuntimeDeps {
+export function createAlertsRuntimeDeps(occurrences: OccurrencesClient, alerts: AlertsClient): AlertsRuntimeDeps {
   return {
     getLocation: getLocationIfAllowed,
     env: pushEnv,
@@ -33,6 +34,7 @@ export function createAlertsRuntimeDeps(occurrences: OccurrencesClient): AlertsR
     geofencing,
     startGeofencing: (here, loader, options) =>
       (require("./geofencingNative") as typeof import("./geofencingNative")).startGeofencing(here, loader, options),
-    loadNearby: (here) => occurrences.nearby({ ...here, radiusKm: 5 }),
+    loadNearby: (here) =>
+      nearbyGeofenceCandidates({ here, nearby: (query) => occurrences.nearby(query), getPreferences: () => alerts.getPreferences() }),
   };
 }

@@ -1,12 +1,13 @@
 import { useCallback, useState } from "react";
-import { Alert, Linking, Platform, Text, View } from "react-native";
+import { Linking, Platform, Text, View } from "react-native";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import type { PublicOccurrence } from "@miaucha/shared";
 import { PrimaryButton } from "@/components";
 import { useChat } from "@/features/chat";
 import { OccurrenceDetails, createDeviceDirections, useOccurrencesClient } from "@/features/occurrences";
+import { showAlert } from "@/lib/dialog";
 
-const showDirections = createDeviceDirections({ Linking, Alert, Platform });
+const showDirections = createDeviceDirections({ Linking, Alert: { alert: showAlert }, Platform });
 
 export default function OccurrenceDetailsRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -47,7 +48,7 @@ export default function OccurrenceDetailsRoute() {
   );
 
   function confirmResolve() {
-    Alert.alert("Marcar como resolvido?", "A ocorrência sai do mapa e das buscas.", [
+    showAlert("Marcar como resolvido?", "A ocorrência sai do mapa e das buscas.", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Marcar como resolvido",
@@ -76,6 +77,8 @@ export default function OccurrenceDetailsRoute() {
         resolving={resolving}
         resolveError={resolveError}
         onChat={() => void openChat()}
+        onEdit={() => router.push({ pathname: "/occurrences/[id]/edit", params: { id: occurrence.id } })}
+        onReportSighting={() => router.push({ pathname: "/occurrences/new", params: { sightingOf: occurrence.id } })}
         chatLoading={chatLoading}
         chatError={chatError}
       />

@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import type { LocationResult } from "@/features/location/currentLocation";
+import { boundsToRegion } from "@/features/map/region";
+import { mapEvents } from "@/test-utils/maplibreMock";
 import type { PickedPhoto } from "@/features/pets/photos";
 import { OccurrenceForm, type OccurrenceFormProps } from "../OccurrenceForm";
 
@@ -95,6 +97,64 @@ describe("OccurrenceForm (registrar ocorrência)", () => {
     expect(screen.getByText("Dados de Mia preenchidos pelo cadastro. As 2 fotos do cadastro entram no alerta.")).toBeOnTheScreen();
     await emit();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ petId: "p1", petName: "Mia", breed: "Persa" }), []);
+  });
+
+  it("'Vi este pet': já vem como avistado, com os dados do pet perdido, e envia o sightingOf", async () => {
+    const { onSubmit } = await setup({
+      initial: { type: "seen", species: "cat", petName: "Mia", breed: "Persa", color: "Branca" },
+      sightingOf: { id: "lost-1", petName: "Mia" },
+    });
+    expect(screen.getByText("Você viu Mia. O tutor recebe um aviso na hora, com a região aproximada de onde você está.")).toBeOnTheScreen();
+    // O tipo fica fixo em avistado.
+    expect(screen.queryByRole("button", { name: "Perdi meu pet" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Gato" })).toBeSelected();
+    await emit();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ type: "seen", sightingOf: "lost-1", petName: "Mia" }), []);
+  });
+
+  it("edição: tipo fixo, dados preenchidos, mantém o local por padrão e salva só os campos editáveis", async () => {
+    const onSave = jest.fn();
+    await setup({
+      initial: { type: "lost", species: "cat", petName: "Mia", breed: "Persa", color: "", approxAddress: "Praça", description: "" },
+      editing: { photos: [{ id: "f1", url: "https://x/f1.jpg" }, { id: "f2", url: "https://x/f2.jpg" }] },
+      onSave,
+    });
+    expect(screen.queryByRole("button", { name: "Perdi meu pet" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Manter o local" })).toBeSelected();
+    await fireEvent.changeText(screen.getByLabelText("Cor predominante"), " Branca ");
+    await fireEvent.press(screen.getByRole("button", { name: "Remover foto salva 1" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(onSave).toHaveBeenCalledWith(
+      { species: "cat", petName: "Mia", breed: "Persa", color: "Branca", approxAddress: "Praça", description: "" },
+      [],
+      ["f1"],
+    );
+  });
+
+  it("edição: só busca a localização do aparelho quando a pessoa escolhe 'Minha localização'", async () => {
+    const onRetryLocation = jest.fn();
+    await render(
+      <OccurrenceForm
+        location={null}
+        onSubmit={jest.fn()}
+        onSave={jest.fn()}
+        onPickPhotos={jest.fn(async () => [])}
+        onRetryLocation={onRetryLocation}
+        initial={{ type: "lost", species: "dog", petName: "Thor" }}
+        editing={{ photos: [] }}
+      />,
+    );
+    expect(onRetryLocation).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByRole("button", { name: "Minha localização" }));
+    expect(onRetryLocation).toHaveBeenCalledTimes(1);
+  });
+
+  it("edição: escolher outro local manda o ponto novo", async () => {
+    const onSave = jest.fn();
+    await setup({ initial: { type: "seen", species: "dog" }, editing: { photos: [] }, onSave });
+    await fireEvent.press(screen.getByRole("button", { name: "Minha localização" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ location: { lat: -23.5614, lng: -46.6559 } }), [], []);
   });
 
   it("adiciona e remove fotos (até 5)", async () => {
@@ -219,11 +279,11 @@ describe("OccurrenceForm: local por endereço", () => {
 describe("OccurrenceForm: ajustar o ponto no mapa", () => {
   jest.setTimeout(15_000);
   const drag = (latitude: number, longitude: number) =>
-    fireEvent(screen.getByTestId("pin-picker-marker"), "dragEnd", { nativeEvent: { coordinate: { latitude, longitude } } });
+    fireEvent(screen.getByTestId("pin-picker-marker"), "dragEnd", mapEvents.at(latitude, longitude));
 
   it("com a localização atual, mostra o pino nela; arrastar muda o ponto enviado", async () => {
     const { onSubmit } = await setup();
-    expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.5614, longitude: -46.6559 });
+    expect(screen.getByTestId("pin-picker-marker").props.lngLat).toEqual([-46.6559, -23.5614]);
     await drag(-23.562, -46.657);
     await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
     await emit();
@@ -242,13 +302,13 @@ describe("OccurrenceForm: ajustar o ponto no mapa", () => {
 
     await fireEvent.changeText(screen.getByLabelText("Endereço"), "Av. Paulista, 1578");
     await fireEvent.press(screen.getByRole("button", { name: "Procurar endereço" }));
-    expect((await screen.findByTestId("pin-picker-marker")).props.coordinate).toEqual({ latitude: -23.5617, longitude: -46.6559 });
+    expect((await screen.findByTestId("pin-picker-marker")).props.lngLat).toEqual([-46.6559, -23.5617]);
     await drag(-23.5618, -46.656);
 
     await fireEvent.changeText(screen.getByLabelText("Endereço"), "Rua Augusta, 100");
     await fireEvent.press(screen.getByRole("button", { name: "Procurar endereço" }));
     await screen.findByText("Endereço encontrado. No mapa aparece uma região aproximada (~150 m).");
-    expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.555, longitude: -46.66 });
+    expect(screen.getByTestId("pin-picker-marker").props.lngLat).toEqual([-46.66, -23.555]);
     await emit();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.555, lng: -46.66, approxAddress: "Rua Augusta, 100" }), []);
   });
@@ -257,7 +317,7 @@ describe("OccurrenceForm: ajustar o ponto no mapa", () => {
 describe("OccurrenceForm: marcar no mapa", () => {
   jest.setTimeout(15_000);
   const tap = (latitude: number, longitude: number) =>
-    fireEvent.press(screen.getByTestId("pin-picker-map"), { nativeEvent: { coordinate: { latitude, longitude } } });
+    fireEvent.press(screen.getByTestId("pin-picker-map"), mapEvents.at(latitude, longitude));
 
   it("tocar na rua marca o ponto que vai no alerta", async () => {
     const { onSubmit } = await setup();
@@ -270,7 +330,7 @@ describe("OccurrenceForm: marcar no mapa", () => {
     expect(onSubmit).not.toHaveBeenCalled();
 
     await tap(-23.5701, -46.6402);
-    expect(screen.getByTestId("pin-picker-marker").props.coordinate).toEqual({ latitude: -23.5701, longitude: -46.6402 });
+    expect(screen.getByTestId("pin-picker-marker").props.lngLat).toEqual([-46.6402, -23.5701]);
     await emit();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.5701, lng: -46.6402 }), []);
   });
@@ -279,7 +339,9 @@ describe("OccurrenceForm: marcar no mapa", () => {
     const { onSubmit } = await setup({ location: { status: "denied", canAskAgain: false } });
     await fireEvent.changeText(screen.getByLabelText("Nome do pet"), "Thor");
     await fireEvent.press(screen.getByRole("button", { name: "Marcar no mapa" }));
-    expect(screen.getByTestId("pin-picker-map").props.initialRegion).toMatchObject({ latitude: -23.5505, longitude: -46.6333 });
+    const start = boundsToRegion(screen.getByTestId("map-camera").props.initialViewState.bounds);
+    expect(start.latitude).toBeCloseTo(-23.5505);
+    expect(start.longitude).toBeCloseTo(-46.6333);
     await tap(-23.55, -46.63);
     await emit();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ lat: -23.55, lng: -46.63 }), []);

@@ -1,7 +1,16 @@
 import { useEffect } from "react";
-import { Text, View } from "react-native";
+import { Animated, Text, View } from "react-native";
+import { colors } from "@miaucha/shared";
+import { AppLogo } from "@/components";
+import { usePulse } from "@/lib/motion";
 
 export const SPLASH_DURATION_MS = 2600;
+
+/** Pontinho de carregamento que pulsa (parado se o sistema pede menos movimento). */
+function LoadingDot({ duration }: { duration: number }) {
+  const opacity = usePulse(0.3, duration);
+  return <Animated.View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand, opacity }} />;
+}
 
 export function SplashView({ onFinish, version = "1.0.0" }: { onFinish: () => void; version?: string }) {
   useEffect(() => {
@@ -10,17 +19,20 @@ export function SplashView({ onFinish, version = "1.0.0" }: { onFinish: () => vo
   }, [onFinish]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-primary">
+    <View className="flex-1 items-center justify-center bg-white">
       <View className="items-center gap-5">
-        <View className="h-24 w-24 items-center justify-center rounded-3xl bg-white shadow-xl">
-          <Text className="text-5xl">🐾</Text>
-        </View>
+        <AppLogo size={96} />
         <View className="items-center">
-          <Text className="font-nunito-black text-4xl text-white">Miaucha</Text>
-          <Text className="mt-1 font-nunito-semibold text-sm text-white/70">Conectando pets aos seus lares</Text>
+          <Text className="font-ui-extrabold text-[40px] leading-[48px] tracking-tight text-foreground">Miaucha</Text>
+          <Text className="mt-1 font-ui-medium text-base text-muted-foreground">Conectando pets aos seus lares</Text>
+        </View>
+        <View accessible accessibilityLabel="Carregando" className="mt-2 flex-row gap-2">
+          <LoadingDot duration={500} />
+          <LoadingDot duration={650} />
+          <LoadingDot duration={800} />
         </View>
       </View>
-      <Text className="absolute bottom-10 font-sans text-xs text-white/50">Versão {version} • TCC 2026</Text>
+      <Text className="absolute bottom-10 font-sans text-xs text-muted-foreground">Versão {version} • TCC 2026</Text>
     </View>
   );
 }

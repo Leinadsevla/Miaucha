@@ -7,7 +7,6 @@ import {
   isValidLatLng,
   maskContactInfo,
   occurrenceExpiryCutoff,
-  publicPoint,
   validateChatText,
   type ChatConversation,
   type ChatMessage,
@@ -17,7 +16,9 @@ import type { Pool } from "pg";
 import { isUniqueViolation, transaction } from "../db/transaction";
 import type { PhotoStorage } from "../storage/photo-storage";
 import { PhotoUploads, UUID_RE } from "../storage/photo-uploads";
-import { PG_POOL, PHOTO_STORAGE } from "../tokens";
+import type { AppConfig } from "../config";
+import { APP_CONFIG, PG_POOL, PHOTO_STORAGE } from "../tokens";
+import { chatLocationPoint } from "./chat-location";
 import { ChatGateway } from "./chat.gateway";
 import { CHAT_PUSH_SENDER, type ChatPushSender } from "./push-sender";
 
@@ -110,6 +111,7 @@ export class ChatService {
     @Inject(PHOTO_STORAGE) storage: PhotoStorage,
     @Inject(CHAT_PUSH_SENDER) private readonly push: ChatPushSender,
     private readonly gateway: ChatGateway,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {
     this.photos = new PhotoUploads(pool, storage, {
       photosTable: "chat_photos",
@@ -232,7 +234,7 @@ export class ChatService {
       const { lat, lng } = (input.location ?? {}) as { lat?: unknown; lng?: unknown };
       if (!isValidLatLng(lat, lng)) throw new BadRequestException("Localização inválida");
       // Só o ponto aproximado chega ao banco: o exato não fica guardado em lugar nenhum.
-      const approx = publicPoint(lat as number, lng as number);
+      const approx = chatLocationPoint(this.config.codeSecret, userId, { lat: lat as number, lng: lng as number });
       id = await this.insertMessage(conversationId, userId, "location", { location: approx });
     } else {
       throw new BadRequestException("Envie um texto, uma foto ou uma localização");

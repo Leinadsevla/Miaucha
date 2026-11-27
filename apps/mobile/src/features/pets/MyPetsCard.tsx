@@ -15,20 +15,27 @@ type Props = {
 export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
   return (
     <Card>
-      <View className="mb-3 flex-row items-center justify-between">
-        <Text className="font-nunito-black text-sm text-foreground">Meus Pets</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Adicionar pet" onPress={onAdd} className="flex-row items-center gap-1">
-          <Plus size={12} color={colors.primary} />
-          <Text className="font-nunito-bold text-xs text-primary">Adicionar</Text>
+      <View className="mb-2 flex-row items-center justify-between">
+        <Text accessibilityRole="header" className="font-ui-extrabold text-base text-foreground">
+          Meus Pets
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Adicionar pet"
+          onPress={onAdd}
+          style={({ pressed }) => ({ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 12, opacity: pressed ? 0.6 : 1 })}
+        >
+          <Plus size={16} color={colors.brand} strokeWidth={2.6} />
+          <Text className="font-ui-bold text-sm text-brand">Adicionar</Text>
         </Pressable>
       </View>
 
       {error ? (
-        <Text className="font-sans text-xs text-lost">{error}</Text>
+        <Text className="font-ui-semibold text-sm text-lost">{error}</Text>
       ) : pets === null ? (
-        <Text className="font-sans text-xs text-muted-foreground">Carregando...</Text>
+        <Text className="font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : pets.length === 0 ? (
-        <Text className="font-sans text-xs text-muted-foreground">Nenhum pet cadastrado ainda</Text>
+        <Text className="font-sans text-sm text-muted-foreground">Nenhum pet cadastrado ainda</Text>
       ) : (
         <View className="flex-row flex-wrap gap-3">
           {pets.map((pet) => (
@@ -37,22 +44,23 @@ export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
               accessibilityRole="button"
               accessibilityLabel={`Ver ${pet.name}`}
               onPress={() => onOpen(pet.id)}
-              className="flex-row items-center gap-2 rounded-2xl bg-muted px-3 py-2 active:opacity-70"
+              className="flex-row items-center gap-2.5 rounded-2xl bg-muted py-2 pl-2 pr-4 active:opacity-70"
+              style={{ minHeight: 56 }}
             >
               {pet.photos[0] ? (
                 <Image
                   accessibilityLabel={`Foto de ${pet.name}`}
                   source={{ uri: pet.photos[0].url }}
-                  style={{ width: 32, height: 32, borderRadius: 12 }}
+                  style={{ width: 40, height: 40, borderRadius: 12 }}
                 />
               ) : (
-                <View className="h-8 w-8 items-center justify-center rounded-xl bg-white">
-                  <SpeciesIcon species={pet.species} size={16} color={colors.mutedForeground} />
+                <View className="h-10 w-10 items-center justify-center rounded-xl bg-white">
+                  <SpeciesIcon species={pet.species} size={18} color={colors.foreground} />
                 </View>
               )}
               <View>
-                <Text className="font-nunito-bold text-xs text-foreground">{pet.name}</Text>
-                {pet.breed ? <Text className="font-sans text-[10px] text-muted-foreground">{pet.breed}</Text> : null}
+                <Text className="font-ui-bold text-sm text-foreground">{pet.name}</Text>
+                {pet.breed ? <Text className="font-sans text-xs text-muted-foreground">{pet.breed}</Text> : null}
               </View>
             </Pressable>
           ))}

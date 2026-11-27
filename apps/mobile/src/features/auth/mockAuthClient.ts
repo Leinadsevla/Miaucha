@@ -12,6 +12,7 @@ export function createMockAuthClient(): AuthClient {
   let pendingName = "";
 
   return {
+    supportsGoogle: true,
     async restore() {
       return user;
     },

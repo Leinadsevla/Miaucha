@@ -1,5 +1,6 @@
 import { OCCURRENCE_SEARCH_LIMIT, type PublicOccurrence } from "@miaucha/shared";
 import { createFileTextStore, createMapCache, type TextStore } from "../mapCache";
+import { createLocalTextStore } from "../mapCache";
 import type { Region } from "../region";
 
 const mockFiles = new Map<string, string>();
@@ -114,6 +115,24 @@ describe("createFileTextStore (expo-file-system)", () => {
     await store.write("conteúdo");
     expect(mockFiles.get("file:///docs/mapa.json")).toBe("conteúdo");
     expect(await store.read()).toBe("conteúdo");
+    await store.clear();
+    expect(await store.read()).toBeNull();
+  });
+});
+
+describe("createLocalTextStore (cache do mapa no navegador)", () => {
+  it("lê, grava e apaga pelo armazenamento do navegador", async () => {
+    const data = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k),
+    };
+    const store = createLocalTextStore("ultimo-mapa.json", storage);
+    expect(await store.read()).toBeNull();
+    await store.write("{}");
+    expect(data.get("miaucha.ultimo-mapa.json")).toBe("{}");
+    expect(await store.read()).toBe("{}");
     await store.clear();
     expect(await store.read()).toBeNull();
   });

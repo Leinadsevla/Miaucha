@@ -80,8 +80,13 @@ export function isValidPushToken(value: unknown): value is string {
 export type AlertItem = {
   id: string;
   occurrenceId: string;
-  /** Distância aproximada (centro da célula do usuário até o ponto público), em metros. */
+  /**
+   * Distância aproximada em metros: do centro da célula do usuário até o ponto público ou, num avistamento
+   * do pet do usuário (`sighting`), do avistamento até onde o pet sumiu.
+   */
   distanceMeters: number;
+  /** "Vi este pet": alguém avistou o pet perdido deste usuário. */
+  sighting: boolean;
   createdAt: string;
   seenAt: string | null;
   occurrence: {

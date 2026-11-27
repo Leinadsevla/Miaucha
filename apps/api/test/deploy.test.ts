@@ -15,7 +15,16 @@ describe("GET /health (verificação do Render)", () => {
 
   it("responde 200 sem login quando o banco está acessível", async () => {
     const res = await ctx.http.get("/health").expect(200);
-    expect(res.body).toEqual({ status: "ok", mail: "log" });
+    expect(res.body).toEqual({ status: "ok", mail: "log", commit: null });
+  });
+
+  it("diz o commit que está rodando, para o CI/CD saber quando o deploy novo subiu", async () => {
+    const deployed = await createTestApp({ gitCommit: "4f2a9c1" });
+    try {
+      expect((await deployed.http.get("/health").expect(200)).body.commit).toBe("4f2a9c1");
+    } finally {
+      await closeTestApp(deployed);
+    }
   });
 
   it("diz qual provedor de e-mail está ativo (sem expor nenhum valor)", async () => {
@@ -23,7 +32,7 @@ describe("GET /health (verificação do Render)", () => {
     const withGmail = await createTestApp({ gmail });
     try {
       const res = await withGmail.http.get("/health").expect(200);
-      expect(res.body).toEqual({ status: "ok", mail: "gmail" });
+      expect(res.body).toEqual({ status: "ok", mail: "gmail", commit: null });
       expect(JSON.stringify(res.body)).not.toContain("segredo");
     } finally {
       await closeTestApp(withGmail);
@@ -51,6 +60,38 @@ describe("trust proxy (rate limit atrás do proxy do Render)", () => {
     try {
       expect((await login(ctx, "203.0.113.1")).status).not.toBe(429);
       expect((await login(ctx, "203.0.113.2")).status).toBe(429);
+    } finally {
+      await closeTestApp(ctx);
+    }
+  });
+});
+
+describe("CORS (app web no navegador)", () => {
+  const WEB = "http://localhost:8081";
+
+  it("com CORS_ORIGINS, a origem listada pode chamar a API e as outras não", async () => {
+    const ctx = await createTestApp({ corsOrigins: [WEB] });
+    try {
+      const preflight = await ctx.http
+        .options("/auth/login")
+        .set("Origin", WEB)
+        .set("Access-Control-Request-Method", "POST")
+        .set("Access-Control-Request-Headers", "content-type,authorization");
+      expect(preflight.status).toBe(204);
+      expect(preflight.headers["access-control-allow-origin"]).toBe(WEB);
+
+      const other = await ctx.http.get("/health").set("Origin", "https://outro-site.example");
+      expect(other.headers["access-control-allow-origin"]).toBeUndefined();
+    } finally {
+      await closeTestApp(ctx);
+    }
+  });
+
+  it("sem CORS_ORIGINS (padrão, produção de hoje), nenhuma origem recebe os cabeçalhos", async () => {
+    const ctx = await createTestApp();
+    try {
+      const res = await ctx.http.get("/health").set("Origin", WEB);
+      expect(res.headers["access-control-allow-origin"]).toBeUndefined();
     } finally {
       await closeTestApp(ctx);
     }

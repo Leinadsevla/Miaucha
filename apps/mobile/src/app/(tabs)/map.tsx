@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from "react";
-import { Alert, Linking, Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { getCurrentLocation } from "@/features/location";
 import { MapScreen, mapCache } from "@/features/map";
 import { createDeviceDirections, useOccurrencesClient } from "@/features/occurrences";
+import { showAlert } from "@/lib/dialog";
+import { openAppSettings } from "@/lib/settings";
 
-const showDirections = createDeviceDirections({ Linking, Alert, Platform });
+const showDirections = createDeviceDirections({ Linking, Alert: { alert: showAlert }, Platform });
 
 export default function MapTab() {
   const client = useOccurrencesClient();
@@ -28,7 +30,7 @@ export default function MapTab() {
       refreshSignal={refreshSignal}
       onOpen={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
       onDirections={showDirections}
-      onOpenSettings={() => void Linking.openSettings()}
+      onOpenSettings={openAppSettings}
     />
   );
 }
