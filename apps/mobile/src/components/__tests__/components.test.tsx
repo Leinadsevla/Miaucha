@@ -1,6 +1,6 @@
 import { Text } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import { colors, occurrenceStyle, withAlpha } from "@miaucha/shared";
+import { colors, withAlpha } from "@miaucha/shared";
 import { StatusBadge } from "../StatusBadge";
 import { PrimaryButton } from "../PrimaryButton";
 import { TextField } from "../TextField";
@@ -17,14 +17,14 @@ import { FilterChips } from "../FilterChips";
 
 describe("StatusBadge (MP-01)", () => {
   it.each([
-    ["lost", "Perdido"],
-    ["seen", "Avistado"],
-    ["found", "Encontrado"],
-  ] as const)("%s mostra '%s' no selo sólido na cor do tipo, com texto legível (visual original)", async (type, label) => {
+    ["lost", "Perdido", colors.lost, colors.lostSoft],
+    ["seen", "Avistado", colors.seen, colors.seenSoft],
+    ["found", "Encontrado", colors.found, colors.foundSoft],
+  ] as const)("%s mostra '%s': selo claro, ponto na cor do tipo e texto escuro", async (type, label, color, soft) => {
     await render(<StatusBadge type={type} />);
-    const { color, textOn } = occurrenceStyle(type);
-    expect(screen.getByText(label)).toHaveStyle({ color: textOn });
-    expect(screen.getByTestId("status-badge")).toHaveStyle({ backgroundColor: color });
+    expect(screen.getByText(label)).toHaveStyle({ color: colors.foreground });
+    expect(screen.getByTestId("status-badge")).toHaveStyle({ backgroundColor: soft });
+    expect(screen.getByTestId("status-dot")).toHaveStyle({ backgroundColor: color });
   });
 });
 
@@ -355,5 +355,19 @@ describe("FilterChips (sobre a faixa laranja do cabeçalho)", () => {
     expect(screen.getByText("1 km")).toHaveStyle({ color: colors.white });
     await fireEvent.press(screen.getByRole("button", { name: "1 km" }));
     expect(onChange).toHaveBeenCalledWith("1");
+  });
+});
+
+describe("StatusBadge (acabamento)", () => {
+  it("o ponto do selo grande de Perdido pulsa; os outros e o pequeno ficam parados", async () => {
+    await render(
+      <>
+        <StatusBadge type="lost" size="lg" />
+        <StatusBadge type="lost" />
+        <StatusBadge type="seen" size="lg" />
+      </>,
+    );
+    expect(screen.getAllByTestId("status-pulse")).toHaveLength(1);
+    expect(screen.getAllByTestId("status-dot")).toHaveLength(2);
   });
 });
