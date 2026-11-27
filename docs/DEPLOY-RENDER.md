@@ -6,7 +6,7 @@ O banco e as fotos já estão no Supabase. O Render hospeda só a API (`apps/api
 
 - Uma conta no [Render](https://render.com) entrando com o GitHub de quem tem acesso ao repositório.
 - O `apps/api/.env` local funcionando (os mesmos valores vão para o Render).
-- **Branch:** a branch padrão do repositório (`s1/fundacao`) ainda não tem a API. Até os PRs serem mergeados, publique a partir da branch mais nova da fila (hoje `feat/ajustes-teste-2`). Depois do merge, troque para a branch principal em Settings → Build & Deploy.
+- **Branch:** `s1/fundacao` (a principal, definida em `branch` no `render.yaml`). Cada merge nela publica a API. Para trocar, mude o `render.yaml` e sincronize o Blueprint, ou use Settings → Build & Deploy.
 
 ## Passo a passo
 
