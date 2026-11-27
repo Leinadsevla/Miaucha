@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import type { PublicOccurrence } from "@miaucha/shared";
+import { colors, type PublicOccurrence } from "@miaucha/shared";
 import { ProfileView } from "../ProfileView";
 
 const now = new Date("2026-11-20T12:00:00Z");
@@ -48,6 +48,12 @@ describe("ProfileView (aba Perfil)", () => {
     expect(screen.getByLabelText("2 pets")).toBeOnTheScreen();
     expect(screen.getByLabelText("3 ocorrências")).toBeOnTheScreen();
     expect(screen.queryByText(/@/)).toBeNull();
+  });
+
+  it("cabeçalho na faixa laranja da marca (visual original), com o nome em branco", async () => {
+    await render(<ProfileView {...props()} />);
+    expect(screen.getByTestId("profile-header")).toHaveStyle({ backgroundColor: colors.brand });
+    expect(screen.getByRole("header", { name: "Ana Souza" })).toHaveStyle({ color: colors.white });
   });
 
   it("sem o perfil ainda: contadores com traço", async () => {

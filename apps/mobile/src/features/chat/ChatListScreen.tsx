@@ -144,7 +144,7 @@ function ConversationRow({ conversation: c, now, onPress }: { conversation: Chat
           </Text>
           {time ? <Text className="font-sans text-xs text-muted-foreground">{time}</Text> : null}
         </View>
-        <Text numberOfLines={1} className="font-ui-bold text-xs text-brand">
+        <Text numberOfLines={1} className="font-ui-bold text-xs text-brand-deep">
           Sobre: {title}
         </Text>
         <View className="flex-row items-center justify-between gap-2">

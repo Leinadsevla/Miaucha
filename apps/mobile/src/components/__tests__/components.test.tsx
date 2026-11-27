@@ -1,6 +1,6 @@
 import { Text } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import { colors } from "@miaucha/shared";
+import { colors, occurrenceStyle, withAlpha } from "@miaucha/shared";
 import { StatusBadge } from "../StatusBadge";
 import { PrimaryButton } from "../PrimaryButton";
 import { TextField } from "../TextField";
@@ -13,17 +13,18 @@ import { SkeletonList } from "../Skeleton";
 import { TabHeader } from "../TabHeader";
 import { SideNav } from "../SideNav";
 import { Centered } from "../Centered";
+import { FilterChips } from "../FilterChips";
 
 describe("StatusBadge (MP-01)", () => {
   it.each([
-    ["lost", "Perdido", colors.lost, colors.lostSoft],
-    ["seen", "Avistado", colors.seen, colors.seenSoft],
-    ["found", "Encontrado", colors.found, colors.foundSoft],
-  ] as const)("%s mostra '%s': selo claro, ponto na cor do tipo e texto escuro", async (type, label, color, soft) => {
+    ["lost", "Perdido"],
+    ["seen", "Avistado"],
+    ["found", "Encontrado"],
+  ] as const)("%s mostra '%s' no selo sólido na cor do tipo, com texto legível (visual original)", async (type, label) => {
     await render(<StatusBadge type={type} />);
-    expect(screen.getByText(label)).toHaveStyle({ color: colors.foreground });
-    expect(screen.getByTestId("status-badge")).toHaveStyle({ backgroundColor: soft });
-    expect(screen.getByTestId("status-dot")).toHaveStyle({ backgroundColor: color });
+    const { color, textOn } = occurrenceStyle(type);
+    expect(screen.getByText(label)).toHaveStyle({ color: textOn });
+    expect(screen.getByTestId("status-badge")).toHaveStyle({ backgroundColor: color });
   });
 });
 
@@ -129,6 +130,12 @@ describe("BottomNav", () => {
     }
   });
 
+  it("as 5 abas dividem a largura da barra igualmente", async () => {
+    await render(<BottomNav active="profile" onNavigate={() => {}} />);
+    expect(screen.getByTestId("bottom-nav")).toHaveStyle({ width: "100%", alignSelf: "stretch" });
+    for (const tab of screen.getAllByRole("tab")) expect(tab).toHaveStyle({ flex: 1 });
+  });
+
   it("marca a aba ativa", async () => {
     await render(<BottomNav active="map" onNavigate={() => {}} />);
     expect(screen.getByRole("tab", { name: "Mapa" })).toBeSelected();
@@ -187,7 +194,7 @@ describe("AppLogo", () => {
 });
 
 describe("PrimaryButton (acabamento)", () => {
-  it("o padrão é a cor da marca com texto branco; o suave usa o fundo claro da marca", async () => {
+  it("o padrão é azul com texto branco (visual original); o suave usa o fundo claro da marca", async () => {
     await render(
       <>
         <PrimaryButton title="Principal" onPress={() => {}} />
@@ -195,7 +202,7 @@ describe("PrimaryButton (acabamento)", () => {
         <PrimaryButton title="Neutro" variant="outline" onPress={() => {}} />
       </>,
     );
-    expect(screen.getByRole("button", { name: "Principal" })).toHaveStyle({ backgroundColor: colors.brand });
+    expect(screen.getByRole("button", { name: "Principal" })).toHaveStyle({ backgroundColor: colors.accent });
     expect(screen.getByText("Principal")).toHaveStyle({ color: colors.white });
     expect(screen.getByRole("button", { name: "Apoio" })).toHaveStyle({ backgroundColor: colors.brandSoft });
     expect(screen.getByText("Apoio")).toHaveStyle({ color: colors.brandDeep });
@@ -290,13 +297,14 @@ describe("Skeleton", () => {
 });
 
 describe("TabHeader", () => {
-  it("cabeçalho branco: título como cabeçalho, linha de cima, subtítulo e conteúdo extra", async () => {
+  it("faixa laranja da marca (visual original): título como cabeçalho, linha de cima, subtítulo e conteúdo extra", async () => {
     await render(
       <TabHeader eyebrow="Olá, Ana" title="Pets perto de você" subtitle="Raio de 5 km">
         <Text>chips</Text>
       </TabHeader>,
     );
-    expect(screen.getByRole("header", { name: "Pets perto de você" })).toBeOnTheScreen();
+    expect(screen.getByTestId("tab-header")).toHaveStyle({ backgroundColor: colors.brand });
+    expect(screen.getByRole("header", { name: "Pets perto de você" })).toHaveStyle({ color: colors.white });
     expect(screen.getByText("Olá, Ana")).toBeOnTheScreen();
     expect(screen.getByText("Raio de 5 km")).toBeOnTheScreen();
     expect(screen.getByText("chips")).toBeOnTheScreen();
@@ -304,12 +312,11 @@ describe("TabHeader", () => {
 });
 
 describe("BottomNav (acabamento)", () => {
-  it("rótulos com pelo menos 12 px e o item ativo marcado", async () => {
+  it("rótulos com pelo menos 12 px; a aba ativa fica na cor da marca", async () => {
     await render(<BottomNav active="map" onNavigate={() => {}} />);
-    expect(screen.getByText("Mapa")).toHaveStyle({ fontSize: 12 });
+    expect(screen.getByText("Mapa")).toHaveStyle({ fontSize: 12, color: colors.brand });
+    expect(screen.getByText("Início")).toHaveStyle({ color: colors.mutedForeground });
     expect(screen.getByRole("tab", { name: "Mapa", selected: true })).toBeOnTheScreen();
-    expect(screen.getByTestId("tab-indicator-map")).toBeOnTheScreen();
-    expect(screen.queryByTestId("tab-indicator-index")).toBeNull();
   });
 });
 
@@ -336,16 +343,17 @@ describe("Centered", () => {
   });
 });
 
-describe("StatusBadge (acabamento)", () => {
-  it("o ponto do selo grande de Perdido pulsa; os outros e o pequeno ficam parados", async () => {
-    await render(
-      <>
-        <StatusBadge type="lost" size="lg" />
-        <StatusBadge type="lost" />
-        <StatusBadge type="seen" size="lg" />
-      </>,
-    );
-    expect(screen.getAllByTestId("status-pulse")).toHaveLength(1);
-    expect(screen.getAllByTestId("status-dot")).toHaveLength(2);
+
+describe("FilterChips (sobre a faixa laranja do cabeçalho)", () => {
+  it("selecionado em branco com texto laranja legível; os outros em branco translúcido com texto branco", async () => {
+    const onChange = jest.fn();
+    const options = [{ key: "1", label: "1 km" }, { key: "5", label: "5 km" }];
+    await render(<FilterChips options={options} value="5" onChange={onChange} />);
+    expect(screen.getByRole("button", { name: "5 km" })).toHaveStyle({ backgroundColor: colors.white });
+    expect(screen.getByText("5 km")).toHaveStyle({ color: colors.brandDeep });
+    expect(screen.getByRole("button", { name: "1 km" })).toHaveStyle({ backgroundColor: withAlpha(colors.white, 0.2) });
+    expect(screen.getByText("1 km")).toHaveStyle({ color: colors.white });
+    await fireEvent.press(screen.getByRole("button", { name: "1 km" }));
+    expect(onChange).toHaveBeenCalledWith("1");
   });
 });

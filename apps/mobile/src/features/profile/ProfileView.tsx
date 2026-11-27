@@ -37,31 +37,33 @@ export function ProfileView(p: Props) {
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerStyle={{ paddingBottom: 24 }}>
-      <View className="items-center gap-3 border-b border-border bg-white px-5 pb-6" style={{ paddingTop: insets.top + 24 }}>
-        <View className="h-24 w-24 items-center justify-center rounded-full bg-brand-soft">
-          <Text className="font-ui-extrabold text-4xl text-brand-deep">{p.name.charAt(0).toUpperCase()}</Text>
+      <View testID="profile-header" className="items-center gap-3 px-5 pb-8" style={{ paddingTop: insets.top + 24, backgroundColor: colors.brand }}>
+        <View className="h-24 w-24 items-center justify-center rounded-3xl" style={{ backgroundColor: withAlpha(colors.white, 0.2) }}>
+          <Text className="font-ui-extrabold text-4xl" style={{ color: colors.white }}>
+            {p.name.charAt(0).toUpperCase()}
+          </Text>
         </View>
         <View className="items-center">
-          <Text accessibilityRole="header" className="font-ui-extrabold text-2xl tracking-tight text-foreground">
+          <Text accessibilityRole="header" className="font-ui-extrabold text-2xl" style={{ color: colors.white }}>
             {p.name}
           </Text>
           {p.profile ? (
-            <View className="mt-1.5 flex-row items-center gap-1.5 rounded-full bg-muted px-3 py-1">
-              <Text className="font-sans text-xs text-muted-foreground">Nome público</Text>
-              <Text className="font-ui-bold text-sm text-foreground">{p.profile.pseudonym}</Text>
+            <View className="mt-1.5 flex-row items-center gap-1.5 rounded-full px-3 py-1" style={{ backgroundColor: withAlpha(colors.white, 0.2) }}>
+              <Text className="font-sans text-xs text-white/80">Nome público</Text>
+              <Text className="font-ui-bold text-sm text-white">{p.profile.pseudonym}</Text>
             </View>
           ) : null}
         </View>
-        <View className="mt-1 flex-row gap-3">
+        <View className="mt-1 flex-row gap-8">
           {stats.map((s) => (
             <View
               key={s.label}
-              className="min-w-[104px] items-center rounded-2xl border border-border bg-background px-4 py-2.5"
+              className="items-center"
               accessible
               accessibilityLabel={s.value === undefined ? s.label : `${s.value} ${s.value === 1 ? s.one : s.many}`}
             >
-              <Text className="font-ui-extrabold text-2xl text-foreground">{s.value ?? "–"}</Text>
-              <Text className="font-ui-semibold text-xs text-muted-foreground">{s.label}</Text>
+              <Text className="font-ui-extrabold text-2xl text-white">{s.value ?? "–"}</Text>
+              <Text className="font-ui-semibold text-xs text-white/80">{s.label}</Text>
             </View>
           ))}
         </View>

@@ -30,7 +30,7 @@ export function ConsentForm({ onAccept, onOpenPolicy }: Props) {
         onPress={onOpenPolicy}
         style={({ pressed }) => ({ minHeight: 44, justifyContent: "center", marginTop: -12, opacity: pressed ? 0.6 : 1 })}
       >
-        <Text className="ml-9 font-ui-bold text-sm text-brand">Ler a política de privacidade</Text>
+        <Text className="ml-9 font-ui-bold text-sm text-brand-deep">Ler a política de privacidade</Text>
       </Pressable>
       <CheckRow
         checked={consent.approximateLocation}

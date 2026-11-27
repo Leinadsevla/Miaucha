@@ -4,13 +4,14 @@ import { colors } from "@miaucha/shared";
 import { AuthScreenLayout } from "../AuthScreenLayout";
 
 describe("AuthScreenLayout", () => {
-  it("celular: fundo branco, logo, título como cabeçalho e o formulário direto (sem painel)", async () => {
+  it("celular: cabeçalho laranja da marca com a logo (visual original), título em branco e o formulário embaixo", async () => {
     await render(
       <AuthScreenLayout title="Bem-vindo ao Miaucha" subtitle="Juntos encontramos quem se perdeu" wide={false}>
         <Text>formulário</Text>
       </AuthScreenLayout>,
     );
-    expect(screen.getByRole("header", { name: "Bem-vindo ao Miaucha" })).toBeOnTheScreen();
+    expect(screen.getByTestId("auth-header")).toHaveStyle({ backgroundColor: colors.brand });
+    expect(screen.getByRole("header", { name: "Bem-vindo ao Miaucha" })).toHaveStyle({ color: colors.white });
     expect(screen.getByText("Juntos encontramos quem se perdeu")).toBeOnTheScreen();
     expect(screen.getByLabelText("Logo do Miaucha")).toBeOnTheScreen();
     expect(screen.getByText("formulário")).toBeOnTheScreen();

@@ -10,8 +10,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: "#C4450A",
-        "brand-deep": "#9E3607",
+        brand: "#FF8A3D",
+        "brand-deep": "#A84A0E",
         "brand-soft": "#FFF1E7",
         "brand-tint": "#FFE1CC",
         cream: "#FFF8F2",

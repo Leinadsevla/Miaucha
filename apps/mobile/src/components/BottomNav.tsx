@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { Bell, Home, Map, MessageCircle, User, type LucideIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, elevation } from "@miaucha/shared";
+import { colors } from "@miaucha/shared";
 
 export type TabName = "index" | "map" | "alerts" | "chat" | "profile";
 
@@ -18,9 +18,11 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
   const insets = useSafeAreaInsets();
   return (
     <View
+      testID="bottom-nav"
       accessibilityRole="tablist"
-      className="flex-row border-t border-border bg-white px-2 pt-2"
-      style={[{ paddingBottom: Math.max(insets.bottom, 10) }, elevation.raised]}
+      className="flex-row border-t border-border bg-white px-1 pt-2"
+      // Largura total explícita: com `tabBarPosition`, o contêiner da barra pode não esticar o filho.
+      style={{ paddingBottom: Math.max(insets.bottom, 10), width: "100%", alignSelf: "stretch" }}
     >
       {TAB_ITEMS.map(({ name, label, Icon }) => {
         const selected = active === name;
@@ -32,14 +34,12 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
             accessibilityLabel={label}
             accessibilityState={{ selected }}
             onPress={() => onNavigate(name)}
-            style={({ pressed }) => ({ flex: 1, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2, opacity: pressed ? 0.7 : 1 })}
+            // `flex-1` por classe e estilo fixo: o estilo em função descartava o `flex` no aparelho
+            // (as abas ficavam espremidas à esquerda).
+            className="flex-1 items-center justify-center gap-0.5 rounded-xl active:opacity-70"
+            style={{ flex: 1, minHeight: 52 }}
           >
-            {/* Pílula do item ativo pelo fundo do próprio container (um View absoluto cobriria o ícone na web). */}
-            <View
-              testID={selected ? `tab-indicator-${name}` : undefined}
-              className="h-8 w-14 items-center justify-center rounded-full"
-              style={{ backgroundColor: selected ? colors.brandSoft : "transparent" }}
-            >
+            <View style={{ transform: [{ scale: selected ? 1.1 : 1 }] }}>
               <Icon size={22} color={tint} strokeWidth={selected ? 2.4 : 2} />
             </View>
             <Text className={selected ? "font-ui-bold" : "font-ui-semibold"} style={{ color: tint, fontSize: 12 }}>

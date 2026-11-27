@@ -112,7 +112,7 @@ export function AlertsScreen({ client, onOpen, onOpenPreferences, pushNotice, re
               gap: 6,
               borderRadius: 14,
               paddingHorizontal: 14,
-              backgroundColor: pressed ? colors.border : colors.muted,
+              backgroundColor: pressed ? colors.brandSoft : colors.white,
             })}
           >
             <SlidersHorizontal size={16} color={colors.foreground} />

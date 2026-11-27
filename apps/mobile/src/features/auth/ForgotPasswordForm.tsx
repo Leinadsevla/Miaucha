@@ -102,7 +102,7 @@ export function ForgotPasswordForm({ onRequestCode, onReset, onBack, loading, se
             </Text>
             <Text className="font-sans text-xs leading-4 text-muted-foreground">Não chegou? Confira a caixa de spam e as abas Promoções ou Atualizações.</Text>
             {resent ? (
-              <Text accessibilityLiveRegion="polite" className="mt-1 font-ui-bold text-xs text-brand">
+              <Text accessibilityLiveRegion="polite" className="mt-1 font-ui-bold text-xs text-brand-deep">
                 Enviamos um novo código. Use sempre o mais recente.
               </Text>
             ) : null}

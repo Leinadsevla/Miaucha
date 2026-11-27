@@ -47,7 +47,7 @@ export function MessageBubble({ message: m, now, onOpenLocation }: Props) {
               className="items-center justify-center rounded-xl bg-white active:opacity-80"
               style={{ minHeight: 44 }}
             >
-              <Text className="font-ui-bold text-sm text-brand">Abrir no mapa</Text>
+              <Text className="font-ui-bold text-sm text-brand-deep">Abrir no mapa</Text>
             </Pressable>
           </View>
         ) : (

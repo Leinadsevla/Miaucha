@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "@miaucha/shared";
 import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 type Props = {
@@ -12,23 +13,23 @@ type Props = {
   right?: ReactNode;
   /** Conteúdo abaixo do título (busca, filtros). */
   children?: ReactNode;
-  /** Largura máxima do conteúdo (o fundo branco ocupa a tela toda). */
+  /** Largura máxima do conteúdo (a faixa ocupa a tela toda). */
   maxWidth?: number;
 };
 
-/** Cabeçalho branco das abas: título grande em grafite, sem faixa de cor. */
+/** Cabeçalho das abas (visual original): faixa laranja da marca com o título em branco. */
 export function TabHeader({ title, eyebrow, subtitle, right, children, maxWidth = READING_MAX_WIDTH - 40 }: Props) {
   const insets = useSafeAreaInsets();
   return (
-    <View className="border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
+    <View testID="tab-header" className="px-5 pb-6" style={{ paddingTop: insets.top + 20, backgroundColor: colors.brand }}>
       <View style={centered(maxWidth)}>
         <View className="flex-row items-center justify-between gap-3">
           <View className="flex-1">
-            {eyebrow ? <Text className="mb-0.5 font-ui-medium text-sm text-muted-foreground">{eyebrow}</Text> : null}
-            <Text accessibilityRole="header" className="font-ui-extrabold text-2xl tracking-tight text-foreground">
+            {eyebrow ? <Text className="mb-0.5 font-ui-semibold text-sm text-white/80">{eyebrow}</Text> : null}
+            <Text accessibilityRole="header" className="font-ui-extrabold text-2xl" style={{ color: colors.white }}>
               {title}
             </Text>
-            {subtitle ? <Text className="mt-0.5 font-sans text-sm text-muted-foreground">{subtitle}</Text> : null}
+            {subtitle ? <Text className="mt-0.5 font-sans text-sm text-white/80">{subtitle}</Text> : null}
           </View>
           {right}
         </View>
