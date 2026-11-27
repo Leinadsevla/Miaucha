@@ -11,7 +11,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://miaucha-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://miaucha-api.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1043347518891-bdaf9iudldo60mj08p50knp3utijvb51.apps.googleusercontent.com"
       },
       "channel": "development"
     },
@@ -21,14 +22,16 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://miaucha-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://miaucha-api.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1043347518891-bdaf9iudldo60mj08p50knp3utijvb51.apps.googleusercontent.com"
       },
       "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://miaucha-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://miaucha-api.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1043347518891-bdaf9iudldo60mj08p50knp3utijvb51.apps.googleusercontent.com"
       },
       "channel": "production"
     }

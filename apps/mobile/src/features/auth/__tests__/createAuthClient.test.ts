@@ -47,12 +47,27 @@ describe("googleSignInFor", () => {
     expect(factory).toHaveBeenCalledWith("abc.apps.googleusercontent.com");
   });
 
-  it("sem Client ID, ou fora da web (o aparelho precisa do login nativo) → indisponível", () => {
+  it("sem Client ID → indisponível", () => {
     const factory = jest.fn(() => ({ getIdToken: async () => "t" }));
     expect(googleSignInFor({ os: "web", webClientId: undefined, create: factory })).toBeUndefined();
     expect(googleSignInFor({ os: "web", webClientId: "  ", create: factory })).toBeUndefined();
-    expect(googleSignInFor({ os: "android", webClientId: "abc", create: factory })).toBeUndefined();
+    expect(googleSignInFor({ os: "android", webClientId: undefined, createNative: factory })).toBeUndefined();
     expect(factory).not.toHaveBeenCalled();
+  });
+
+  it("no Android (development build ou APK) com o Client ID Web → login nativo", () => {
+    const web = jest.fn(() => ({ getIdToken: async () => "w" }));
+    const native = jest.fn(() => ({ getIdToken: async () => "n" }));
+    expect(googleSignInFor({ os: "android", webClientId: " abc.apps.googleusercontent.com ", create: web, createNative: native })).toBeDefined();
+    expect(native).toHaveBeenCalledWith("abc.apps.googleusercontent.com");
+    expect(web).not.toHaveBeenCalled();
+  });
+
+  it("no Expo Go (sem o módulo nativo) e no iOS (sem build) → indisponível", () => {
+    const native = jest.fn(() => ({ getIdToken: async () => "n" }));
+    expect(googleSignInFor({ os: "android", webClientId: "abc", isExpoGo: true, createNative: native })).toBeUndefined();
+    expect(googleSignInFor({ os: "ios", webClientId: "abc", createNative: native })).toBeUndefined();
+    expect(native).not.toHaveBeenCalled();
   });
 });
 

@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { isRunningInExpoGo } from "expo";
 import { createHttpAlertsClient, createMockAlertsClient, type AlertsClient } from "@/features/alerts/alertsClient";
 import { createHttpChatClient, createMockChatClient, type ChatClient } from "@/features/chat/chatClient";
 import { createChatRealtime, createLocalChatRealtime, type ChatRealtime } from "@/features/chat/chatRealtime";
@@ -9,6 +10,7 @@ import { createHttpPetsClient, createMockPetsClient, type PetsClient } from "@/f
 import { createHttpProfileClient, createMockProfileClient, type ProfileClient } from "@/features/profile/profileClient";
 import type { AuthClient } from "./AuthProvider";
 import { createApiSession } from "./apiSession";
+import { createNativeGoogleSignIn } from "./googleNative";
 import { createBrowserGoogleSignIn } from "./googleWeb";
 import { createHttpAuthClient, type GoogleSignIn } from "./httpAuthClient";
 import { createMockAuthClient } from "./mockAuthClient";
@@ -36,21 +38,28 @@ export function chooseApiUrl({ os, apiUrl, webApiUrl }: { os: string; apiUrl: st
 }
 
 /**
- * Login com Google de verdade. Na web, com `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (Client ID do tipo
- * "Aplicativo da Web", que também precisa estar em `GOOGLE_CLIENT_IDS` na API). No aparelho ainda falta
- * o login nativo (`@react-native-google-signin`, com development build): lá fica indisponível.
+ * Login com Google de verdade, sempre com o Client ID do tipo "Aplicativo da Web"
+ * (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, o mesmo em `GOOGLE_CLIENT_IDS` na API). Na web, pelo popup do
+ * Google; no Android, pelo login nativo (`googleNative.ts`), que não existe no Expo Go. iOS: sem build.
  */
 export function googleSignInFor({
   os,
   webClientId,
+  isExpoGo = false,
   create = createBrowserGoogleSignIn,
+  createNative = createNativeGoogleSignIn,
 }: {
   os: string;
   webClientId: string | undefined;
+  isExpoGo?: boolean;
   create?: (clientId: string) => GoogleSignIn;
+  createNative?: (clientId: string) => GoogleSignIn;
 }): GoogleSignIn | undefined {
   const clientId = webClientId?.trim();
-  return os === "web" && clientId ? create(clientId) : undefined;
+  if (!clientId) return undefined;
+  if (os === "web") return create(clientId);
+  if (os === "android" && !isExpoGo) return createNative(clientId);
+  return undefined;
 }
 
 export type AppClients = {
@@ -138,7 +147,7 @@ export function createClients(): AppClients {
       baseUrl: apiUrl!,
       storage,
       session,
-      google: googleSignInFor({ os: Platform.OS, webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }),
+      google: googleSignInFor({ os: Platform.OS, webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, isExpoGo: isRunningInExpoGo() }),
     }),
     pets: createHttpPetsClient({ session, upload }),
     occurrences: createHttpOccurrencesClient({ session, upload }),

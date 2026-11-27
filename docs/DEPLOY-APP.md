@@ -44,6 +44,8 @@ Com um serviço só, deixe o `RENDER_DEPLOY_HOOK_URL` só no ambiente `prod`: em
 | `dev` | hook do `miaucha-api-dev` (ou vazio) | `https://miaucha-api-dev.onrender.com` (ou a de prod) | `preview` |
 | `prod` | hook do `miaucha-api` | `https://miaucha-api.onrender.com` | `production` |
 
+Nos dois ambientes, crie também a variável `GOOGLE_WEB_CLIENT_ID` com o Client ID Web do Google (o mesmo do `eas.json`). Sem ela, o botão "Continuar com Google" some no app depois da atualização.
+
 Em `prod`, ligue **Required reviewers**: o deploy espera alguém aprovar no GitHub antes de subir.
 
 ### 4. Builds
