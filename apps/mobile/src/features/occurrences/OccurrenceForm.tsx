@@ -14,6 +14,7 @@ import {
   type MyPet,
   type OccurrenceType,
   type Species,
+  withAlpha,
 } from "@miaucha/shared";
 import { Card, PrimaryButton, SectionLabel, SpeciesIcon, TextField } from "@/components";
 import { cn } from "@/lib/cn";
@@ -207,9 +208,9 @@ export function OccurrenceForm({
   return (
     <View className="gap-4">
       {sightingOf ? (
-        <View className="flex-row items-start gap-2 rounded-2xl bg-primary-soft p-3">
-          <Eye size={16} color={colors.primary} />
-          <Text className="flex-1 font-nunito-semibold text-xs text-foreground">
+        <View className="flex-row items-start gap-2 rounded-2xl bg-brand-soft p-3">
+          <Eye size={16} color={colors.brand} />
+          <Text className="flex-1 font-ui-semibold text-xs text-foreground">
             {`Você viu ${sightingOf.petName}. O tutor recebe um aviso na hora, com a região aproximada de onde você está.`}
           </Text>
         </View>
@@ -227,18 +228,21 @@ export function OccurrenceForm({
                   accessibilityLabel={label}
                   accessibilityState={{ selected }}
                   onPress={() => chooseType(value)}
-                  className="flex-row items-center gap-3 rounded-2xl border-2 px-4 py-3"
-                  style={{ borderColor: selected ? color : colors.border, backgroundColor: selected ? `${color}14` : colors.card }}
+                  className="flex-row items-center gap-3 rounded-2xl border-2 px-4"
+                  style={{ minHeight: 56, borderColor: selected ? color : colors.border, backgroundColor: selected ? withAlpha(color, 0.12) : colors.card }}
                 >
-                  <Icon size={18} color={selected ? color : colors.mutedForeground} />
-                  <Text className="font-nunito-bold text-sm" style={{ color: selected ? color : colors.mutedForeground }}>
+                  <View className="h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: selected ? color : colors.muted }}>
+                    <Icon size={18} color={selected ? occurrenceStyle(value).textOn : colors.mutedForeground} />
+                  </View>
+                  {/* Texto escuro: a cor do tipo (amarelo, verde) sobre fundo claro não tem contraste para texto. */}
+                  <Text className={selected ? "font-ui-extrabold text-base" : "font-ui-bold text-base"} style={{ color: selected ? colors.foreground : colors.mutedForeground }}>
                     {label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-          {errors.type ? <Text className="mt-1 font-nunito-semibold text-xs text-lost">{errors.type}</Text> : null}
+          {errors.type ? <Text className="mt-1 font-ui-semibold text-xs text-lost">{errors.type}</Text> : null}
         </Card>
       )}
 
@@ -249,7 +253,7 @@ export function OccurrenceForm({
             {myPets.map((pet) => (
               <PetChoice key={pet.id} label={pet.name} selected={selectedPet?.id === pet.id} onPress={() => choosePet(pet)}>
                 {pet.photos[0] ? (
-                  <Image source={{ uri: pet.photos[0].url }} style={{ width: 24, height: 24, borderRadius: 8 }} />
+                  <Image source={{ uri: pet.photos[0].url }} style={{ width: 28, height: 28, borderRadius: 9 }} />
                 ) : (
                   <SpeciesIcon species={pet.species} size={16} color={colors.mutedForeground} />
                 )}
@@ -261,8 +265,8 @@ export function OccurrenceForm({
       ) : null}
 
       {selectedPet ? (
-        <View className="rounded-2xl bg-primary-soft p-3">
-          <Text className="font-nunito-semibold text-xs text-foreground">{fromPetNote(selectedPet)}</Text>
+        <View className="rounded-2xl bg-brand-soft p-3">
+          <Text className="font-ui-semibold text-xs text-foreground">{fromPetNote(selectedPet)}</Text>
         </View>
       ) : null}
 
@@ -307,17 +311,17 @@ export function OccurrenceForm({
         <View className="flex-row flex-wrap gap-2">
           {editing ? (
             <PetChoice label="Manter o local" selected={locationMode === "keep"} onPress={() => setLocationMode("keep")}>
-              <MapPin size={14} color={locationMode === "keep" ? colors.primary : colors.mutedForeground} />
+              <MapPin size={14} color={locationMode === "keep" ? colors.brand : colors.mutedForeground} />
             </PetChoice>
           ) : null}
           <PetChoice label="Minha localização" selected={locationMode === "current"} onPress={() => setLocationMode("current")}>
-            <Navigation size={14} color={locationMode === "current" ? colors.primary : colors.mutedForeground} />
+            <Navigation size={14} color={locationMode === "current" ? colors.brand : colors.mutedForeground} />
           </PetChoice>
           <PetChoice label="Outro endereço" selected={locationMode === "address"} onPress={() => setLocationMode("address")}>
-            <MapPin size={14} color={locationMode === "address" ? colors.primary : colors.mutedForeground} />
+            <MapPin size={14} color={locationMode === "address" ? colors.brand : colors.mutedForeground} />
           </PetChoice>
           <PetChoice label="Marcar no mapa" selected={locationMode === "map"} onPress={() => setLocationMode("map")}>
-            <MapIcon size={14} color={locationMode === "map" ? colors.primary : colors.mutedForeground} />
+            <MapIcon size={14} color={locationMode === "map" ? colors.brand : colors.mutedForeground} />
           </PetChoice>
         </View>
         {locationMode === "address" ? (
@@ -339,21 +343,21 @@ export function OccurrenceForm({
               icon={<Search size={16} color={colors.foreground} />}
             />
             {addressPoint ? (
-              <Text className="font-sans text-xs text-found">{MESSAGES.found}</Text>
+              <Text className="font-ui-semibold text-xs text-foreground">{MESSAGES.found}</Text>
             ) : geocodeError ? (
-              <Text className="font-nunito-semibold text-xs text-lost">{geocodeError}</Text>
+              <Text className="font-ui-semibold text-xs text-lost">{geocodeError}</Text>
             ) : null}
           </>
         ) : locationMode === "keep" ? (
           <Text className="font-sans text-xs text-muted-foreground">O local registrado continua o mesmo.</Text>
         ) : locationMode === "map" ? null : location === null ? (
           <View className="flex-row items-center gap-2">
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={colors.brand} />
             <Text className="font-sans text-xs text-muted-foreground">Buscando sua localização...</Text>
           </View>
         ) : location.status === "ok" ? (
           <View className="flex-row items-center gap-2">
-            <MapPin size={14} color={colors.accent} />
+            <MapPin size={14} color={colors.brand} />
             <Text className="flex-1 font-sans text-xs text-muted-foreground">
               Usando sua localização atual. No mapa, aparece uma região aproximada (~150 m).
             </Text>
@@ -366,7 +370,7 @@ export function OccurrenceForm({
         ) : basePoint ? (
           <PinPicker value={pin ?? basePoint} onChange={setPin} />
         ) : null}
-        {errors.location ? <Text className="font-nunito-semibold text-xs text-lost">{errors.location}</Text> : null}
+        {errors.location ? <Text className="font-ui-semibold text-xs text-lost">{errors.location}</Text> : null}
         {locationMode !== "address" ? (
           <TextField
             label="Endereço aproximado"
@@ -392,7 +396,7 @@ export function OccurrenceForm({
         />
       </Card>
 
-      {serverError ? <Text className="text-center font-nunito-semibold text-sm text-lost">{serverError}</Text> : null}
+      {serverError ? <Text className="text-center font-ui-semibold text-sm text-lost">{serverError}</Text> : null}
       {editing ? (
         <PrimaryButton title="Salvar alterações" onPress={submit} loading={loading} />
       ) : (
@@ -410,10 +414,11 @@ function PetChoice({ label, selected, onPress, children }: { label: string; sele
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      className={cn("flex-row items-center gap-2 rounded-2xl border-2 px-3 py-2", selected ? "border-primary bg-primary-soft" : "border-border bg-card")}
+      className={cn("flex-row items-center gap-2 rounded-full border-2 px-4", selected ? "border-brand bg-brand-soft" : "border-border bg-card")}
+      style={{ minHeight: 44 }}
     >
       {children}
-      <Text className={cn("font-nunito-bold text-xs", selected ? "text-primary" : "text-muted-foreground")}>{label}</Text>
+      <Text className={cn("text-sm", selected ? "font-ui-extrabold text-foreground" : "font-ui-bold text-muted-foreground")}>{label}</Text>
     </Pressable>
   );
 }

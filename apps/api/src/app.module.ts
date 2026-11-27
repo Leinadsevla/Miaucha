@@ -76,8 +76,10 @@ export class AppModule implements OnApplicationShutdown {
 }
 
 /** Configuração comum ao main.ts e aos testes. */
-export function configureApp<T extends INestApplication>(app: T, config?: Pick<AppConfig, "trustProxy">): T {
+export function configureApp<T extends INestApplication>(app: T, config?: Pick<AppConfig, "trustProxy" | "corsOrigins">): T {
   app.enableShutdownHooks();
+  // App web (navegador): só as origens listadas em CORS_ORIGINS. O login é por token no cabeçalho, sem cookies.
+  if (config?.corsOrigins.length) app.enableCors({ origin: config.corsOrigins });
   // Atrás de proxy (Render), o IP do cliente vem no X-Forwarded-For; sem isso o rate limit veria só o IP do proxy.
   if (config?.trustProxy) app.getHttpAdapter().getInstance().set("trust proxy", config.trustProxy);
   return app;

@@ -1,11 +1,12 @@
-import { Alert, Linking, Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ConversationScreen, useChat } from "@/features/chat";
 import { getCurrentLocation } from "@/features/location";
 import { createDeviceDirections } from "@/features/occurrences";
 import { createPhotoPicker } from "@/features/pets/pickPhotos";
+import { showAlert } from "@/lib/dialog";
 
-const showDirections = createDeviceDirections({ Linking, Alert, Platform });
+const showDirections = createDeviceDirections({ Linking, Alert: { alert: showAlert }, Platform });
 
 const pickPhotos = createPhotoPicker();
 
@@ -25,7 +26,7 @@ export default function ConversationRoute() {
       getLocation={getCurrentLocation}
       confirm={(title, message, action) =>
         new Promise((resolve) =>
-          Alert.alert(title, message, [
+          showAlert(title, message, [
             { text: "Cancelar", style: "cancel", onPress: () => resolve(false) },
             { text: action, style: "destructive", onPress: () => resolve(true) },
           ], { cancelable: true, onDismiss: () => resolve(false) }),

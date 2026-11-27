@@ -13,6 +13,8 @@ export type AuthClient = {
   requestPasswordReset(email: string): Promise<void>;
   resetPassword(email: string, code: string, password: string): Promise<SessionUser>;
   loginWithGoogle(): Promise<SessionUser>;
+  /** Se o login com Google está configurado (sem ele, a tela de login esconde o botão). */
+  supportsGoogle?: boolean;
   saveConsent(consent: Consent): Promise<void>;
   logout(): Promise<void>;
   /** Avisa quando a sessão salva deixa de valer (refresh recusado pela API). Devolve como parar de ouvir. */
@@ -23,6 +25,8 @@ type AuthContextValue = {
   state: AuthState;
   busy: boolean;
   error?: string;
+  /** Apaga o erro (ao abrir outra tela de entrada, o erro da anterior não deve aparecer). */
+  clearError(): void;
   restore(): Promise<void>;
   login(input: LoginInput): Promise<void>;
   signUp(input: SignUpInput): Promise<void>;
@@ -32,6 +36,8 @@ type AuthContextValue = {
   requestPasswordReset(email: string): Promise<boolean>;
   resetPassword(email: string, code: string, password: string): Promise<void>;
   loginWithGoogle(): Promise<void>;
+  /** Mostrar o botão "Continuar com Google". */
+  canUseGoogle: boolean;
   acceptConsent(consent: Consent): Promise<void>;
   logout(): Promise<void>;
 };
@@ -67,6 +73,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
       state,
       busy,
       error,
+      clearError: () => setError(undefined),
       restore: () => run(async () => dispatch({ type: "restored", user: await client.restore() })),
       login: (input) => run(async () => dispatch({ type: "signedIn", user: await client.login(input) })),
       signUp: (input) =>
@@ -81,6 +88,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
       resetPassword: (email, code, password) =>
         run(async () => dispatch({ type: "signedIn", user: await client.resetPassword(email, code, password) })),
       loginWithGoogle: () => run(async () => dispatch({ type: "signedIn", user: await client.loginWithGoogle() })),
+      canUseGoogle: !!client.supportsGoogle,
       acceptConsent: (consent) =>
         run(async () => {
           await client.saveConsent(consent);

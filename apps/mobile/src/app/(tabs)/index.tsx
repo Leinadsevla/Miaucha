@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
-import { Linking } from "react-native";
+
 import { router, useFocusEffect } from "expo-router";
 import { useAuth } from "@/features/auth";
 import { getCurrentLocation } from "@/features/location";
 import { HomeScreen, useOccurrencesClient } from "@/features/occurrences";
+import { openAppSettings } from "@/lib/settings";
 
 export default function Home() {
   const { state } = useAuth();
@@ -27,7 +28,7 @@ export default function Home() {
       refreshSignal={refreshSignal}
       onOpen={(id) => router.push({ pathname: "/occurrences/[id]", params: { id } })}
       onRegister={() => router.push("/occurrences/new")}
-      onOpenSettings={() => void Linking.openSettings()}
+      onOpenSettings={openAppSettings}
       onOpenMap={() => router.push("/map")}
     />
   );

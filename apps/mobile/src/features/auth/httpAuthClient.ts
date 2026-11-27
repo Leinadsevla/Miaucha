@@ -24,6 +24,7 @@ export function createHttpAuthClient({ baseUrl, storage, fetch, google = googleU
   }
 
   return {
+    supportsGoogle: google !== googleUnavailable,
     async restore() {
       const saved = await storage.load();
       if (!saved) return null;

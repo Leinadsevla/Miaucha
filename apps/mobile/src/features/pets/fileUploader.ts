@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { File, UploadTask } from "expo-file-system";
 import type { PickedPhoto } from "./photos";
 import type { Uploader } from "./petsClient";
@@ -20,9 +21,23 @@ const nativeUpload: StartUpload = async (fileUri, url, options) => {
   }
 };
 
+/**
+ * App web: não há arquivo em disco. A foto escolhida é um `blob:`/`data:` do navegador, que o `fetch`
+ * lê direto (a restrição do `file://` acima é só do aparelho), e os bytes vão por PUT.
+ */
+export function createBrowserUpload(fetchFn: typeof fetch = fetch): StartUpload {
+  return async (fileUri, url, options) => {
+    const photo = await (await fetchFn(fileUri)).blob();
+    const response = await fetchFn(url, { method: options.httpMethod, headers: options.headers, body: photo });
+    return { status: response.status, body: await response.text() };
+  };
+}
+
+const defaultUpload = (): StartUpload => (Platform.OS === "web" ? createBrowserUpload() : nativeUpload);
+
 const FAILED = "Não foi possível enviar a foto. Tente de novo.";
 
-export function createFileUploader(start: StartUpload = nativeUpload): Uploader {
+export function createFileUploader(start: StartUpload = defaultUpload()): Uploader {
   return async (uploadUrl: string, photo: PickedPhoto, contentType: string) => {
     let result: { status: number };
     try {

@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Clock, MapPin, Navigation, X } from "lucide-react-native";
-import { colors, speciesLabel, formatTimeAgo, type LatLng, type PublicOccurrence } from "@miaucha/shared";
+import { colors, elevation, speciesLabel, formatTimeAgo, type LatLng, type PublicOccurrence } from "@miaucha/shared";
 import { MISSING_REGION, SpeciesIcon, StatusBadge } from "@/components";
 import { occurrenceTitle } from "@/features/occurrences/OccurrenceDetails";
 
@@ -19,8 +19,8 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
   const title = occurrenceTitle(o);
   const subtitle = [speciesLabel(o.species), o.breed].filter(Boolean).join(" · ");
   return (
-    <View className="flex-row gap-3 rounded-3xl bg-white p-4 shadow-lg">
-      <View className="h-20 w-20 overflow-hidden rounded-2xl bg-muted">
+    <View className="flex-row gap-3 rounded-3xl bg-white p-4" style={elevation.floating}>
+      <View className="h-24 w-24 overflow-hidden rounded-2xl bg-muted">
         {o.photoUrls[0] ? (
           <Image accessibilityLabel={`Foto de ${title}`} source={{ uri: o.photoUrls[0] }} contentFit="cover" style={{ width: "100%", height: "100%" }} />
         ) : (
@@ -31,8 +31,8 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
       </View>
 
       <View className="flex-1 gap-1">
-        <View className="flex-row items-start gap-2 pr-6">
-          <Text numberOfLines={1} className="flex-shrink font-nunito-black text-base text-foreground">
+        <View className="flex-row items-start gap-2 pr-9">
+          <Text numberOfLines={1} className="flex-shrink font-ui-extrabold text-base text-foreground">
             {title}
           </Text>
           <StatusBadge type={o.type} />
@@ -41,39 +41,55 @@ export function OccurrenceCard({ occurrence: o, onOpen, onDirections, onClose, n
           {subtitle}
         </Text>
         <View className="flex-row items-center gap-1">
-          <Clock size={11} color={colors.accent} />
+          <Clock size={13} color={colors.brand} />
           <Text className="font-sans text-xs text-muted-foreground">{formatTimeAgo(new Date(o.createdAt), now)}</Text>
         </View>
         <View className="flex-row items-center gap-1">
-          <MapPin size={11} color={colors.primary} />
+          <MapPin size={13} color={colors.brand} />
           <Text testID="occurrence-card-address" numberOfLines={1} className="flex-1 font-sans text-xs text-muted-foreground">
             {o.approxAddress ?? MISSING_REGION}
           </Text>
         </View>
 
-        <View className="mt-1 flex-row gap-2">
+        <View className="mt-2 flex-row gap-2">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Ver detalhes"
             onPress={() => onOpen(o.id)}
-            className="flex-1 items-center rounded-xl bg-primary py-2 active:opacity-80"
+            style={({ pressed }) => ({ flex: 1, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: pressed ? colors.inkDeep : colors.foreground })}
           >
-            <Text className="font-nunito-bold text-xs text-white">Ver detalhes</Text>
+            <Text className="font-ui-extrabold text-sm text-white">Ver detalhes</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Como chegar"
             onPress={() => onDirections(o.publicLocation)}
-            className="flex-row items-center gap-1 rounded-xl border border-border px-3 py-2 active:opacity-80"
+            style={({ pressed }) => ({
+              minHeight: 44,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: colors.border,
+              paddingHorizontal: 12,
+              backgroundColor: pressed ? colors.muted : colors.white,
+            })}
           >
-            <Navigation size={12} color={colors.foreground} />
-            <Text className="font-nunito-bold text-xs text-foreground">Como chegar</Text>
+            <Navigation size={14} color={colors.foreground} />
+            <Text className="font-ui-bold text-sm text-foreground">Como chegar</Text>
           </Pressable>
         </View>
       </View>
 
-      <Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={onClose} hitSlop={12} className="absolute right-3 top-3">
-        <X size={16} color={colors.mutedForeground} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Fechar"
+        onPress={onClose}
+        hitSlop={8}
+        style={({ pressed }) => ({ position: "absolute", right: 10, top: 10, width: 32, height: 32, alignItems: "center", justifyContent: "center", borderRadius: 16, backgroundColor: pressed ? colors.border : colors.muted })}
+      >
+        <X size={16} color={colors.foreground} />
       </Pressable>
     </View>
   );

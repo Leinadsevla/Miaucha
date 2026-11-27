@@ -3,6 +3,7 @@ import type { ApiSession } from "@/features/auth/apiSession";
 import { bboxParam, type BBox } from "@/features/map/region";
 import { uploadPhotoVia, type Uploader } from "@/features/pets/petsClient";
 import { checkPhoto, type PickedPhoto } from "@/features/pets/photos";
+import { demoPhotoUri, type DemoPhoto } from "@/features/demo/demoPhotos";
 
 export type NearbyQuery = { lat: number; lng: number; radiusKm: number };
 /** Filtros aceitos pelas buscas da API (MP-05). */
@@ -93,24 +94,29 @@ export async function updateOccurrence(
 
 const DAY = 24 * 3600 * 1000;
 
-/** Exemplos para o modo sem API: aparecem em volta do primeiro ponto buscado. */
-function sampleOccurrences(lat: number, lng: number): PublicOccurrence[] {
-  const base = { breed: null, color: null, description: null, photoUrls: [], status: "open" as const, isMine: false };
+type PhotoOf = (photo: DemoPhoto) => string;
+
+/** Exemplos para o modo sem API: aparecem em volta do primeiro ponto buscado, cada um com a sua foto. */
+function sampleOccurrences(lat: number, lng: number, photo: PhotoOf): PublicOccurrence[] {
+  const base = { breed: null, color: null, description: null, status: "open" as const, isMine: false };
   const at = (north: number, east: number) => ({ lat: lat + north / 111_195, lng: lng + east / (111_195 * Math.cos((lat * Math.PI) / 180)) });
+  const photos = (key: DemoPhoto) => [photo(key)].filter(Boolean);
+  const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
   return [
-    { ...base, id: "exemplo-1", type: "lost", species: "dog", petName: "Thor", breed: "Golden Retriever", publicLocation: at(300, 200), approxAddress: "Perto da praça", authorPseudonym: "Tutor Laranja 42", createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString() },
-    { ...base, id: "exemplo-2", type: "seen", species: "cat", petName: null, color: "Preto", publicLocation: at(-800, 500), approxAddress: "Rua das Flores", authorPseudonym: "Vizinho Azul 7", createdAt: new Date(Date.now() - DAY).toISOString() },
-    { ...base, id: "exemplo-3", type: "found", species: "dog", petName: null, publicLocation: at(1500, -900), approxAddress: null, authorPseudonym: "Amigo Verde 15", createdAt: new Date(Date.now() - 3 * DAY).toISOString() },
+    { ...base, id: "exemplo-1", type: "lost", species: "dog", petName: "Thor", breed: "Golden Retriever", color: "Dourado", description: "Fugiu pelo portão no fim da tarde. É dócil e atende pelo nome.", photoUrls: photos("goldenDog"), publicLocation: at(300, 200), approxAddress: "Perto da praça", authorPseudonym: "Tutor Laranja 42", createdAt: ago(2 * 3600 * 1000) },
+    { ...base, id: "exemplo-4", type: "lost", species: "cat", petName: "Mia", breed: "Sem raça definida", color: "Laranja", description: "Usa coleira azul. Some quando ouve barulho alto.", photoUrls: photos("orangeCat"), publicLocation: at(-450, -350), approxAddress: "Vila Nova", authorPseudonym: "Tutora Lilás 3", createdAt: ago(5 * 3600 * 1000) },
+    { ...base, id: "exemplo-2", type: "seen", species: "cat", petName: null, color: "Preto e branco", description: "Estava em cima do muro, parecia assustado.", photoUrls: photos("blackWhiteCat"), publicLocation: at(-800, 500), approxAddress: "Rua das Flores", authorPseudonym: "Vizinho Azul 7", createdAt: ago(DAY) },
+    { ...base, id: "exemplo-3", type: "found", species: "dog", petName: null, breed: "Beagle", color: "Tricolor", description: "Está comigo, bem cuidado. Sem plaquinha.", photoUrls: photos("beagle"), publicLocation: at(1500, -900), approxAddress: "Jardim das Acácias", authorPseudonym: "Amigo Verde 15", createdAt: ago(3 * DAY) },
   ];
 }
 
-/** Ocorrências em memória para desenvolver as telas sem a API. */
-export function createMockOccurrencesClient({ seed = true }: { seed?: boolean } = {}): OccurrencesClient {
+/** Ocorrências em memória para desenvolver as telas sem a API. `photo`: de onde vêm as fotos dos exemplos. */
+export function createMockOccurrencesClient({ seed = true, photo = demoPhotoUri }: { seed?: boolean; photo?: PhotoOf } = {}): OccurrencesClient {
   const items: PublicOccurrence[] = [];
   let seeded = !seed;
   const seedAround = (lat: number, lng: number) => {
     if (seeded) return;
-    items.push(...sampleOccurrences(lat, lng));
+    items.push(...sampleOccurrences(lat, lng, photo));
     seeded = true;
   };
   const find = (id: string) => {

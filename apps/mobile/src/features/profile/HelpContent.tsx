@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { Card } from "@/components";
 
 export const HELP_TOPICS = [
   ["Perdi meu pet. O que faço?", "Toque em \"Registrar ocorrência\" na aba Início, ou abra o pet em Meus Pets e use \"Registrar como perdido\". Quem estiver por perto recebe um alerta."],
@@ -14,10 +15,12 @@ export function HelpContent() {
   return (
     <View className="gap-3">
       {HELP_TOPICS.map(([title, body]) => (
-        <View key={title} className="rounded-3xl border border-border bg-card p-4">
-          <Text className="mb-1 font-nunito-bold text-sm text-foreground">{title}</Text>
+        <Card key={title}>
+          <Text accessibilityRole="header" className="mb-1 font-ui-extrabold text-base text-foreground">
+            {title}
+          </Text>
           <Text className="font-sans text-sm leading-5 text-muted-foreground">{body}</Text>
-        </View>
+        </Card>
       ))}
     </View>
   );

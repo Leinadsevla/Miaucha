@@ -20,6 +20,7 @@ describe("loadConfig", () => {
       accessTokenTtlSeconds: 900,
       refreshTokenTtlDays: 30,
       googleClientIds: [],
+      corsOrigins: [],
       throttle: { ttlMs: 60_000, limit: 10 },
       chatThrottle: { ttlMs: 60_000, limit: 30 },
       trustProxy: 0,
@@ -41,6 +42,14 @@ describe("loadConfig", () => {
   it("lê o access token opcional do Expo Push", () => {
     expect(loadConfig(required).expoAccessToken).toBeUndefined();
     expect(loadConfig({ ...required, EXPO_ACCESS_TOKEN: "token-do-expo" }).expoAccessToken).toBe("token-do-expo");
+  });
+
+  it("CORS_ORIGINS: origens do app web, separadas por vírgula (vazio = CORS desligado, o padrão)", () => {
+    expect(loadConfig(required).corsOrigins).toEqual([]);
+    expect(loadConfig({ ...required, CORS_ORIGINS: " http://localhost:8081, https://miaucha.app ,," }).corsOrigins).toEqual([
+      "http://localhost:8081",
+      "https://miaucha.app",
+    ]);
   });
 
   it("TRUST_PROXY: número de proxies na frente da API (0 = nenhum, o padrão)", () => {

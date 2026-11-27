@@ -50,3 +50,11 @@ describe("redirectTarget", () => {
     expect(redirectTarget("/welcome", "/login")).toBe("/login");
   });
 });
+
+describe("retorno do login com Google (popup)", () => {
+  it("a rota /google-callback nunca é redirecionada: ela só entrega o token e fecha", () => {
+    for (const target of ["/splash", "/login", "/verify-email", "/consent", "/"] as const) {
+      expect(redirectTarget("/google-callback", target)).toBeNull();
+    }
+  });
+});

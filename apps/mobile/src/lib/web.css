@@ -1,0 +1,59 @@
+/* Acabamento só do navegador (importado por webStyles.web.ts). As cores repetem os tokens do tema. */
+html,
+body {
+  background: #f7f7f9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #ffd9bf;
+}
+
+/* Botões, abas e links reagem com suavidade ao mouse e ao toque. */
+[role="button"],
+[role="tab"],
+[role="link"],
+[role="checkbox"] {
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    box-shadow 200ms ease,
+    transform 160ms ease,
+    opacity 160ms ease,
+    border-color 160ms ease;
+}
+
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Navegação por teclado: anel visível em tudo o que é clicável. */
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="link"]:focus-visible,
+[role="checkbox"]:focus-visible {
+  outline: 3px solid #2d6cdf;
+  outline-offset: 3px;
+}
+
+input,
+textarea {
+  transition:
+    border-color 160ms ease,
+    box-shadow 200ms ease;
+}
+
+/* Barras de rolagem discretas. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d5d5dd transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

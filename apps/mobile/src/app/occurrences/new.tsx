@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type MyPet, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
-import { KeyboardScreen, PrimaryButton } from "@/components";
+import { type MyPet, type OccurrenceInput, type PublicOccurrence } from "@miaucha/shared";
+import { KeyboardScreen, PrimaryButton, ScreenHeader } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, saveOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, usePetsClient, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
+import { openAppSettings } from "@/lib/settings";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -63,7 +65,7 @@ export default function NewOccurrence() {
     try {
       const { occurrence, failedPhotos } = await saveOccurrence(client, input, photos);
       if (failedPhotos > 0) {
-        Alert.alert(
+        showAlert(
           "Alerta emitido",
           `${failedPhotos === 1 ? "Uma foto não foi enviada" : `${failedPhotos} fotos não foram enviadas`}. O alerta já está valendo.`,
         );
@@ -78,20 +80,7 @@ export default function NewOccurrence() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-xl bg-muted"
-        >
-          <ChevronLeft size={20} color={colors.foreground} />
-        </Pressable>
-        <View>
-          <Text className="font-nunito-black text-base text-foreground">Registrar ocorrência</Text>
-          <Text className="font-sans text-xs text-muted-foreground">Avise quem está perto</Text>
-        </View>
-      </View>
+      <ScreenHeader title={"Registrar ocorrência"} subtitle={"Avise quem está perto"} onBack={() => router.back()} />
       {lostError ? (
         <View className="gap-3 p-5">
           <Text className="text-center font-sans text-sm text-muted-foreground">
@@ -102,11 +91,11 @@ export default function NewOccurrence() {
       ) : pet === undefined || lost === undefined ? (
         <Text className="p-5 text-center font-sans text-sm text-muted-foreground">Carregando...</Text>
       ) : (
-        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
           <OccurrenceForm
             location={location}
             onRetryLocation={locate}
-            onOpenSettings={() => void Linking.openSettings()}
+            onOpenSettings={openAppSettings}
             onSubmit={save}
             onPickPhotos={pickPhotos}
             initial={

@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, type OccurrenceUpdate, type PublicOccurrence } from "@miaucha/shared";
-import { KeyboardScreen } from "@/components";
+import { type OccurrenceUpdate, type PublicOccurrence } from "@miaucha/shared";
+import { KeyboardScreen, ScreenHeader } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
 import { OccurrenceForm, occurrenceTitle, updateOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, type PickedPhoto } from "@/features/pets";
+import { showAlert } from "@/lib/dialog";
+import { openAppSettings } from "@/lib/settings";
+import { centered, READING_MAX_WIDTH } from "@/lib/layout";
 
 const pickPhotos = createPhotoPicker();
 
@@ -37,7 +39,7 @@ export default function EditOccurrence() {
     setError(undefined);
     try {
       const { failedPhotos } = await updateOccurrence(client, id, update, photos, removedPhotoIds);
-      if (failedPhotos > 0) Alert.alert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
+      if (failedPhotos > 0) showAlert("Alterações salvas", "Algumas fotos não foram atualizadas. Tente de novo mais tarde.");
       router.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
@@ -48,26 +50,13 @@ export default function EditOccurrence() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-row items-center gap-3 border-b border-border bg-white px-5 pb-4" style={{ paddingTop: insets.top + 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-          className="h-9 w-9 items-center justify-center rounded-xl bg-muted"
-        >
-          <ChevronLeft size={20} color={colors.foreground} />
-        </Pressable>
-        <View>
-          <Text className="font-nunito-black text-base text-foreground">Editar ocorrência</Text>
-          <Text className="font-sans text-xs text-muted-foreground">{occurrence ? occurrenceTitle(occurrence) : "Carregando..."}</Text>
-        </View>
-      </View>
+      <ScreenHeader title={"Editar ocorrência"} subtitle={occurrence ? occurrenceTitle(occurrence) : "Carregando..."} onBack={() => router.back()} />
       {occurrence ? (
-        <KeyboardScreen className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}>
+        <KeyboardScreen className="flex-1" contentContainerStyle={{ ...centered(READING_MAX_WIDTH), padding: 20, paddingBottom: insets.bottom + 24 }}>
           <OccurrenceForm
             location={location}
             onRetryLocation={locate}
-            onOpenSettings={() => void Linking.openSettings()}
+            onOpenSettings={openAppSettings}
             onSubmit={() => {}}
             onSave={(update, photos, removed) => void save(update, photos, removed)}
             onPickPhotos={pickPhotos}

@@ -1,5 +1,6 @@
 import { createHttpAuthClient, type FetchLike } from "../httpAuthClient";
 import type { SessionStorage, StoredSession } from "../sessionStorage";
+import { createMockAuthClient } from "../mockAuthClient";
 
 type Call = { method: string; path: string; body: unknown; authorization?: string };
 type Reply = { status: number; body?: unknown } | "network-error";
@@ -304,5 +305,14 @@ describe("createHttpAuthClient", () => {
       await client.logout();
       expect(storage.current).toBeNull();
     });
+  });
+});
+
+describe("supportsGoogle", () => {
+  it("só com um GoogleSignIn de verdade; o padrão (indisponível) não conta", () => {
+    const storage = { load: async () => null, save: async () => {}, clear: async () => {} };
+    expect(createHttpAuthClient({ baseUrl: "http://x", storage }).supportsGoogle).toBe(false);
+    expect(createHttpAuthClient({ baseUrl: "http://x", storage, google: { getIdToken: async () => "t" } }).supportsGoogle).toBe(true);
+    expect(createMockAuthClient().supportsGoogle).toBe(true);
   });
 });

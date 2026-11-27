@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { File, Paths } from "expo-file-system";
 import { OCCURRENCE_SEARCH_LIMIT, type PublicOccurrence } from "@miaucha/shared";
 import type { Region } from "./region";
@@ -78,5 +79,19 @@ export function createFileTextStore(name: string): TextStore {
   };
 }
 
+type WebStorage = { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem(key: string): void };
+
+/** No navegador não há expo-file-system: o texto fica no `localStorage`. */
+export function createLocalTextStore(name: string, storage: WebStorage = globalThis.localStorage): TextStore {
+  const key = `miaucha.${name}`;
+  return {
+    read: async () => storage.getItem(key),
+    write: async (text) => storage.setItem(key, text),
+    clear: async () => storage.removeItem(key),
+  };
+}
+
+const CACHE_FILE = "ultimo-mapa.json";
+
 /** Cache padrão do app. Só guarda dados públicos (local deslocado, pseudônimo), nunca o ponto exato. */
-export const mapCache = createMapCache(createFileTextStore("ultimo-mapa.json"));
+export const mapCache = createMapCache(Platform.OS === "web" ? createLocalTextStore(CACHE_FILE) : createFileTextStore(CACHE_FILE));

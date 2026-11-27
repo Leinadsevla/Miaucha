@@ -1,11 +1,12 @@
 import { Pressable, Text, View } from "react-native";
 import { Bell, Home, Map, MessageCircle, User, type LucideIcon } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors } from "@miaucha/shared";
+import { colors, elevation } from "@miaucha/shared";
 
 export type TabName = "index" | "map" | "alerts" | "chat" | "profile";
 
-const ITEMS: { name: TabName; label: string; Icon: LucideIcon }[] = [
+/** As abas do app, na ordem (compartilhadas pela barra de baixo e pelo menu lateral). */
+export const TAB_ITEMS: { name: TabName; label: string; Icon: LucideIcon }[] = [
   { name: "index", label: "Início", Icon: Home },
   { name: "map", label: "Mapa", Icon: Map },
   { name: "alerts", label: "Alertas", Icon: Bell },
@@ -18,12 +19,12 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
   return (
     <View
       accessibilityRole="tablist"
-      className="flex-row border-t border-border bg-white px-1 pt-2"
-      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+      className="flex-row border-t border-border bg-white px-2 pt-2"
+      style={[{ paddingBottom: Math.max(insets.bottom, 10) }, elevation.raised]}
     >
-      {ITEMS.map(({ name, label, Icon }) => {
+      {TAB_ITEMS.map(({ name, label, Icon }) => {
         const selected = active === name;
-        const tint = selected ? colors.primary : colors.mutedForeground;
+        const tint = selected ? colors.brand : colors.mutedForeground;
         return (
           <Pressable
             key={name}
@@ -31,12 +32,17 @@ export function BottomNav({ active, onNavigate }: { active: TabName; onNavigate:
             accessibilityLabel={label}
             accessibilityState={{ selected }}
             onPress={() => onNavigate(name)}
-            className="flex-1 items-center gap-0.5 rounded-xl py-1"
+            style={({ pressed }) => ({ flex: 1, minHeight: 52, alignItems: "center", justifyContent: "center", gap: 2, opacity: pressed ? 0.7 : 1 })}
           >
-            <View style={{ transform: [{ scale: selected ? 1.1 : 1 }] }}>
-              <Icon size={20} color={tint} />
+            {/* Pílula do item ativo pelo fundo do próprio container (um View absoluto cobriria o ícone na web). */}
+            <View
+              testID={selected ? `tab-indicator-${name}` : undefined}
+              className="h-8 w-14 items-center justify-center rounded-full"
+              style={{ backgroundColor: selected ? colors.brandSoft : "transparent" }}
+            >
+              <Icon size={22} color={tint} strokeWidth={selected ? 2.4 : 2} />
             </View>
-            <Text className="font-nunito-semibold text-[10px]" style={{ color: tint }}>
+            <Text className={selected ? "font-ui-bold" : "font-ui-semibold"} style={{ color: tint, fontSize: 12 }}>
               {label}
             </Text>
           </Pressable>

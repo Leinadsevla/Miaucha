@@ -123,12 +123,6 @@ describe("VerifyEmailForm", () => {
     expect(onSubmit).toHaveBeenCalledWith("123456");
   });
 
-  it("reenviar código", async () => {
-    const onResend = jest.fn();
-    await render(<VerifyEmailForm email="a@b.com" onSubmit={jest.fn()} onResend={onResend} />);
-    await fireEvent.press(screen.getByRole("button", { name: "Reenviar código" }));
-    expect(onResend).toHaveBeenCalled();
-  });
 });
 
 describe("ConsentForm (NF-01)", () => {

@@ -7,8 +7,7 @@ import {
   validateAlertPreferences,
   type AlertPreferences,
   type AlertPreferencesErrors,
-  type AlertRadiusKm,
-} from "@miaucha/shared";
+  type AlertRadiusKm, elevation } from "@miaucha/shared";
 import { Card, PrimaryButton, TextField } from "@/components";
 import type { AlertsClient } from "./alertsClient";
 import type { GeofencingAvailability } from "./geofencing";
@@ -74,14 +73,14 @@ export function AlertPreferencesForm({ client, pushStatus, geofencing, onEnableG
   if (load.status === "loading") {
     return (
       <View className="items-center gap-3 py-10">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.brand} />
         <Text className="font-sans text-sm text-muted-foreground">Carregando preferências...</Text>
       </View>
     );
   }
   if (load.status === "error") {
     return (
-      <View className="items-center gap-3 rounded-3xl border border-border bg-card p-5">
+      <View className="items-center gap-3 rounded-3xl border border-border bg-card p-5" style={elevation.card}>
         <Text className="text-center font-sans text-sm text-lost">{load.message}</Text>
         <PrimaryButton title="Tentar de novo" variant="outline" onPress={() => void fetchPrefs()} />
       </View>
@@ -91,16 +90,16 @@ export function AlertPreferencesForm({ client, pushStatus, geofencing, onEnableG
   return (
     <View className="gap-3">
       <Card className="gap-4">
-        <Row icon={<BellRing size={16} color={colors.primary} />} label="Receber alertas de pets por perto">
+        <Row icon={<BellRing size={16} color={colors.brand} />} label="Receber alertas de pets por perto">
           <Switch
             accessibilityLabel="Receber alertas de pets por perto"
             value={enabled}
             onValueChange={setEnabled}
-            trackColor={{ true: colors.primary, false: colors.border }}
+            trackColor={{ true: colors.brand, false: colors.border }}
           />
         </Row>
         <View>
-          <Text className="mb-2 font-nunito-semibold text-xs text-muted-foreground">Raio dos alertas</Text>
+          <Text className="mb-2 font-ui-bold text-[13px] text-foreground">Raio dos alertas</Text>
           <View className="flex-row gap-2">
             {ALERT_RADII_KM.map((km) => (
               <Pressable
@@ -109,25 +108,26 @@ export function AlertPreferencesForm({ client, pushStatus, geofencing, onEnableG
                 accessibilityLabel={`${km} km`}
                 accessibilityState={{ selected: radiusKm === km }}
                 onPress={() => setRadiusKm(km)}
-                className={radiusKm === km ? "flex-1 items-center rounded-xl bg-primary py-2" : "flex-1 items-center rounded-xl bg-muted py-2"}
+                className={radiusKm === km ? "flex-1 items-center justify-center rounded-xl bg-foreground" : "flex-1 items-center justify-center rounded-xl bg-muted"}
+                style={{ minHeight: 44 }}
               >
-                <Text className={radiusKm === km ? "font-nunito-bold text-sm text-white" : "font-nunito-bold text-sm text-muted-foreground"}>
+                <Text className={radiusKm === km ? "font-ui-extrabold text-sm text-white" : "font-ui-bold text-sm text-foreground"}>
                   {km} km
                 </Text>
               </Pressable>
             ))}
           </View>
-          {errors.radiusKm ? <Text className="mt-1 font-nunito-semibold text-xs text-lost">{errors.radiusKm}</Text> : null}
+          {errors.radiusKm ? <Text className="mt-1 font-ui-semibold text-xs text-lost">{errors.radiusKm}</Text> : null}
         </View>
       </Card>
 
       <Card className="gap-3">
-        <Row icon={<Moon size={16} color={colors.accent} />} label="Horário de silêncio">
+        <Row icon={<Moon size={16} color={colors.brand} />} label="Horário de silêncio">
           <Switch
             accessibilityLabel="Horário de silêncio"
             value={quietOn}
             onValueChange={setQuietOn}
-            trackColor={{ true: colors.primary, false: colors.border }}
+            trackColor={{ true: colors.brand, false: colors.border }}
           />
         </Row>
         <Text className="font-sans text-xs text-muted-foreground">
@@ -146,14 +146,14 @@ export function AlertPreferencesForm({ client, pushStatus, geofencing, onEnableG
       </Card>
 
       {message ? (
-        <Text className={message.kind === "ok" ? "text-center font-nunito-semibold text-sm text-found" : "text-center font-nunito-semibold text-sm text-lost"}>
+        <Text className={message.kind === "ok" ? "text-center font-ui-semibold text-sm text-foreground" : "text-center font-ui-semibold text-sm text-lost"}>
           {message.text}
         </Text>
       ) : null}
       <PrimaryButton title="Salvar preferências" onPress={() => void save()} loading={saving} />
 
       <Card className="gap-2">
-        <Row icon={<MapPin size={16} color={colors.accent} />} label="Localização" />
+        <Row icon={<MapPin size={16} color={colors.brand} />} label="Localização" />
         <Text className="font-sans text-xs text-muted-foreground">
           Para avisar sobre pets perto de você, o Miaucha guarda só a sua região aproximada (cerca de 1 km), nunca o ponto exato nem o
           caminho que você faz. A região é atualizada com o app aberto, quando você muda de bairro.
@@ -161,7 +161,7 @@ export function AlertPreferencesForm({ client, pushStatus, geofencing, onEnableG
       </Card>
 
       <Card className="gap-2">
-        <Row icon={<BellRing size={16} color={colors.primary} />} label="Notificações" />
+        <Row icon={<BellRing size={16} color={colors.brand} />} label="Notificações" />
         <Text className="font-sans text-xs text-muted-foreground">{pushStatus ?? "Verificando as notificações..."}</Text>
       </Card>
 
@@ -190,8 +190,8 @@ export function AlertPreferencesForm({ client, pushStatus, geofencing, onEnableG
 function Row({ icon, label, children }: { icon: React.ReactNode; label: string; children?: React.ReactNode }) {
   return (
     <View className="flex-row items-center gap-3">
-      <View className="h-8 w-8 items-center justify-center rounded-xl bg-muted">{icon}</View>
-      <Text className="flex-1 font-nunito-bold text-sm text-foreground">{label}</Text>
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-soft">{icon}</View>
+      <Text className="flex-1 font-ui-extrabold text-base text-foreground">{label}</Text>
       {children}
     </View>
   );

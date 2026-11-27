@@ -47,14 +47,14 @@ export function PinPicker({ value, onChange, center, height = MAP_HEIGHT }: Prop
           {value ? (
             <DraggablePoint testID="pin-picker-marker" coordinate={value} onDragEnd={pick}>
               <View accessibilityLabel="Local marcado">
-                <MapPin size={36} color={colors.white} fill={colors.primary} />
+                <MapPin size={36} color={colors.white} fill={colors.brand} />
               </View>
             </DraggablePoint>
           ) : null}
         </MapCanvas>
       </View>
       <View className="flex-row items-start gap-2">
-        <MapPin size={14} color={colors.accent} />
+        <MapPin size={14} color={colors.brand} />
         <Text className="flex-1 font-sans text-xs text-muted-foreground">
           {value
             ? "Arraste o marcador ou toque no mapa para ajustar o local. Para os outros, o mapa mostra só uma região aproximada (~150 m)."
