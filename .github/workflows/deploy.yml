@@ -89,6 +89,8 @@ jobs:
         env:
           # O eas update não lê o "env" do eas.json: o endereço da API vem da variável do ambiente.
           EXPO_PUBLIC_API_URL: ${{ vars.API_URL }}
+          # Client ID Web do Google (não é segredo). Sem ele, o botão "Continuar com Google" some depois da atualização.
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
           CHANNEL: ${{ vars.EAS_CHANNEL }}
           MESSAGE: ${{ github.event.head_commit.message || github.ref_name }}
         run: |
