@@ -33,6 +33,7 @@ describe("runMigrations", () => {
       "008_more_species.sql",
       "009_sightings.sql",
       "010_photo_confirm_and_alert_kind.sql",
+      "011_login_attempts.sql",
     ]);
   });
 

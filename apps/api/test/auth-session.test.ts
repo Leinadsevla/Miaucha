@@ -57,6 +57,51 @@ describe("POST /auth/login", () => {
   });
 });
 
+describe("POST /auth/login: limite por conta contra força bruta", () => {
+  const LOCKED = "Muitas tentativas de entrar nesta conta. Tente de novo em 15 minutos.";
+  const login = (email: string, password: string, ip: string) =>
+    ctx.http.post("/auth/login").set("X-Forwarded-For", ip).send({ email, password });
+
+  it("5 senhas erradas bloqueiam a conta por 15 min, mesmo vindo de IPs diferentes e com a senha certa depois", async () => {
+    const { email } = await signUpVerified(ctx);
+    for (let i = 0; i < 5; i++) await login(email, "errada123", `198.51.100.${i}`).expect(401);
+    const res = await login(email, PASSWORD, "198.51.100.99").expect(429);
+    expect(res.body.message).toBe(LOCKED);
+  });
+
+  it("e-mail sem conta bloqueia igual (não revela quem tem cadastro)", async () => {
+    const email = uniqueEmail();
+    for (let i = 0; i < 5; i++) await login(email, "errada123", "198.51.100.1").expect(401);
+    expect((await login(email, "errada123", "198.51.100.1").expect(429)).body.message).toBe(LOCKED);
+  });
+
+  it("login certo antes do limite zera a contagem", async () => {
+    const { email } = await signUpVerified(ctx);
+    for (let i = 0; i < 4; i++) await login(email, "errada123", "198.51.100.1").expect(401);
+    await login(email, PASSWORD, "198.51.100.1").expect(200);
+    for (let i = 0; i < 4; i++) await login(email, "errada123", "198.51.100.1").expect(401);
+    await login(email, PASSWORD, "198.51.100.1").expect(200);
+  });
+
+  it("passado o bloqueio, entra de novo; falhas antigas (fora da janela) não contam", async () => {
+    const { email } = await signUpVerified(ctx);
+    for (let i = 0; i < 5; i++) await login(email, "errada123", "198.51.100.1").expect(401);
+    await login(email, PASSWORD, "198.51.100.1").expect(429);
+    await ctx.pool.query(
+      "update login_attempts set locked_until = now() - interval '1 minute', window_start = now() - interval '20 minutes' where email = $1",
+      [email],
+    );
+    await login(email, PASSWORD, "198.51.100.1").expect(200);
+  });
+
+  it("guarda só o e-mail e a contagem (nada de senha ou IP)", async () => {
+    const email = uniqueEmail();
+    await login(email, "errada123", "198.51.100.7").expect(401);
+    const { rows } = await ctx.pool.query("select * from login_attempts where email = $1", [email]);
+    expect(Object.keys(rows[0]).sort()).toEqual(["email", "failures", "locked_until", "window_start"]);
+  });
+});
+
 describe("POST /auth/refresh", () => {
   it("troca o refresh token por um par novo; o antigo deixa de valer", async () => {
     const { body: session } = await signUpVerified(ctx);

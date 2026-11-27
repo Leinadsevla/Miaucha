@@ -1,14 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  GoneException,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, GoneException, HttpException, HttpStatus, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { validateEmailCode, validateLogin, validatePassword, validateSignUp, type LoginInput, type SignUpInput } from "@miaucha/shared";
 import * as argon2 from "argon2";
@@ -25,6 +15,11 @@ import { generateEmailCode, generatePseudonym, generateRefreshToken, hashEmailCo
 export const CODE_TTL_MINUTES = 10;
 export const MAX_CODE_ATTEMPTS = 5;
 export const RESEND_COOLDOWN_SECONDS = 60;
+/** Limite por conta no login (força bruta distribuída por vários IPs). */
+export const MAX_LOGIN_FAILURES = 5;
+export const LOGIN_WINDOW_MINUTES = 15;
+export const LOGIN_LOCK_MINUTES = 15;
+export const LOGIN_LOCKED_MESSAGE = `Muitas tentativas de entrar nesta conta. Tente de novo em ${LOGIN_LOCK_MINUTES} minutos.`;
 
 type UserRow = { id: string; name: string; pseudonym: string; consent_at: Date | null };
 
@@ -108,17 +103,45 @@ export class AuthService {
   async login(input: LoginInput): Promise<Session> {
     const errors = validateLogin(input);
     if (Object.keys(errors).length > 0) invalid(errors);
+    const email = normalizeEmail(input.email);
+
+    // Limite por conta: quem troca de IP não escapa. Bloqueada, nem confere a senha (nem a certa).
+    const locked = await this.pool.query("select 1 from login_attempts where email = $1 and locked_until > now()", [email]);
+    if (locked.rowCount) throw new HttpException(LOGIN_LOCKED_MESSAGE, HttpStatus.TOO_MANY_REQUESTS);
 
     const { rows } = await this.pool.query<UserRow & { password_hash: string | null; verified: boolean }>(
       `select ${USER_COLUMNS}, password_hash, email_verified_at is not null as verified from users where lower(email) = $1`,
-      [normalizeEmail(input.email)],
+      [email],
     );
     const user = rows[0];
     // Sem conta (ou conta só do Google), ainda gasta o tempo de um argon2 para não revelar quem tem cadastro.
     const passwordOk = await argon2.verify(user?.password_hash ?? (await this.dummyHash()), input.password);
-    if (!user?.password_hash || !passwordOk) throw new UnauthorizedException("E-mail ou senha incorretos");
+    if (!user?.password_hash || !passwordOk) {
+      await this.recordLoginFailure(email);
+      throw new UnauthorizedException("E-mail ou senha incorretos");
+    }
+    await this.pool.query("delete from login_attempts where email = $1", [email]);
     if (!user.verified) throw new ForbiddenException("Confirme seu e-mail para entrar");
     return this.issueSession(user);
+  }
+
+  /**
+   * Conta uma senha errada para o e-mail. A contagem vale por LOGIN_WINDOW_MINUTES; ao chegar em
+   * MAX_LOGIN_FAILURES, a conta fica bloqueada por LOGIN_LOCK_MINUTES. Um único upsert (sem corrida).
+   */
+  private async recordLoginFailure(email: string): Promise<void> {
+    await this.pool.query(
+      `insert into login_attempts as a (email, failures, window_start, locked_until)
+       values ($1, 1, now(), case when 1 >= $3 then now() + make_interval(mins => $4) end)
+       on conflict (email) do update set
+         failures = case when a.window_start < now() - make_interval(mins => $2) then 1 else a.failures + 1 end,
+         window_start = case when a.window_start < now() - make_interval(mins => $2) then now() else a.window_start end,
+         locked_until = case
+           when (case when a.window_start < now() - make_interval(mins => $2) then 1 else a.failures + 1 end) >= $3
+             then now() + make_interval(mins => $4)
+           else a.locked_until end`,
+      [email, LOGIN_WINDOW_MINUTES, MAX_LOGIN_FAILURES, LOGIN_LOCK_MINUTES],
+    );
   }
 
   /** Entra pelo `sub` do Google; senão liga à conta com o mesmo e-mail; senão cria uma conta nova. */
