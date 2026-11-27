@@ -123,6 +123,12 @@ describe("createHttpOccurrencesClient", () => {
     expect(calls[2]).toMatchObject({ method: "DELETE", path: "/occurrences/o1/photos/f1" });
   });
 
+  it("remove faz DELETE da ocorrência", async () => {
+    const { client, calls } = setup({ "DELETE /occurrences/o1": () => ({ status: 204 }) });
+    await client.remove("o1");
+    expect(calls[0]).toMatchObject({ method: "DELETE", path: "/occurrences/o1" });
+  });
+
   it("erro da API chega com a mensagem dela", async () => {
     const { client } = setup({ "POST /occurrences": () => ({ status: 400, body: { message: "x", errors: { petName: "Informe o nome do pet" } } }) });
     await expect(client.create(input)).rejects.toThrow("Informe o nome do pet");
@@ -138,6 +144,7 @@ function fakeClient(failOn: string[] = []): OccurrencesClient & { added: string[
     get: async () => thor,
     listMine: async () => [],
     resolve: async () => thor,
+    remove: async () => {},
     create: async () => thor,
     update: async () => thor,
     removePhoto: async (_id, photoId) => {
@@ -224,6 +231,15 @@ describe("createMockOccurrencesClient", () => {
     const client = createMockOccurrencesClient();
     const found = await client.inArea({ bbox: { minLng: 9.9, minLat: 9.9, maxLng: 10.1, maxLat: 10.1 } });
     expect(found.length).toBeGreaterThan(0);
+  });
+
+  it("remove apaga a ocorrência: some da busca, de \"minhas\" e do detalhe", async () => {
+    const client = createMockOccurrencesClient({ seed: false });
+    const created = await client.create(input);
+    await client.remove(created.id);
+    expect(await client.nearby({ lat: input.lat, lng: input.lng, radiusKm: 1 })).toEqual([]);
+    expect(await client.listMine()).toEqual([]);
+    await expect(client.get(created.id)).rejects.toThrow("Ocorrência não encontrada");
   });
 
   it("get de id desconhecido → erro", async () => {

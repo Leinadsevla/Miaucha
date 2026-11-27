@@ -267,6 +267,31 @@ export class OccurrencesService {
     return this.findPublic(authorId, id);
   }
 
+  /**
+   * Apaga a ocorrência do autor (aberta ou resolvida). Fotos, chats e alertas dela saem junto (cascade).
+   * Os arquivos saem do storage depois do commit, menos os que o cadastro do pet ou outra ocorrência ainda usam.
+   */
+  async remove(authorId: string, id: string): Promise<void> {
+    if (!UUID_RE.test(id)) throw notFound();
+    const keys = await transaction(this.pool, async (client) => {
+      const { rows: found } = await client.query("select 1 from occurrences where id = $1 and author_id = $2 for update", [id, authorId]);
+      if (!found[0]) throw notFound();
+      const { rows } = await client.query<{ object_key: string }>(
+        `select ph.object_key from occurrence_photos ph
+          where ph.occurrence_id = $1
+            and not exists (select 1 from pet_photos pp where pp.object_key = ph.object_key)
+            and not exists (select 1 from occurrence_photos op where op.object_key = ph.object_key and op.occurrence_id <> $1)
+         union
+         select cp.object_key from chat_photos cp join conversations c on c.id = cp.conversation_id where c.occurrence_id = $1`,
+        [id],
+      );
+      await client.query("delete from occurrences where id = $1", [id]);
+      return rows.map((r) => r.object_key);
+    });
+    // Falha no storage não desfaz a exclusão: o arquivo fica órfão, mas sem nenhuma URL que o assine.
+    await Promise.allSettled(keys.map((key) => this.storage.delete(key)));
+  }
+
   requestUpload(authorId: string, id: string, contentType: string) {
     return this.photos.requestUpload(authorId, id, contentType);
   }

@@ -70,6 +70,12 @@ export class OccurrencesController {
     return this.occurrences.findPublic(userId, id);
   }
 
+  @Delete("occurrences/:id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@CurrentUserId() userId: string, @Param("id") id: string) {
+    await this.occurrences.remove(userId, id);
+  }
+
   @Post("occurrences/:id/resolve")
   @HttpCode(HttpStatus.OK)
   resolve(@CurrentUserId() userId: string, @Param("id") id: string) {
