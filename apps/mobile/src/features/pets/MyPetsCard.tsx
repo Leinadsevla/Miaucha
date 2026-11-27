@@ -26,7 +26,7 @@ export function MyPetsCard({ pets, error, onAdd, onOpen }: Props) {
           style={({ pressed }) => ({ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 12, opacity: pressed ? 0.6 : 1 })}
         >
           <Plus size={16} color={colors.brand} strokeWidth={2.6} />
-          <Text className="font-ui-bold text-sm text-brand">Adicionar</Text>
+          <Text className="font-ui-bold text-sm text-brand-deep">Adicionar</Text>
         </Pressable>
       </View>
 

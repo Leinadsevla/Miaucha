@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { ChevronRight, CloudOff, Map as MapIcon, Plus, Radar, SearchX } from "lucide-react-native";
-import { SEARCH_RADIUS_OPTIONS_KM, colors, elevation, withAlpha, type PublicOccurrence } from "@miaucha/shared";
+import { SEARCH_RADIUS_OPTIONS_KM, colors, elevation, type PublicOccurrence } from "@miaucha/shared";
 import { EmptyState, FilterChips, PetCard, Skeleton, TabHeader } from "@/components";
 import type { GetLocation, LocationResult } from "@/features/location/currentLocation";
 import { LocationProblem } from "@/features/location/LocationProblem";
@@ -188,25 +188,25 @@ function NearbyList({
         gap: 6,
         borderRadius: 12,
         paddingHorizontal: 14,
-        backgroundColor: pressed || hovered ? colors.brandSoft : colors.white,
+        backgroundColor: pressed || hovered ? colors.brandTint : colors.white,
       })}
     >
       <MapIcon size={16} color={colors.brand} />
-      <Text className="font-ui-bold text-sm text-brand">Ver no mapa</Text>
+      <Text className="font-ui-bold text-sm text-brand-deep">Ver no mapa</Text>
       <ChevronRight size={16} color={colors.brand} />
     </Pressable>
   ) : null;
   return (
     <>
-      {/* O destaque da tela: o único bloco na cor da marca. */}
-      <View className="rounded-[20px] bg-brand p-5" style={wide ? { flexDirection: "row", alignItems: "center", gap: 16 } : { gap: 16 }}>
+      {/* Resumo logo abaixo da faixa laranja: fundo claro da marca, para não repetir o laranja forte. */}
+      <View className="rounded-[20px] border border-brand-tint bg-brand-soft p-5" style={wide ? { flexDirection: "row", alignItems: "center", gap: 16 } : { gap: 16 }}>
         <View className="flex-1 flex-row items-center gap-3.5">
-          <View className="h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: withAlpha(colors.white, 0.16) }}>
-            <Radar size={24} color={colors.white} />
+          <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white">
+            <Radar size={24} color={colors.brand} />
           </View>
           <View className="flex-1">
-            <Text className="font-ui-extrabold text-lg tracking-tight text-white">{lostNearbyLabel(lost)}</Text>
-            <Text className="mt-0.5 font-ui-medium text-sm text-white">Raio de {radiusKm} km</Text>
+            <Text className="font-ui-extrabold text-lg tracking-tight text-foreground">{lostNearbyLabel(lost)}</Text>
+            <Text className="mt-0.5 font-ui-medium text-sm text-brand-deep">Raio de {radiusKm} km</Text>
           </View>
         </View>
         {openMap}

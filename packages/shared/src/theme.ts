@@ -1,8 +1,8 @@
 export const colors = {
-  /** Cor da marca: laranja queimado. Texto branco sobre ela tem 5:1; ela como texto sobre branco também. */
-  brand: "#C4450A",
-  /** Marca mais funda: botão com o mouse em cima ou pressionado, texto sobre o fundo suave. */
-  brandDeep: "#9E3607",
+  /** Cor da marca: o laranja original do Miaucha (faixas dos cabeçalhos, abas e ícones ativos, destaques). */
+  brand: "#FF8A3D",
+  /** Laranja de texto (links, botão suave): o `brand` como texto pequeno não passa no contraste AA. */
+  brandDeep: "#A84A0E",
   /** Fundo suave da marca (item ativo, ícones, destaques) e o tom logo acima dele (borda, pressionado). */
   brandSoft: "#FFF1E7",
   brandTint: "#FFE1CC",
@@ -60,13 +60,14 @@ export const BUTTON_VARIANTS = ["brand", "soft", "outline"] as const;
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 
 /**
- * Cores dos botões. `brand`: ação principal (cor da marca, texto branco). `soft`: ação de apoio (fundo
+ * Cores dos botões. `brand`: ação principal (azul, texto branco). `soft`: ação de apoio (fundo
  * suave da marca). `outline`: ação neutra. `hover`: mouse em cima (web).
  */
 type ButtonColors = { background: string; hover: string; pressed: string; text: string };
 
 const BUTTON_COLORS: Record<ButtonVariant, ButtonColors> = {
-  brand: { background: colors.brand, hover: colors.brandDeep, pressed: colors.brandDeep, text: colors.white },
+  // Ação principal em azul, como no visual original: branco sobre o laranja da marca não passa no AA.
+  brand: { background: colors.accent, hover: colors.accentDeep, pressed: colors.accentDeep, text: colors.white },
   soft: { background: colors.brandSoft, hover: colors.brandTint, pressed: colors.brandTint, text: colors.brandDeep },
   outline: { background: colors.white, hover: colors.muted, pressed: colors.muted, text: colors.foreground },
 };

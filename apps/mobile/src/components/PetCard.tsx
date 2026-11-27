@@ -51,7 +51,7 @@ export function PetCard({ occurrence: o, distanceMeters = o.distanceMeters, now 
             {name}
           </Text>
           {distanceMeters !== undefined ? (
-            <Text className="font-ui-semibold text-xs text-brand">{formatDistance(distanceMeters)}</Text>
+            <Text className="font-ui-semibold text-xs text-brand-deep">{formatDistance(distanceMeters)}</Text>
           ) : null}
         </View>
         <Text testID="pet-card-breed" numberOfLines={1} className="mt-0.5 font-sans text-sm text-muted-foreground">

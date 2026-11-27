@@ -11,7 +11,7 @@ export function TextLink({ label, onPress, disabled, tone = "muted" }: { label: 
       onPress={onPress}
       style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 12, alignItems: "center", justifyContent: "center", opacity: disabled ? 0.5 : pressed ? 0.6 : 1 })}
     >
-      <Text className={tone === "brand" ? "font-ui-bold text-sm text-brand" : "font-ui-semibold text-sm text-muted-foreground"}>{label}</Text>
+      <Text className={tone === "brand" ? "font-ui-bold text-sm text-brand-deep" : "font-ui-semibold text-sm text-muted-foreground"}>{label}</Text>
     </Pressable>
   );
 }

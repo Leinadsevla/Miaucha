@@ -199,7 +199,7 @@ export function MapScreen({ getLocation, client, cache, onOpen, onDirections, on
               onPress={() => void loader.refresh()}
               style={({ pressed }) => ({ minHeight: 44, justifyContent: "center", paddingHorizontal: 8, opacity: pressed ? 0.6 : 1 })}
             >
-              <Text className="font-ui-bold text-sm text-brand">Tentar de novo</Text>
+              <Text className="font-ui-bold text-sm text-brand-deep">Tentar de novo</Text>
             </Pressable>
           </View>
         ) : null}

@@ -1,14 +1,15 @@
 import { buttonColors, BUTTON_VARIANTS, colors, contrastRatio, elevation, fonts, occurrenceStyle, OCCURRENCE_TYPES, overlay, withAlpha } from "../theme";
 
 describe("tokens do design", () => {
-  it("a cor da marca é um laranja queimado: texto branco sobre ela e ela como texto passam no AA (4,5:1)", () => {
-    expect(contrastRatio(colors.brand, colors.white)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(colors.brand, colors.brandSoft)).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(colors.brandDeep, colors.white)).toBeGreaterThan(contrastRatio(colors.brand, colors.white));
+  it("a cor da marca é o laranja original #FF8A3D; o laranja de texto (brandDeep) passa no AA", () => {
+    expect(colors.brand).toBe("#FF8A3D");
+    for (const surface of [colors.white, colors.brandSoft, colors.brandTint]) {
+      expect(contrastRatio(colors.brandDeep, surface)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
-  it("não existe mais o laranja saturado de fundo nem degradê", () => {
-    for (const gone of ["primary", "primaryDeep", "primarySoft", "cta", "ctaDeep"]) expect(colors).not.toHaveProperty(gone);
+  it("texto escuro sobre o laranja da marca é legível (faixas e selos com fundo laranja)", () => {
+    expect(contrastRatio(colors.brand, colors.foreground)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("fundos claros (app, creme, suave da marca) aceitam o texto do app e o texto secundário", () => {
@@ -95,8 +96,8 @@ describe("botões (contraste AA)", () => {
     }
   });
 
-  it("o botão principal é a cor da marca com texto branco, sem degradê", () => {
-    expect(buttonColors("brand")).toEqual({ background: colors.brand, hover: colors.brandDeep, pressed: colors.brandDeep, text: colors.white });
+  it("o botão principal é azul com texto branco, como no visual original (branco sobre o laranja não passa no AA)", () => {
+    expect(buttonColors("brand")).toEqual({ background: colors.accent, hover: colors.accentDeep, pressed: colors.accentDeep, text: colors.white });
   });
 
   it("toda variante tem tons diferentes para mouse em cima e pressionado", () => {

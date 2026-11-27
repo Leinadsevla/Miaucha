@@ -280,7 +280,7 @@ export function ConversationScreen({ conversationId, client, realtime, onBack, o
               {loadingOlder ? (
                 <ActivityIndicator color={colors.brand} />
               ) : (
-                <Text className="font-ui-bold text-sm text-brand">Carregar mensagens anteriores</Text>
+                <Text className="font-ui-bold text-sm text-brand-deep">Carregar mensagens anteriores</Text>
               )}
             </Pressable>
           ) : undefined

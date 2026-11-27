@@ -30,7 +30,7 @@ export function AuthPreview() {
         <View className="p-3.5">
           <View className="flex-row items-center justify-between">
             <Text className="font-ui-bold text-base text-foreground">Thor</Text>
-            <Text className="font-ui-semibold text-xs text-brand">300 m</Text>
+            <Text className="font-ui-semibold text-xs text-brand-deep">300 m</Text>
           </View>
           <Text className="mt-0.5 font-sans text-sm text-muted-foreground">Golden Retriever</Text>
           <View className="mt-2 flex-row items-center gap-1.5">
