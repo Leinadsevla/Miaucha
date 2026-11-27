@@ -22,6 +22,8 @@ export type OccurrencesClient = {
   create(input: OccurrenceInput): Promise<PublicOccurrence>;
   addPhoto(id: string, photo: PickedPhoto): Promise<OccurrencePhoto>;
   resolve(id: string): Promise<PublicOccurrence>;
+  /** Apaga a ocorrência do autor (com fotos e chats dela). */
+  remove(id: string): Promise<void>;
   /** Edição pelo autor; `location` só quando há um local novo. */
   update(id: string, input: OccurrenceUpdate): Promise<PublicOccurrence>;
   removePhoto(id: string, photoId: string): Promise<void>;
@@ -45,6 +47,7 @@ export function createHttpOccurrencesClient({ session, upload }: { session: ApiS
     resolve: (id) => session.authed<PublicOccurrence>("POST", `/occurrences/${encodeURIComponent(id)}/resolve`),
     update: (id, { location, ...data }) =>
       session.authed<PublicOccurrence>("PATCH", `/occurrences/${encodeURIComponent(id)}`, { ...data, ...(location ?? {}) }),
+    remove: (id) => session.authed<void>("DELETE", `/occurrences/${encodeURIComponent(id)}`),
     removePhoto: async (id, photoId) =>
       void (await session.authed("DELETE", `/occurrences/${encodeURIComponent(id)}/photos/${encodeURIComponent(photoId)}`)),
   };
@@ -114,6 +117,7 @@ function sampleOccurrences(lat: number, lng: number, photo: PhotoOf): PublicOccu
 export function createMockOccurrencesClient({ seed = true, photo = demoPhotoUri }: { seed?: boolean; photo?: PhotoOf } = {}): OccurrencesClient {
   const items: PublicOccurrence[] = [];
   let seeded = !seed;
+  let lastId = 0;
   const seedAround = (lat: number, lng: number) => {
     if (seeded) return;
     items.push(...sampleOccurrences(lat, lng, photo));
@@ -146,7 +150,7 @@ export function createMockOccurrencesClient({ seed = true, photo = demoPhotoUri 
     listMine: async () => items.filter((o) => o.isMine).reverse(),
     async create(input) {
       const created: PublicOccurrence = {
-        id: `dev-${items.length + 1}`,
+        id: `dev-${++lastId}`,
         type: input.type,
         species: input.species,
         petName: input.petName.trim() || null,
@@ -174,6 +178,9 @@ export function createMockOccurrencesClient({ seed = true, photo = demoPhotoUri 
     async resolve(id) {
       find(id).status = "resolved";
       return find(id);
+    },
+    async remove(id) {
+      items.splice(items.indexOf(find(id)), 1);
     },
     async update(id, { location, ...data }) {
       const o = find(id);

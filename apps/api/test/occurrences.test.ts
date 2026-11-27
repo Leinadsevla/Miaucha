@@ -47,6 +47,7 @@ async function tutor() {
     get: (id: string) => ctx.http.get(`/occurrences/${id}`).set(auth),
     mine: async () => (await ctx.http.get("/me/occurrences").set(auth).expect(200)).body as PublicOccurrence[],
     resolve: (id: string) => ctx.http.post(`/occurrences/${id}/resolve`).set(auth).send(),
+    remove: (id: string) => ctx.http.delete(`/occurrences/${id}`).set(auth),
     edit: (id: string, data: object) => ctx.http.patch(`/occurrences/${id}`).set(auth).send(data),
     removePhoto: (id: string, photoId: string) => ctx.http.delete(`/occurrences/${id}/photos/${photoId}`).set(auth),
     requestUpload: (id: string, contentType = "image/jpeg") => ctx.http.post(`/occurrences/${id}/photos`).set(auth).send({ contentType }),
@@ -440,6 +441,72 @@ describe("POST /occurrences/:id/resolve", () => {
     await bia.resolve(o.id).expect(404);
     await bia.resolve("nao-e-uuid").expect(404);
     expect((await ana.get(o.id).expect(200)).body.status).toBe("open");
+  });
+});
+
+describe("DELETE /occurrences/:id (apagar)", () => {
+  it("o autor apaga: some do detalhe, da busca e de \"minhas ocorrências\"; as fotos saem do storage", async () => {
+    const t = await tutor();
+    const spot = uniqueSpot();
+    const o = await t.create(spot);
+    await addPhoto(t, o.id);
+    const photoUrl = ((await t.get(o.id).expect(200)).body as PublicOccurrence).photoUrls[0];
+
+    await t.remove(o.id).expect(204);
+
+    await t.get(o.id).expect(404);
+    expect(ids(await t.search({ lat: spot.lat, lng: spot.lng, radiusKm: 1 }))).not.toContain(o.id);
+    expect(ids(await t.mine())).not.toContain(o.id);
+    expect((await fetch(photoUrl)).status).toBe(404);
+    await t.remove(o.id).expect(404);
+  });
+
+  it("apaga também os chats e os alertas da ocorrência", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const o = await ana.create(uniqueSpot());
+    await ctx.http.post("/conversations").set(bia.auth).send({ occurrenceId: o.id }).expect(200);
+
+    await ana.remove(o.id).expect(204);
+
+    const { rows } = await ctx.pool.query(
+      "select (select count(*) from conversations where occurrence_id = $1)::int as chats, (select count(*) from alerts where occurrence_id = $1)::int as alerts",
+      [o.id],
+    );
+    expect(rows[0]).toEqual({ chats: 0, alerts: 0 });
+    expect((await ctx.http.get("/conversations").set(bia.auth).expect(200)).body).toEqual([]);
+  });
+
+  it("funciona também depois de resolvida", async () => {
+    const t = await tutor();
+    const o = await t.create(uniqueSpot());
+    await t.resolve(o.id).expect(200);
+    await t.remove(o.id).expect(204);
+    await t.get(o.id).expect(404);
+  });
+
+  it("outro usuário, inexistente ou id inválido → 404, e a ocorrência continua lá", async () => {
+    const ana = await tutor();
+    const bia = await tutor();
+    const o = await ana.create(uniqueSpot());
+    await bia.remove(o.id).expect(404);
+    await bia.remove("00000000-0000-4000-8000-000000000000").expect(404);
+    await bia.remove("nao-e-uuid").expect(404);
+    await ana.get(o.id).expect(200);
+  });
+
+  it("apagar uma ocorrência que veio do pet não apaga a foto do pet", async () => {
+    const t = await tutor();
+    const pet = (await ctx.http.post("/pets").set(t.auth).send({ name: "Mia", species: "cat" }).expect(201)).body;
+    const req = await ctx.http.post(`/pets/${pet.id}/photos`).set(t.auth).send({ contentType: "image/jpeg" }).expect(201);
+    await put(req.body.uploadUrl, jpeg);
+    await ctx.http.post(`/pets/${pet.id}/photos/${req.body.photoId}/confirm`).set(t.auth).send().expect(200);
+    const o = (await ctx.http.post("/occurrences").set(t.auth).send({ type: "lost", petId: pet.id, ...uniqueSpot() }).expect(201))
+      .body as PublicOccurrence;
+
+    await t.remove(o.id).expect(204);
+    const petNow = (await ctx.http.get(`/pets/${pet.id}`).set(t.auth).expect(200)).body;
+    expect(Buffer.from(await (await fetch(petNow.photos[0].url)).arrayBuffer())).toEqual(jpeg);
   });
 });
 

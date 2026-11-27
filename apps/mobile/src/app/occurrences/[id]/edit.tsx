@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type OccurrenceUpdate, type PublicOccurrence } from "@miaucha/shared";
 import { KeyboardScreen, ScreenHeader } from "@/components";
 import { geocodeAddress, getCurrentLocation, type LocationResult } from "@/features/location";
-import { OccurrenceForm, occurrenceTitle, updateOccurrence, useOccurrencesClient } from "@/features/occurrences";
+import { OccurrenceForm, OccurrenceManageActions, occurrenceTitle, updateOccurrence, useOccurrencesClient } from "@/features/occurrences";
 import { createPhotoPicker, type PickedPhoto } from "@/features/pets";
 import { showAlert } from "@/lib/dialog";
 import { openAppSettings } from "@/lib/settings";
@@ -22,6 +22,8 @@ export default function EditOccurrence() {
   const [location, setLocation] = useState<LocationResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [managing, setManaging] = useState<"resolve" | "delete">();
+  const [manageError, setManageError] = useState<string>();
 
   const locate = useCallback(() => {
     setLocation(null);
@@ -46,6 +48,34 @@ export default function EditOccurrence() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /** Confirma e roda "resolver" ou "apagar"; depois volta para a lista (a ocorrência saiu de lá). */
+  function manage(action: "resolve" | "delete") {
+    const texts =
+      action === "resolve"
+        ? { title: "Marcar como resolvida?", message: "A ocorrência sai do mapa e da lista e não pode mais ser editada.", button: "Marcar como resolvida" }
+        : { title: "Apagar ocorrência?", message: "Ela some de vez, com as fotos e as conversas. Não dá para desfazer.", button: "Apagar" };
+    showAlert(texts.title, texts.message, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: texts.button,
+        style: action === "delete" ? "destructive" : "default",
+        onPress: async () => {
+          setManaging(action);
+          setManageError(undefined);
+          try {
+            if (action === "resolve") await client.resolve(id);
+            else await client.remove(id);
+            router.dismissTo("/");
+          } catch (e) {
+            setManageError(e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
+          } finally {
+            setManaging(undefined);
+          }
+        },
+      },
+    ]);
   }
 
   return (
@@ -73,6 +103,13 @@ export default function EditOccurrence() {
             onGeocode={(address) => geocodeAddress(address, location?.status === "ok" ? location.coords : null)}
             loading={busy}
             serverError={error}
+          />
+          <OccurrenceManageActions
+            resolved={occurrence.status === "resolved"}
+            onResolve={() => manage("resolve")}
+            onDelete={() => manage("delete")}
+            busy={managing}
+            error={manageError}
           />
         </KeyboardScreen>
       ) : (

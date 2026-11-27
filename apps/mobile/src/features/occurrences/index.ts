@@ -4,3 +4,4 @@ export * from "./OccurrenceDetails";
 export * from "./OccurrenceForm";
 export * from "./OccurrencesContext";
 export * from "./occurrencesClient";
+export * from "./OccurrenceManageActions";
